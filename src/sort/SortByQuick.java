@@ -14,7 +14,7 @@ import java.util.Arrays;
 public class SortByQuick {
      public static void main(String[] args) {
     	 int[] top = new int[] {5,20,8,3,17,24,38,7};
-    	 quickSort(top, 0, top.length-1);
+    	 quickTest(top, 0, top.length-1);
     	 System.out.println(Arrays.toString(top));
 	}
      
@@ -55,6 +55,41 @@ public class SortByQuick {
          quickSort(arr, low, j-1);
          //递归调用右半数组
          quickSort(arr, j+1, high);
+     }
+     
+     
+     
+     
+     //自测 
+     public static void quickTest(int[] array,int low ,int high) {
+    	 
+    	 if(low > high){
+             return;
+         }
+    	 int tmp = array[low];
+    	 int i = low;
+    	 int j = high;
+    	 int t ;
+    	 
+    	 while(i < j) {
+    		 while(tmp<=array[j] && i<j) {
+    			 j--;
+    		 }
+    		 while(tmp>=array[i] && i<j) {
+    			 i++;
+    		 }
+    		 if(i<j) {
+    			t = array[j];
+    			array[j] = array[i];
+    			array[i] = t;
+    		 }
+    	 }
+    	 
+    	 array[low] = array[j];
+    	 array[j] = tmp;
+    	 
+    	 quickTest(array, low, i-1);
+    	 quickTest(array, i+1, high);
      }
 
 }
