@@ -42,13 +42,13 @@
 	O(1) < O(logn) < (n) < O(nlogn) < O(n^2) < O(n^3) < O(2^n) < O(n!) < O(n^n)
 		
 4、
-	总结：
-		1. Java有几种设计模式，各有什么优缺点，适合什么场景。
+	总结： 
+		1. Java有几种设计模式，各有什么优缺点，适合什么场景。  √
 		2. 怎样在命令行输入一个hadoop命令，调试这个命令的执行情况。
 		3. hadoop是怎样实现文件的 put 和 get 操作的。
-		4、spring的aop和设计
-
-		5、代理
+		4、spring的aop和设计  √
+		5、代理    √
+		6、rpc
 
 5、abstract
 	-、抽象（abstract）的使用
