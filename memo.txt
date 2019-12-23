@@ -1,0 +1,1690 @@
+1、lsb_release -a
+cat /etc/redhat-release	
+
+2、
+ssh-keygen -t rsa     #在ambari-server生成密钥对
+for num in `seq 1 3`;do ssh-copy-id -i /root/.ssh/id_rsa.pub root@hadoop-$num;done
+
+	1.每台依次执行ssh-keygen, 
+	2.cat id_rsa.pub >>authorized_keys
+	3.scp /root/.ssh/authorized_keys  root@10.0.24.111:/root/.ssh/authorized_keys
+	4.循环执行2,3直至其中一台有全部主机的authorized_keys，最后分发此authorized_keys至所有主机。
+
+3、 root/5678@lstech.com
+	http://10.0.40.203/zentao  wangyingnan/wangyingnan123
+
+1、权限没有问题，版本也正确（centOS-7.2 ）
+2、核实配置如下。	
+	
+主机	内存(g)	系统盘(g)+数据盘(g)	
+10.0.24.105	62	50+550
+10.0.24.106	62	50+550
+10.0.24.107	32	50+500
+10.0.24.110	32	50+500
+10.0.24.111	32	50+500
+
+4、hostnamectl set-hostname  lyzk01
+
+5、hosts文件
+
+10.0.24.105	lymaster01
+10.0.24.106	lymaster02
+10.0.24.107	lyzk01	lymysql01	kettle
+10.0.24.110	lyzk02	lyambari	lymysql02	lyweb01
+10.0.24.111	lyzk03	nginx lyweb02
+
+6、ntp
+systemctl is-enabled ntpd;
+systemctl enable ntpd;
+systemctl start ntpd
+
+7、
+systemctl disable firewalld;
+systemctl stop firewalld;
+systemctl status firewalld;
+
+8、/opt/jdk1.8.0_221
+export JAVA_HOME=/opt/jdk1.8.0_221
+export CLASSPATH=$JAVA_HOME/lib/
+export PATH=$PATH:$JAVA_HOME/bin
+export PATH JAVA_HOME CLASSPATH
+
+
+export JAVA_HOME=/opt/jdk1.8.0_221
+export JAVA_BIN=/opt/jdk1.8.0_221/bin
+export CLASSPATH=.:$JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar
+export PATH=$PATH:$JAVA_HOME/bin
+9.
+
+net.ipv6.conf.all.disable_ipv6=1
+net.ipv6.conf.default.disable_ipv6=1
+
+
+10、安装kettle ，用户lyadmin/lyadmin123 （lyzk01 ，vnc暂无   ==>  开启lyzk02和lyzk03）
+    -、根目录  /opt/data-integration
+	-、安装vncServer
+	1-、提示安装 libwebkitgtk-1_0-0-2.4.10-7.2.x86_64.rpm  （/opt/kettle_need）
+		-、下载对应rpm依赖（或者卸载多余的依赖）
+			地址：http://rpmfind.net/linux/rpm2html/search.php?query=libwebp.so.5%28%29%2864bit%29&submit=Search+...&system=&arch=
+		-、安装对应以来即可。
+			资料参考：https://blog.csdn.net/m0_37618809/article/details/81015492
+		-、cd /opt/kettle_need
+		rpm -ivh timezone-2018d-48.1.x86_64.rpm --force
+		rpm -e --nodeps libicu-50.1.2-15.el7.x86_64
+		rpm -ivh libwebp5-0.4.3-7.1.x86_64.rpm
+		rpm -ivh libpng16-16-1.6.8-10.1.x86_64.rpm
+		rpm -ivh libjpeg8-8.1.2-38.1.x86_64.rpm
+		rpm -ivh libicu52_1-data-52.1-15.1.x86_64.rpm
+		rpm -ivh libicu52_1-52.1-15.1.x86_64.rpm		
+		rpm -ivh libjavascriptcoregtk-1_0-0-2.4.10-7.2.x86_64.rpm
+		rpm -ivh geoclue-0.12.99-7.el7.x86_64.rpm
+		rpm -ivh libwebkitgtk-1_0-0-2.4.10-7.2.x86_64.rpm
+
+-、解决kettle连接hdfs（HA），手动切换主机ip问题。
+1、windows主机hosts文件，添加映射
+10.0.24.105 mycluster
+10.0.24.106 mycluster
+2、kettle连接hdfs时，设置hostname=mycluster， 即可解决hdfs双主切换问题。
+
+11、mysql 
+-、
+root/lymysql123
+lymysql/lymysql
+ambari/Ambari-123	
+hive/Hive-123
+
+-、lyzk01主机mysql驱动下载失败:yum install mysql-connector-java
+-、mysql-bin.000001 |      154 |
+
+CHANGE MASTER TO MASTER_HOST='10.0.24.110', MASTER_USER='repl', MASTER_PASSWORD='Zxt1234!', MASTER_LOG_FILE='mysql-bin.000001',MASTER_LOG_POS=154;
+CHANGE MASTER TO MASTER_HOST='10.0.24.107', MASTER_USER='repl', MASTER_PASSWORD='Zxt1234!', MASTER_LOG_FILE='mysql-bin.000001',MASTER_LOG_POS=154;
+
+	
+增删改查权限:
+GRANT Select,Update,insert,delete ON *.* TO 'lymysql'@"%"  IDENTIFIED BY "lymysql";
+FLUSH PRIVILEGES;
+
+
+create database oozie character set utf8 ;  
+CREATE USER 'oozie'@'%'IDENTIFIED BY 'Oozie-123';
+GRANT ALL PRIVILEGES ON *.* TO 'oozie'@'%';
+FLUSH PRIVILEGES;
+
+
+
+12、ambari 数据源repo文件
+
+#VERSION_NUMBER=2.4.2.0-136
+[Updates-ambari-2.4.2.0]
+name=ambari-2.4.2.0 - Updates
+baseurl=http://10.0.24.110/ambari/AMBARI-2.4.2.0/centos7/2.4.2.0-136/
+gpgcheck=1
+gpgkey=http://10.0.24.110/ambari/AMBARI-2.4.2.0/centos7/2.4.2.0-136/RPM-GPG-KEY/RPM-GPG-KEY-Jenkins
+enabled=1
+priority=1
+
+
+#VERSION_NUMBER=2.5.3.0-37
+[HDP-2.5.3.0]
+name=HDP Version - HDP-2.5.3.0
+baseurl=http://10.0.24.110/ambari/HDP/centos7/
+gpgcheck=1
+gpgkey=http://10.0.24.110/ambari/HDP/centos7/RPM-GPG-KEY/RPM-GPG-KEY-Jenkins
+enabled=1
+priority=1
+[HDP-UTILS-1.1.0.21]
+name=HDP-UTILS Version - HDP-UTILS-1.1.0.21
+baseurl=http://10.0.24.110/ambari/HDP-UTILS-1.1.0.21/
+gpgcheck=1
+gpgkey=http://10.0.24.110/ambari/HDP-UTILS-1.1.0.21/RPM-GPG-KEY/RPM-GPG-KEY-Jenkins
+enabled=1
+priority=1
+
+
+yum clean all
+yum list update
+yum makecache
+yum repolist
+
+10.0.24.110
+
+vi  /etc/ambari-agent/conf/ambari-agent.ini 
+
+
+12、lybigdata  = clusterName
+
+host文件：
+lymaster01
+lymaster02
+lyzk01
+lyzk02
+lyzk03
+
+amari-agent手动注册：
+	1.每台都安装
+	2.并启动agent查看日志是否注册正常
+	
+	
+13、yum 提示 Cannot find a valid baseurl for repo: base/7/x86_64
+mv CentOS-Base.repo CentOS-Base.repo.bak
+ vi /etc/sysconfig/network-scripts/ifcfg-eno16777984
+
+
+mysql-community-server
+
+CREATE  TABLE IF NOT EXISTS `test_1` (
+`id` string COMMENT 'id',
+`name` string )
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t';
+
+14、 
+	-、linux账号
+		root/5678@lstech.com
+		lyadmin/lyadmin123
+		王英楠	  wangyingnan/wangyingnan123
+		曾茂泉	  zengmaoquan/zengmaoquan123
+		钟海	  zhonghai/zhonghai123
+		周健	  zhoujian/zhoujian123
+	-、hive权限问题  jane.zhou1
+			hadoop fs -mkdir /user/wang.ying.nan
+		 	hadoop fs -chown -R wang.ying.nan:hdfs /user/wang.ying.nan
+			
+			hadoop fs -mkdir /user/zhong.hai
+		 	hadoop fs -chown -R zhong.hai:hdfs /user/zhong.hai
+			
+			hadoop fs -mkdir /user/jane.zhou1
+			hadoop fs -chown -R jane.zhou1:hdfs /user/jane.zhou1
+	-、ambari 
+		admin	  admin/pCWldx0zqo
+		普通用户  lyambari/lyambari
+
+
+15、nginx启动和配置
+
+安装目录:/usr/local/src/zip/nginx-1.10.2
+/usr/local/nginx/sbin/nginx -s reload
+
+配置目录：/usr/local/nginx/
+
+加密：
+htpasswd -c /usr/local/src/zip/nginx-1.10.2/conf/conf.d/htpasswd lynginx
+
+
+17、
+启动vncServer：
+	vncserver :1
+连接密码：lytechvnc   
+
+堡垒机vnc port ： 5899 5900
+
+修改默认端口： vim /usr/bin/vncserver
+	-、$vncPort = 5900 + $displayNumber;
+	   if (!bind(S, pack('S n x12', $AF_INET, 5900 + $n))) {
+	   
+修改用户配置： vim /etc/sysconfig/vncservers
+
+	VNCSERVERS="1:root"
+	VNCSERVERARGS[1]="-geometry 1366x768 -nolisten  tcp"
+
+
+启动提示beause，删除：/tmp/.X11-unix/X
+
+
+日志报错查看：cat  /root/.vnc/lyzk01:1.log
+
+
+-、在lyzk02上安装
+:yum install tigervnc-server
+:yum install vnc
+
+tigervnc-license-1.8.0-13.el7.noarch
+tigervnc-server-minimal-1.8.0-13.el7.x86_64
+tigervnc-server-1.8.0-13.el7.x86_64
+
+gtk-vnc2-0.5.2-7.el7.x86_64
+gvnc-0.5.2-7.el7.x86_64
+
+
+18、配置presto
+
+connector.name=hive-hadoop2
+hive.metastore.uri=thrift://lymaster02:9083
+hive.config.resources=/usr/hdp/2.5.3.0-37/hadoop/conf/core-site.xml,/usr/hdp/2.5.3.0-37/hadoop/conf/hdfs-site.xml
+
+
+node.environment=production
+node.id=107
+node.data-dir=/opt/presto-server-0.191/presto_data
+
+coordinator=true
+node-scheduler.include-coordinator=true
+http-server.http.port=18080
+query.max-memory=5GB
+query.max-memory-per-node=1GB
+discovery-server.enabled=true
+discovery.uri=http://10.0.24.107:18080
+
+备注:需要每台节点都启动。
+关闭: cd /opt/presto-server-0.191/bin/;
+./launcher stop  (每个节点)
+
+
+19、
+lyzk03
+
+20、告警：HDFS Storage Capacity Usage(Daily)
+
+HDFS存储使用量（每天）	This service-level alert is triggered if the increase in storage capacity usage deviation has grown beyond the specified threshold within a day period.
+一天中存储容量使用率增量超过特定阈值时触发此服务级告警。
+
+the variance for this alert is  8629160822B【1G】 which is 89% of the 9673345517B【1.12G】 average (4836672759B【0.56G】 is limit)
+
+
+21、add partition
+alter table YIFEI.ODS_YIFEI_DJNDYT3_ACMMA drop if exists partition (day='2019-09-06') ;
+
+alter table YIFEI.ODS_YIFEI_DJNDYT3_ACMMA add partition (day='2019-09-06') location '/warehouse/yifei/ods/ODS_YIFEI_DJNDYT3_ACMMA/day=2019-09-06';
+
+
+-、kettle导入数据至hive，add partition 权限问题
+	-、kettle连接时 ，指定用户
+	-、用户添加至 hdfs组， /user/下，
+	-、linux使用su，不能在/home目录下，有可能导致su切换失败。
+	
+	
+22、
+-、hbase删除表，提示表不存在
+	-、删除zookeeper中过期数据
+	/usr/hdp/current/zookeeper-client/bin/zkCl
+	-、再创建已经再zk删除的表，然后再删除即可。
+	
+https://www.2cto.com/net/201704/622211.html
+
+22、phoeinx 连接
+	create 'test', {NAME => 'f1'}
+	-、 So all Phoenix tables are hbase tables, but hbase tables are not necessarily Phoenix tables.
+	-、创建表
+	CREATE TABLE "test_phoenix3" (id VARCHAR  ,city VARCHAR , population BIGINT CONSTRAINT my_pk PRIMARY KEY (id,city));
+	create table test_phoenix (id varchar, name varchar, city varchar CONSTRAINT PK PRIMARY KEY (id,name));
+	create table test_phoenix2 (id varchar, name varchar, city varchar CONSTRAINT my_pk PRIMARY KEY (id));
+	-、更新表
+	UPSERT INTO test_phoenix (id, name, city) values ('111','New York','USA');
+	UPSERT INTO test_phoenix (id, name, city) values ('112','Beijing','China');
+https://www.cnblogs.com/xiaoliu66007/p/9377922.html
+	-、二级索引
+		-、
+			以下内容将在v1和v2列上创建一个索引,并在索引中包含v3列,以防止从原始数据表中获取该列:
+			CREATE INDEX my_index ON test_phoenix(id,name)INCLUDE(city)
+		-、
+			CREATE INDEX my_index ON test_phoenix (id) INCLUDE (city);	
+
+			CREATE INDEX my_index ON test_phoenix (id);
+
+	https://github.com/forcedotcom/phoenix/wiki/Secondary-Indexing#mutable-indexing%EF%BC%89%E3%80%82
+
+    select * from DW.DWS_CD_BY_MATERIAL_CUT_PRICE_MONTH WHERE
+    "DATE"  BETWEEN ''  AND ''
+    and dim='' and material_name in ('','')
+    ORDER BY "DATE" ASC , price DESC
+
+drop index index1_c ON hao1;
+
+-、phoenix的元数据SYSTEM.CATALOG, SYSTEM.SEQUENCE, SYSTEM.STATS, and SYSTEM.FUNCTION，因为hdfs数据目录更换，元数据丢失，提示表不存在，解决方案
+	-、删除zookeeper中过期数据
+	-、stop hbasse
+	-、 su hdfs；
+		hbase clean --cleanAll； （谨慎使用，会删除所有hbase的表和元数据）
+	-、restart hbase 即可。
+	
+-、phoenix创建包含多列主键的表，需要使用constraint pkname primary key
+
+-、hbase添加支持二级索引，hbase-site.xml
+old:
+hbase.coprocessor.master.classes=
+hbase.regionserver.wal.codec=org.apache.hadoop.hbase.regionserver.wal.WALCellCodec
+new：
+hbase.coprocessor.master.classes=org.apache.phoenix.hbase.index.master.IndexMasterObserver
+hbase.regionserver.wal.codec=org.apache.hadoop.hbase.regionserver.wal.IndexedWALEditCodec
+hbase.region.server.rpc.scheduler.factory.class=org.apache.hadoop.hbase.ipc.PhoenixRpcSchedulerFactory
+hbase.rpc.controllerfactory.class=org.apache.hadoop.hbase.ipc.controller.ServerRpcControllerFactory
+hbase.coprocessor.regionserver.classes=org.apache.hadoop.hbase.regionserver.LocalIndexMerger     √ 
+hbase.master.loadbalancer.class=org.apache.phoenix.hbase.index.balancer.IndexLoadBalancer
+
+	解决过程：	
+		1)、上传phoenix-4.7.0-HBase-1.1-server.jar 至 lymaster01主机 /home/lyadmin/下
+		2)、替换lymaster01，lymaster01，lyzk01,lyzk02,lyzk03 主机上的 /usr/hdp/2.5.3.0-37//phoenix/phoenix-server.jar
+			备份：mv phoenix-4.7.0.2.5.3.0-37-server.jar  phoenix-4.7.0.2.5.3.0-37-server.jar-backup
+			替换：mv phoenix-4.7.0-HBase-1.1-server.jar phoenix-4.7.0.2.5.3.0-37-server.jar
+			
+			mv phoenix-4.7.0.2.5.3.0-37-server.jar phoenix-4.7.0-HBase-1.1-server.jar
+			mv phoenix-4.7.0.2.5.3.0-37-server.jar-backup phoenix-4.7.0.2.5.3.0-37-server.jar
+			
+		3)、CREATE INDEX MATERIAL_CUT_PRICE_INDEX ON DW.DWS_CD_BY_MATERIAL_CUT_PRICE_MONTH("DATE",DIM,MATERIAL_NAME,PRICE,"YEAR", "MONTH" )INCLUDE(MATERIAL_8CODE)
+	总结：
+		1)、当前版本是4.7以上，不是4.7以下，无须替换jar包，故只需要配置
+		<property>
+		  <name>hbase.regionserver.wal.codec</name>
+		  <value>org.apache.hadoop.hbase.regionserver.wal.IndexedWALEditCodec</value>
+		</property>
+		
+		<property>
+		  <name>hbase.region.server.rpc.scheduler.factory.class</name>
+		  <value>org.apache.hadoop.hbase.ipc.PhoenixRpcSchedulerFactory</value>
+		  <description>Factory to create the Phoenix RPC Scheduler that uses separate queues for index and metadata updates</description>
+		</property>
+		<property>
+		  <name>hbase.rpc.controllerfactory.class</name>
+		  <value>org.apache.hadoop.hbase.ipc.controller.ServerRpcControllerFactory</value>
+		  <description>Factory to create the Phoenix RPC Scheduler that uses separate queues for index and metadata updates</description>
+		</property>
+			
+		参考资料:https://phoenix.apache.org/secondary_indexing.html#
+
+-、phoenix 创建二级索引，operate timeout
+phoenix.query.timeoutMs=1800000 
+hbase.regionserver.lease.period = 1200000 
+hbase.rpc.timeout = 1200000   【ambari 默认为90s】
+hbase.client.scanner.caching = 1000 （这个属性在Ambari中为Number of Fetched Rows when Scanning from Disk=1000）
+hbase.client.scanner.timeout.period = 1200000 
+
+参考资料：https://blog.csdn.net/u013850277/article/details/80935545
+
+23、hive创建orc+snappy格式数据
+old:orc.compress' = 'snappy
+
+	CREATE TABLE `ly_test1` (
+	`id` STRING,
+	 `name` STRING,
+	 `age` STRING,
+	 `sex` STRING)
+	ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
+	stored AS orc tblproperties('orc.compress' = 'snappy');
+	
+new:'orc.compression' = 'snappy'
+
+CREATE TABLE `ly_test2`(
+  `id` string COMMENT 'id',
+  `name` string)
+ROW FORMAT DELIMITED
+  FIELDS TERMINATED BY '\t'
+stored AS orc tblproperties('orc.compression' = 'snappy');
+
+insert into table ly_test2 select * from test_1;
+
+原因
+这是因为SequenceFile的表不能使用load来加载数据，只能导入sequence类型的数据
+
+解决办法
+曲线救国
+
+先创建一个临时表（save as textfile），将数据导入进去，
+然后再导入这个表里
+insert into table ly_test2 select * from test_1;
+
+查看hive日志：/tmp/hive/hive.log
+
+
+
+
+24、建模相关账号
+
+-、用友
+	-、
+		PROD:
+		10.100.1.4:jpmfapp
+		username: sa
+		password:alt-ctrl-del-win2k
+
+	-、
+		10.100.1.4:UFDATA_172_2019
+		用户:lysa 密码:jpmf+123
+	-、
+		10.100.1.4
+		test db: UFDATA_172_2019
+		username: uf172 
+		password：abcd-1234
+
+-、易飞
+	-、
+		username:ly 
+		password:2019@ly.com
+
+		192.168.105.2 易飞80
+		192.168.0.10 易飞90
+		
+		59.37.21.140
+		
+	-、LY数仓-ODS层易飞相关表
+		DSCMB  公司
+		ACTMA  科目
+		CMSMF  币别
+		CMSMG  汇率
+		CMSMV  职员
+		CMSME  部门
+		PURMA  供应商
+		COPMA  客户
+		ACTTA  凭证
+		ACTTB  凭证
+		ACTLE  科目余额表
+
+		--易飞90
+			--DSCSYS90
+				select * from DSCMB;
+
+			--DJNDYT2
+				select * from ACTMA;
+				select * from CMSMF;
+				select * from CMSMG;
+				select * from CMSMV;
+				select * from CMSME;
+				select * from PURMA;
+				select * from COPMA;
+				select * from ACTTA;
+				select * from ACTTB;
+				select * from ACTLE;
+
+		--易飞80
+			--DSCSYS
+				select * from DSCMB;
+
+			--DJNDYT3
+				select * from ACTMA;
+				select * from CMSMF;
+				select * from CMSMG;
+				select * from CMSMV;
+				select * from CMSME;
+				select * from PURMA;
+				select * from COPMA;
+				select * from ACTTA;
+				select * from ACTTB;
+				select * from ACTLE;
+		
+-、EAS [neweas_75]
+	-、	
+		oracle 数据库 ：192.168.3.233:1521/lseas
+		username: EAS_LINK
+		password: eas_link
+		
+25、代办
+	-、禅道任务--cc钉邮给余经理 √
+	wangyingnan/yingnan123
+	-、svn账号不能使用  √
+	https://10.0.8.18/svn/lyproject/datacenter/data_warehouse
+	-、摇号是否过期。√
+	-、dbServer  	√
+	-、数据抽取--尽量抽取最新的数据。
+		
+26、
+-、hive多符号，执行MR提示“Class org.apache.hadoop.hive.contrib.serde2.MultiDelimitSerDe not found”？
+	-、办法1
+		将hive-contrib.jar包拷贝到yarn的lib目录下
+		hive 的jar移动至  hadooo-yarn中 /usr/hdp/2.5.3.0-37/hadoop-yarn/lib
+
+		cp /usr/hdp/2.5.3.0-37/hive/lib/hive-contrib-1.2.1000.2.5.3.0-37.jar /usr/hdp/2.5.3.0-37/hadoop-yarn/lib;
+		cp /usr/hdp/2.5.3.0-37/hive/lib/hive-contrib-1.2.1000.2.5.3.0-37.jar /usr/hdp/2.5.3.0-37/hadoop-mapreduce/lib;
+			会将jar同时更新/usr/hdp/current/hadoop-yarn-xx/.. 下（貌似需要重启yarn）
+		rm -rf  /usr/hdp/2.5.3.0-37/hadoop-yarn/lib/hive-contrib.jar;
+
+		ln -s  hive-contrib-1.2.1000.2.5.3.0-37.jar hive-contrib.jar
+		
+		在上一级目录执行：
+		cp -r /usr/hdp/2.5.3.0-37/hadoop-yarn/lib/hive-contrib-1.2.1000.2.5.3.0-37.jar /usr/hdp/2.5.3.0-37/hadoop-yarn/;
+		ln -s /usr/hdp/2.5.3.0-37/hadoop-yarn/hive-contrib-1.2.1000.2.5.3.0-37.jar	/usr/hdp/2.5.3.0-37/hadoop-yarn/hive-contrib.jar;
+	 -、办法2
+		 Class org.apache.hadoop.hive.contrib.serde2.MultiDelimitSerDe not found
+		 set hive.aux.jars.path=
+		file:///usr/hdp/2.5.3.0-37/hive/lib/hive-contrib-1.2.1000.2.5.3.0-37.jar
+
+	-、办法3(临时解决)
+		add jar hdfs://mycluster:8020/user/root/hive-contrib-1.2.1000.2.5.3.0-37.jar
+	
+	-、办法4（最终解决）
+		在${HIVE_HOME}中创建文件夹auxlib，然后将hive-contrib-1.2.1000.2.5.3.0-37.jar文件放入该文件夹中。
+		参考资料：https://blog.csdn.net/qianshangding0708/article/details/50381966
+-、多字符分隔符建表语句：
+	create table if not exists test.student1(
+	`sno` int comment '学生编号',
+	`sname` string comment '学生姓名',
+	`birthday` string comment '出生年月'
+	)comment '学生表'
+	row format serde 'org.apache.hadoop.hive.contrib.serde2.MultiDelimitSerDe' with serdeproperties ('field.delim'='^#');
+
+-、hive终端提示:Failed to connect to server: lymaster01/10.0.24.105:8032: retries get failed due to exceeded maximum allowed retries number: 0
+java.net.ConnectException: 拒绝连接
+	: 有可能是yarn 高可用切换导致。
+		参考资料：https://blog.csdn.net/zhouyuanlinli/article/details/81772100
+	
+
+-、beeline连接hive
+beeline -u jdbc:hive2://lymaster02:10000 -n root	
+
+!connect jdbc:hive2://lymaster02:10000
+
+bin/beeline  -u jdbc:hive2://hadoop001:10000 -n root
+ minlog-1.2.jar，objenesis-1.2.jar，reflectasm-1.07-shaded.jar
+-、设置hive执行引擎
+set hive.execution.engine=mr
+
+-、hive启动卡住。，调用debug模式调试
+hive -hiveconf hive.root.logger=debug,console
+	-、发现 hadoop-yarn 日志 提示错误：
+		Application application_1568622810022_0019 failed 2 times due to AM Container for appattempt_1568622810022_0019_000002 exited with exitCode: -1000 
+		 File does not exist: hdfs://mycluster/tmp/hive/root/_tez_session_dir/dbedfcc7-d2de-4e32-a090-84acce507a5e/hive-contrib-1.2.1000.2.5.3.0-37.jar
+		 
+		卡顿任务的yarn任务概况：
+			User: 	root
+			Name: 	HIVE-1fa11078-4eb9-475d-b3ac-00b38723e8e8
+			Application Type: 	TEZ
+			Application Tags: 	
+			Application Priority: 	0 (Higher Integer value indicates higher priority)
+			YarnApplicationState: 	ACCEPTED: waiting for AM container to be allocated, launched and register with RM.
+			Queue: 	default
+			FinalStatus Reported by AM: 	Application has not completed yet.
+			Started: 	星期二 九月 17 10:05:31 +0800 2019
+			Elapsed: 	6mins, 45sec
+			Tracking URL: 	ApplicationMaster
+			Log Aggregation Status 	NOT_START
+			Diagnostics: 	[星期二 九月 17 10:09:41 +0800 2019] Application is added to the scheduler and is not yet activated. Queue's AM resource limit exceeded. Details : AM Partition = <DEFAULT_PARTITION>; AM Resource Request = <memory:4096, vCores:1>; Queue Resource Limit for AM = <memory:10240, vCores:1>; User AM Resource Limit of the queue = <memory:10240, vCores:1>; Queue AM Resource Usage = <memory:8192, vCores:3>;
+			Unmanaged Application: 	false
+			Application Node Label expression: 	<Not set>
+			AM container Node Label expression: 	<DEFAULT_PARTITION> 
+		
+		解决：
+			-、其中:AM Limit = 48(3个node) * 0.2 = 9.6G
+			yarn.scheduler.capacity.maximum-am-resource-percent（调大） = 0.2
+			增大 Memory allocated for all YARN containers on a node = 24G
+			减少Container的memory的大小。
+			-、降低driver的memory的大小。
+	-、/tmp/root/hive.log 
+	 Localizing resource because it does not exist: file:/usr/hdp/2.5.3.0-37/hive/auxlib/hive-contrib-1.2.1000.2.5.3.0-37.jar to dest: hdfs://mycluster/tmp/hive/root/_tez_session_dir/ac725591-a34a-4220-bb7e-220c59689dc7/hive-contrib-1.2.1000.2.5.3.0-37.jar
+27、
+唐经理，你好，我是数据中心的工程师王英楠，根据上次提供的基础表，发现EAS、用友、易飞相关的字段的值展示的方式不一致，例如EAS中FAccountID，易飞LE001，以及用友ccode是代表同一含义（科目），但是这些字段分别表示的值却是FAccountID=1D6jbpbXQ5iqntNR56RBSJ2pmCY=，LE001=1002.09，ccode=1122001。我这边想知道这些不同系统相同含义的字段是怎样来关联的，或者不同系统中的这些值是怎么定义的。另一方面报表如需展示此字段（科目），是以那个系统的数值方式为准？还是不用系统的都要同时展示呢？
+
+
+是不是可以这样理解：
+1、建模，不同系统相同含义的字段，基本无须关联，只需合并不同系统的字段为同一字段，然后做好映射（即这些数值来源于那个系统，代表什么含义以及原字段的信息）
+2、财务所需的报表展示时，需要指定数据来源于那个系统。
+3、不同系统中相同含义的字段的数值显示不一致，目前也无需统一数值（也无法统一数值，因为不知道他们原本数值之间的关系），展示时标记其来自于那个系统即可。
+
+
+28、
+DW ：data warehouse 翻译成数据仓库
+DW数据分层，由下到上为 DWD,DWB,DWS
+DWD：data warehouse detail 细节数据层，有的也称为 ODS层，是业务层与数据仓库的隔离层
+DWB：data warehouse base 基础数据层，存储的是客观数据，一般用作中间层，可以认为是大量指标的数据层。
+DWS：data warehouse service 服务数据层，基于DWB上的基础数据，整合汇总成分析某一个主题域的服务数据，一般是宽表。
+
+拥有缺失表：
+GL_AccAttachs  
+
+
+-、DECIMAL和int如果不存在为null还是默认为0？
+	-、DECIMAL 默认为 NULL 0.0000
+	   float 默认为 NULL 0.0000000
+	   int  默认为  NULL
+	-、同时出现decimal，floor，int类型，优先合并为declmal或floor保留精度。
+	   
+-、EAS中 T_GL_VoucherEntry 与 T_GL_Voucher怎么关联？
+	-、暂时找不到关联，union all 两张表
+-、同时出现md，mc 且数值不一致， 取那个？
+	-、md为0，取md，反之亦然
+	
+-、mb,cbegind_c(me,cendd_c)
+
+
+存在问题：
+	科目余额表
+		EAS库：
+			已确定关联：eas.ods_eas_new_eas75_t_gl_accountbalance.FPeriodID = eas.ods_eas_new_eas75_t_bd_period.fid
+			未知关联：  eas.ods_eas_new_eas75_t_gl_accountbalance的FaccountID 与eas.ods_eas_new_eas75_t_bd_accountview未找到关联字段。
+						eas.ods_eas_new_eas75_t_gl_accountbalance的FCurrencyID 与eas.ods_eas_new_eas75_t_bd_currency 未找到关联字段。
+						eas.ods_eas_new_eas75_t_gl_accountbalance的FOrgUnitID 与eas.ods_eas_new_eas75_t_org_company 未找到关联字段。				
+	凭证表：
+		EAS库：	
+			-、eas.ods_eas_new_eas75_t_gl_voucherentry 与eas.ods_eas_new_eas75_t_bd_accountview 未找到关联字段。
+		用友：
+			-、yongyou.ods_yongyou_ufdata_072_2019_gl_accattachs 表数据为空.
+			-、字段原币金额（md/mc），在用友库中yongyou.ods_yongyou_ufdata_072_2019_gl_accvouchz中 md与mc字段互补。
+			
+创建Hive基础表语句：
+	CREATE EXTERNAL TABLE IF NOT EXISTS `base.dwb_base_t_voucher`(
+	  `finaorg` string COMMENT '财务组织',
+	  `year` string COMMENT '会计年度',
+	  `period` string COMMENT '会计期间',
+	  `perioddate` string COMMENT '记账日期',
+	  `date` string COMMENT '业务日期',
+	  `vchtype` string COMMENT '凭证类型 ',
+	  `vchnumber` string COMMENT '凭证编号',
+	  `annex` string COMMENT '附件号',
+	  `maker` string COMMENT '制单',
+	  `approved` string COMMENT '审核 ',
+	  `casher` string COMMENT '出纳',
+	  `posted` string COMMENT '过账',
+	  `cancel` string COMMENT '作废',
+	  `account` string COMMENT '科目',
+	  `currency` string COMMENT '币别',
+	  `orgamount` decimal(19,4) COMMENT '原币金额',
+	  `currencyrate` float COMMENT '汇率',
+	  `amount` decimal(19,4) COMMENT '金额',
+	  `due` string COMMENT '借贷方向',
+	  `supplier` string COMMENT '供应商代码',
+	  `suppname` string COMMENT '供应商名称',
+	  `customer` string COMMENT '客户代码',
+	  `custname` string COMMENT '客户描述',
+	  `gainloss` string COMMENT '是否结转损益',
+	  `scope` string COMMENT '功能范围（SAP)',
+	  `cashflowprop` string COMMENT '现流性质',
+	  `origin` string COMMENT '数据来源',
+	  `reserved1` string COMMENT '预留字段1',
+	  `reserved2` string COMMENT '预留字段2')
+	PARTITIONED BY (
+	  `day` string)
+	ROW FORMAT DELIMITED
+	  FIELDS TERMINATED BY '^#'
+	 STORED AS orc 
+	 LOCATION 'hdfs://mycluster/warehouse/base/dwb/DWB_base_t_voucher'
+	 tblproperties('orc.compression' = 'snappy');
+
+
+	CREATE EXTERNAL TABLE IF NOT EXISTS `base.dwb_base_t_balance`(
+	  `year` string COMMENT '会计年度',
+	  `period` string COMMENT '会计期间',
+	  `account` string COMMENT '科目',
+	  `customer` string COMMENT '客户',
+	  `supplier` string COMMENT '供应商 ',
+	  `department` string COMMENT '部门',
+	  `currency` string COMMENT '币别',
+	  `BegDebit` decimal(19,4) COMMENT '期初借方余额',
+	  `BegCredit` decimal(19,4) COMMENT '期初贷方余额',
+	  `debit` decimal(19,4) COMMENT '本期借方发生额',
+	  `credit` decimal(19,4) COMMENT '本期贷方发生额',
+	  `accumdebit` decimal(19,4) COMMENT '本年借方累计发生额',
+	  `accumcredit` decimal(19,4) COMMENT '本年贷方累计发生额',
+	  `enddebit` decimal(19,4) COMMENT '期末借方余额',
+	  `endcredit` decimal(19,4) COMMENT '期末贷方余额',
+	  `fundsprop` string COMMENT '款项性质',
+	  `finaorg` string COMMENT '财务组织',
+	  `origin` string COMMENT '数据来源',
+	  `reserved1` string COMMENT '预留字段1',
+	  `reserved2` string COMMENT '预留字段2')
+	PARTITIONED BY (
+	  `day` string)
+	ROW FORMAT DELIMITED  FIELDS TERMINATED BY '^#'
+	 STORED AS orc
+	 LOCATION 'hdfs://mycluster/warehouse/base/dwb/DWB_base_t_balance'
+	 tblproperties('orc.compression' = 'snappy');
+	 
+汇总：	
+		1-、因基础表部分关联关系尚不清晰，故所建基础表仍以hive为主，数据存储格式为snappy+orc。			
+		2-、不存在的字段值处理：
+			-、数值（decimal，int，float）尽量用null来表示（除非确定不会产生歧义），以免在不了解业务的情况产生歧义。
+			-、字符串用''表示，节省空间。
+
+		3-、创建基础表，尽量预留字段，以免后期添加字段修改表结构。
+		4-、若字段值为decimal，int，float等数值类型，统一使用精度高的类型。
+		5-、存在String类型的数值 = 000001234.23，数值转换时注意保留精度。（强转int，会导致数值变为0）
+			
+C:\Users\wang.ying.nan\.dbeaver4\General\Scripts
+
+前者数值
+后者  借or贷
+0	`finaorg` string COMMENT '财务组织',  
+1  `year` string COMMENT '会计年度',
+2 `period` string COMMENT '会计期间',
+3  `perioddate` string COMMENT '记账日期',
+4  `date` string COMMENT '业务日期',
+5 `vchtype` string COMMENT '凭证类型 ',yong'o
+6  `vchnumber` string COMMENT '凭证编号',
+7  `annex` string COMMENT '附件号',
+8  `maker` string COMMENT '制单',
+9  `approved` string COMMENT '审核 '
+10 `casher` string COMMENT '出纳',
+11  `posted` string COMMENT '过账',
+12  `cancel` int COMMENT '作废',
+13  `account` string COMMENT '科目',
+14 `currency` string COMMENT '币别',
+15`orgamount` decimal(19,4) COMMENT '原币金额',
+  `currency` float COMMENT '汇率',
+  `amount` decimal(19,4) COMMENT '金额',
+18 `due` string COMMENT '借贷方向',
+19  `supplier` string COMMENT '供应商代码',
+20  `suppname` string COMMENT '供应商名称',
+21 `customer` string COMMENT '客户代码',
+  `custname` string COMMENT '客户描述',
+  `gainloss` string COMMENT '是否结转损益',
+  `scope` string COMMENT '功能范围（SAP)',
+  `cashflowprop` string COMMENT '现流性质',
+  `origin` string COMMENT '数据来源',
+  `reserved1` string COMMENT '预留字段1',
+  `reserved2` string COMMENT '预留字段2')
+  
+  
+ 29.hive元数据mysql 更换（lymaster02 --> lymysql01）
+ 30.hive注释，汉字乱码解决：
+	1-、 hive 设置连接jdbc的编码 ?createDatabaseIfNotExist=true&amp;useUnicode=true&amp;characterEncoding=UTF-8
+		方案1：
+			1-、删除索引 CREATE INDEX PCS_STATS_IDX ON PART_COL_STATS (DB_NAME,TABLE_NAME,COLUMN_NAME,PARTITION_NAME) USING BTREE;
+				-、drop index PCS_STATS_IDX on PART_COL_STATS ;  不起作用，需要删除索引所在的表。
+		方案2：
+			1-、修改ambari 中hive的script脚本中编码 
+		
+					0.5.0-to-0.6.0
+					0.6.0-to-0.7.0
+					0.7.0-to-0.8.0
+					0.8.0-to-0.9.0
+					0.9.0-to-0.10.0
+					0.10.0-to-0.11.0
+					0.11.0-to-0.12.0
+					0.12.0-to-0.13.0
+					0.13.0-to-0.14.0
+					0.14.0-to-1.1.0
+					1.1.0-to-1.2.0
+					1.2.0-to-1.2.1000
+					
+				一、操作目录：lymaster02   （备份目录  /opt/ambariHivemetaBackup/ambari-hiveMeta-mysql-backup/）
+					/usr/hdp/2.5.3.0-37/hive/scripts/metastore/upgrade/mysql
+	
+					1)-、注释掉创建索引的语句, 注释 insert into version 的冲突。
+						grep 'CREATE INDEX' hive-*schema-*.mysql.sql
+						grep 'CREATE INDEX' *-HIVE-*.mysql.sql
+						grep 'CREATE INDEX' upgrade-*-to-*.mysql.sql
+						
+							sed -i 's/^CREATE INDEX/-- CREATE INDEX /g' hive-*schema-*.mysql.sql
+							#sed -i 's/^CREATE INDEX/-- CREATE INDEX /g'	*-HIVE-*.mysql.sql
+							
+						grep 'INSERT INTO VERSION' hive-*schema-*.mysql.sql
+						grep 'INSERT INTO VERSION' *-HIVE-*.mysql.sql
+						grep 'INSERT INTO VERSION' upgrade-*-to-*.mysql.sql
+						
+							sed -i 's/^INSERT INTO VERSION/-- INSERT INTO VERSION /g' hive-*schema-*.mysql.sql
+							sed -i 's/^INSERT INTO VERSION/-- INSERT INTO VERSION /g' *-HIVE-*.mysql.sql
+						
+					2)-、创建表添加 CREATE TABLE IF NOT EXISTS
+	
+						grep 'CREATE TABLE' hive-*schema-*.mysql.sql
+						grep 'CREATE TABLE' *-HIVE-*.mysql.sql
+						grep 'CREATE TABLE' upgrade-*-to-*.mysql.sql
+					
+							sed -i 's/^CREATE TABLE \([^I][^F]\)/CREATE TABLE IF NOT EXISTS \1/g' hive-*schema-*.mysql.sql
+							sed -i 's/^CREATE TABLE \([^I][^F]\)/CREATE TABLE IF NOT EXISTS \1/g' *-HIVE-*.mysql.sql
+					
+					3)-、注释等设置编码（每个脚本后追加 ）
+					
+							cat tmp.txt >> hive-*schema-*.mysql.sql
+						
+						alter table COLUMNS_V2 modify column COMMENT varchar(256) character set utf8;
+						alter table TABLE_PARAMS modify column PARAM_VALUE varchar(4000) character set utf8;
+						alter table PARTITION_PARAMS modify column PARAM_VALUE varchar(4000) character set utf8 ;
+						alter table PARTITION_KEYS modify column PKEY_COMMENT varchar(4000) character set utf8;
+						alter table INDEX_PARAMS modify column PARAM_VALUE varchar(4000) character set utf8;
+					4)-、
+						for file in  `ls /usr/hdp/2.5.3.0-37/hive/scripts/metastore/upgrade/mysql/`
+						do
+
+								echo $file
+								echo "===="
+								echo "
+									alter table COLUMNS_V2 modify column COMMENT varchar(256) character set utf8;
+									alter table TABLE_PARAMS modify column PARAM_VALUE varchar(4000) character set utf8;
+									alter table PARTITION_PARAMS modify column PARAM_VALUE varchar(4000) character set utf8 ;
+									alter table PARTITION_KEYS modify column PKEY_COMMENT varchar(4000) character set utf8;
+									alter table INDEX_PARAMS modify column PARAM_VALUE varchar(4000) character set utf8;
+								"
+								>> /usr/hdp/2.5.3.0-37/hive/scripts/metastore/upgrade/mysql/$file
+						done
+				二、操作目录寻找错误，实际上是：/usr/hdp/2.5.3.0-37/hive2/scripts/metastore/upgrade/mysql/hive-schema-2.1.0.mysql.sql
+			（备份目录   原数据： /opt/ambariHivemetaBackup/ambari-hive2Meta-mysql-backup/
+						修改后数据：/opt/ambariHivemetaBackup/ambari-hive2Meta-mysql-backup-repair/）
+					1-、grep 'CREATE INDEX' hive-*schema-2.1.0.mysql.sql
+						sed -i 's/^CREATE INDEX/-- CREATE INDEX /g' hive-*schema-2.1.0.mysql.sql
+					2-、grep 'CREATE TABLE' hive-*schema-2.1.0.mysql.sql | grep -v 'IF NOT EXISTS'
+						sed -i 's/^CREATE TABLE \([^I][^F]\)/CREATE TABLE IF NOT EXISTS \1/g' hive-*schema-2.1.0.mysql.sql
+					3-、grep 'INSERT INTO VERSION' hive-*schema-2.1.0.mysql.sql
+						sed -i 's/^INSERT INTO VERSION/-- INSERT INTO VERSION /g'	hive-*schema-2.1.0.mysql.sql
+					4-、修改编码
+						alter table COLUMNS_V2 modify column COMMENT varchar(256) character set utf8;
+						alter table TABLE_PARAMS modify column PARAM_VALUE varchar(4000) character set utf8;
+						alter table PARTITION_PARAMS modify column PARAM_VALUE varchar(4000) character set utf8 ;
+						alter table PARTITION_KEYS modify column PKEY_COMMENT varchar(4000) character set utf8;
+						alter table INDEX_PARAMS modify column PARAM_VALUE varchar(4000) character set utf8;
+				三、 总结：因为hive的mysql元数据verion貌似被修改，导致错误。实际上是2.1.0 ，以前确实1.2.0【ambari会自动对比version，如果元数据信息未修改，则skip initSchema】
+						
+					测试：hive -e "load data local inpath '/root/unicode_test.txt' overwrite into table test.unicode_test";
+					utf8	
+					utf8_general_ci
+		2-、 或者 
+			修改ambari中initinal 的代码
+				/usr/hdp/current/hive-server2-hive2/bin/schematool -initSchema -dbType mysql -uhive -pHive-123 -verbose'
+				
+				-、此处判断 是否需要skip，如果时not_if ,则跳过initSchema
+				File "/var/lib/ambari-agent/cache/common-services/HIVE/0.12.0.2.0/package/scripts/hive.py", line 320, in hive （ user = params.hive_user）
+			
+			1)、question: hive 重启，每次都会执行 -initSchema -dbType ？	
+				-:以前重启不会，因为skip此过程，因为 due to not_if 
+			
+Could not retrieve transation read-only status server
+
+A Gauge with name [init_total_count_tables] already exists.  The old gauge will be overwritten, but this is not recommended
+
+31、vim操作手册
+	-、20gg / 20G  调至20行
+	-、:/set number
+		ctrl+f 下一页
+		ctrl+b 前一页
+	-、:/wang  搜索某个单词，n 下一个标记  N 前一个标记
+    -、在vim中有3中方法可以跳转到指定行（首先按esc进入命令行模式）：
+		1、ngg/nG （跳转到文件第n行，无需回车）
+		2、:n （跳转到文件第n行，需要回车）
+		3、vim +n filename （在打开文件后，跳转到文件的第n行）
+	-、将dev 替换 为 prod: 
+
+:%s/dev/prod/g 
+32、 hive不支持group_concat，但是可用以下方式转换 (2018-10-12 14:13:03)
+转载
+▼
+	分类： HIVE
+mysql实现:
+select A,GROUP_CONCAT(B)
+from table
+group by A
+;
+
+hive实现转换：
+SELECT A,concat_ws(',', collect_set(B)) 
+FROM table 
+GROUP BY B;	
+
+ collect_set(mgr)[0] 也可以使用。
+
+ -、hive空值判断
+	hive中空值判断基本分两种
+	（1）NULL 与 \N
+	hive在底层数据中如何保存和标识NULL，是由 alter table name SET SERDEPROPERTIES('serialization.null.format' = '\N'); 参数控制的
+	比如：
+
+		1.设置 alter table name SET SERDEPROPERTIES('serialization.null.format' = '\N'); 
+		则：底层数据保存的是'\N',通过查询显示的是'NULL'
+		这时如果查询为空值的字段可通过 语句：a is null 或者 a='\\N'
+
+			  2.设置 alter tablename SET SERDEPROPERTIES('serialization.null.format' = 'NULL'); 
+
+		则：底层数据保存的是'NULL',通过查询显示的是'NULL'
+		这时如果查询为空值的字段可通过 语句：a is null 或者 a='NULL'
+
+	（2）'' 与 length（xx）=0
+	'' 表示的是字段不为null且为空字符串，此时用 a is null 是无法查询这种值的，必须通过 a=''  或者 length(a)=0 查询 
+
+
+33、
+	-、hive 发生额，原币和本位币是否写错？待验证  √
+	-、以上步骤是单个币种数据的汇总，最后所有的币种这样处理之后都要汇总到AGE01表里。√
+		-、即将我理解的是他把BESG这个表做了4个处理，分别计算期初，期末和本期借方和贷方数
+最后把4段处理的结果写入AGE01
+	-、 逻辑中去掉资产的需求。 √
+	-、 客户描述： 关联表ods_sap_zfsd_013 的kunnr字段，取name1字段
+		供应商描述：关联表ods_sap_zfmm_015 的lifnr字段，取name1字段
+		公司描述: 关联表ods_sap_zfmm_015 的bukrs字段，取txt40字段
+		币别转换表：关联表dwbservice.dws_currency的currency_id字段。取currency_name
+
+			-、在最初小表中进行 join，取name？
+	-、最后去掉 12个列都为null和""的行。  √
+	-、数值精确到那个位数? 保留两位？√
+
+
+科目余额计算逻辑整理：
+	财务提供：
+		1-、计算2019年度，计算相关指标的期初余额（原币/本位币）、本期发生额（原币/本位币）、期末余额值（原币/本位币）。	
+		2-、关联相关表，合并相关指标的简介/详情。
+		3-、数值精确到两位（四舍五入）。
+		4-、计算逻辑去掉资产这一个标准。
+			
+	大数据平台待优化：依据实际数据，结合特成ui，适当增加相应维度，提供更多的数据支撑，展示丰富的ui。
+		1-、新增月份维度。（年份维度，细化至月份/季度，计算相应指标值）【柱状图】
+		2-、新增年份或者月份，相关指标比例值。【饼状图】
+		3-、新增相关指标值，按照月份或者年份的数值走向图。【折线图】
+		4-、新增根据科目的某一指标值作排行。 【表格】
+		5-、新增某一年的所有科目期初余额总和，本期发生额总和,期末余额总和，客户数量总和等。【右上角-合计表格】
+
+1-、新收购的公司单独分给一个团队
+2-、专门的运维团队
+3-、确定的需求
+4-、专门的研发
+
+34、 2019-10-29
+多个hive表join ，需不需要分开join，还是直接  a join b on xxx  join  c？
+
+35、FAILED: Execution Error, return code 1 from org.apache.hadoop.hive.ql.exec.MoveTask. java.io.IOException: rename for src pat？
+原因：删除外部表时，数据还在，所以重新插入时，move报错，删除dest目录下的数据，即可
+
+drop table eas.ods_eas_new_eas75_t_bd_material;
+alter table  eas.ods_eas_new_eas75_t_bd_material drop partition(day='2019-11-14') ;
+hadoop fs -rmr hdfs://mycluster/warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_BD_MATERIAL/day=2019-11-14/*
+
+hadoop fs -rmr hdfs://mycluster/warehouse/eas/ods/ODS_EAS_NEW_EAS75_CT_LS_MATCH/day=2019-11-14/*
+hadoop fs -rmr hdfs://mycluster/warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_BD_SUPPLIER/day=2019-11-14/*
+hadoop fs -rmr hdfs://mycluster/warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_IM_PURINWAREHSBILL/day=2019-11-14/*
+hadoop fs -rmr hdfs://mycluster/warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_IM_PURINWAREHSENTRY/day=2019-11-14/*
+hadoop fs -rmr hdfs://mycluster/warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_ORG_STORAGE/day=2019-11-14/*
+hadoop fs -rmr hdfs://mycluster/warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_SM_PURORDER/day=2019-11-14/*
+
+-、如何删除外部表数据？
+	1、alter table xx partition(day='2019-10-29')
+	2、查询hive分区的存储目录
+	LOCATION
+	  'hdfs://mycluster/warehouse/sap/ods/ODS_SAP_ZFFI_006'
+	3、删除hdfs数据
+	hadoop fs -rmr hdfs://mycluster/warehouse/sap/ods/ODS_SAP_ZFFI_006/day=2019-10-29/*
+	
+-、shell遍历数组
+#!/bin/bash
+array=(A B C)
+for(( i=0;i<${#array[@]};i++)) do
+#${#array[@]}获取数组长度用于循环
+echo ${array[i]};
+done;
+
+-、读取文件
+cat filename | while read line
+do
+    echo $line
+
+done
+36、解决多维度问题？
+		方案1：建立宽表，大数据提供宽表，
+				-、宽表要定期维护？
+				-、宽表提供给java后端，流程变复杂
+		方案2：计算所有的维度数据，入库
+				-、sql需要脚本拼接
+				-、维度越多，排列组合的可能性更多，复杂度增高。
+				-、数据更新的话，对应的算法结果也要更新【数据每天更新的话，每天都要更新计算维度表？？？？】
+		方案3：前端需求直接抛给大数据，大数据这边拼接sql，然后查询返回。
+		
+	shell地址：/root/shell/creat_sql/	
+	
+	若实时统计则需要新增字段：updateTime
+	
+
+37、hive 解决中文乱码。show create table 乱码
+round one：
+	1-、hive-exec-2.1.0.2.5.3.0-37.jar
+	 cp /opt/hive-exec-1.2.1000.2.4.3.0-227.jar /usr/hdp/2.5.3.0-37/hive/lib/;
+	 
+	 mv /usr/hdp/2.5.3.0-37/hive/lib/hive-exec-1.2.1000.2.4.3.0-227.jar hive-exec-1.2.1000.2.5.3.0-37.jar;
+	 
+	 mv /usr/hdp/2.5.3.0-37/hive/lib/hive-exec-1.2.1000.2.5.3.0-37.jar  hive-exec-1.2.1000.2.5.3.0-37.jar-backup;
+round two：	 
+	2-、修改源码
+	 
+apache源码
+http://hadoop.apache.org/releases.html
+
+CDH源码
+http://archive-primary.cloudera.com/cdh5/cdh/5/
+
+HDP源码
+
+http://s3.amazonaws.com/public-repo-1.hortonworks.com/index.html#/HDP/centos6/2.x/updates/2.1.7.0/tars
+
+
+git源码地址：
+https://github.com/hortonworks/hive-release/releases/tag/HDP-2.5.3.0-tag
+
+git bash 解决中文乱码：窗口-option-text-GBK
+maven 打包流程:
+	doc打包命令：
+		D:\ly\firefox\apache-maven-3.6.2-bin\apache-maven-3.6.2\bin\mvn clean package -Phadoop-2 -DskipTests
+	git打包命令：
+		/d/ly/firefox/apache-maven-3.6.2-bin/apache-maven-3.6.2/bin/mvn clean package -Phadoop-2 -DskipTests
+		
+-、打包执行info
+	[INFO] ------------------------------------------------------------------------
+	[INFO] Reactor Build Order:
+	[INFO]
+	[INFO] Hive                                                               [pom]
+	[INFO] Hive Shims Common                                                  [jar]
+	[INFO] Hive Shims 0.20S                                                   [jar]
+	[INFO] Hive Shims 0.23                                                    [jar]
+	[INFO] Hive Shims Scheduler                                               [jar]
+	[INFO] Hive Shims                                                         [jar]
+	[INFO] Hive Common                                                        [jar]
+	[INFO] Hive Serde                                                         [jar]
+	[INFO] Hive Metastore                                                     [jar]
+	[INFO] Hive Ant Utilities                                                 [jar]
+	[INFO] Spark Remote Client                                                [jar]
+	[INFO] Hive Query Language                                                [jar]
+	[INFO] Hive Service                                                       [jar]
+	[INFO] Hive Accumulo Handler                                              [jar]
+	[INFO] Hive JDBC                                                          [jar]
+	[INFO] Hive Beeline                                                       [jar]
+	[INFO] Hive CLI                                                           [jar]
+	[INFO] Hive Contrib                                                       [jar]
+	[INFO] Hive HBase Handler                                                 [jar]
+	[INFO] Hive HCatalog                                                      [pom]
+	[INFO] Hive HCatalog Core                                                 [jar]
+	[INFO] Hive HCatalog Pig Adapter                                          [jar]
+	[INFO] Hive HCatalog Server Extensions                                    [jar]
+	[INFO] Hive HCatalog Webhcat Java Client                                  [jar]
+	[INFO] Hive HCatalog Webhcat                                              [jar]
+	[INFO] Hive HCatalog Streaming                                            [jar]
+	[INFO] Hive HWI                                                           [jar]
+	[INFO] Hive ODBC                                                          [pom]
+	[INFO] Hive Shims Aggregator                                              [pom]
+	[INFO] Hive TestUtils                                                     [jar]
+	[INFO] Hive Packaging                                                     [pom]
+	[INFO]
+	[INFO] ------------------------< org.apache.hive:hive >------------------------
+	[INFO] Building Hive 1.2.1                                               [1/31]
+	[INFO] --------------------------------[ pom ]---------------------------------
+-、部分jar下载缓慢，手动下载替换（本地仓库默认地址：C:\Users\wang.ying.nan\.m2\repository\）
+	https://repo.maven.apache.org/maven2/org/apache/hadoop/hadoop-mapreduce-client-core/2.6.0/
+	Progress (4): 0.4/1.3 MB | 0.9/3.0 MB | 0.2/7.8 MB | 0.5/3.4 MB
+-、提示 类找不到（包找不到），org.apache.hadoop.ipc.CallerContext？
+	-、解决:此类在jar包C:\Users\wang.ying.nan\.m2\repository\org\apache\hadoop\hadoop-common\2.6.0\hadoop-common-2.6.0.jar 中，因为2.6的版本没有此类，故替换为2.7版本，完美解决。
+-、 Failed to execute goal on project hive-exec: Could not resolve dependencies for project org.apache.hive:hive-exec:jar:1.2.1: Could not find artifact org.apache.calcite.avatica:avatica:jar:1.7.2-SNAPSHOT in apache.snapshots (http://repository.apache.org/snapshots)
+	方案一、下载 avatica-1.7.1.jar 替换  ×
+	方案二、修改pom.xml ,将avatica依赖jar修改为 不带SNAPSHOT版本的，完美解决。
+
+-、/ql/src/java/org/apache/hadoop/hive/ql/exec/tez/TezTask.java: 找不到org.apache.tez.client.CallerContext
+/ql/src/java/org/apache/hadoop/hive/ql/exec/tez/ColumnarSplitSizeEstimator.java: 找不到org.apache.hadoop.mapred.split.SplitSizeEstimator
+/ql/src/java/org/apache/hadoop/hive/ql/exec/DDLTask.java:[2006,72] : 不兼容的类型: byte[]无法转换为java.lang.String ===>  writeBytes()改为write()
+
+
+-、一般提示“方法不会覆盖或实现超类型的方法”，有可能是版本过高或者过低导致的。
+
+
+38、presto 解决  multiDelimitSerDe问题。
+svn客户端：
+
+
+39、安装nomachine
+	-、官网下载：https://www.nomachine.com/download/download&id=6 
+		下载rpm文件
+	-、sudo rpm -i nomachine_6.8.1_1_x86_64.rpm
+	-、自动启动，默认端口4000，5353
+	-、日志目录：/usr/NX/var/log
+
+
+查看端口由那个程序占用
+	lsof -i:5905
+查看防火墙：
+	systemctl status firewalld.service
+vnc查看系统错误日志：
+	tail -n 100 /var/log/secure
+kettle提示错误：
+	/root/.swt/lib/linux/x86_64/libswt-mozilla-gtk-4335.so: libxpcom.so: 无法打开共享对象文件: 没有那个文件或目录
+
+40、整理eas相关字段：
+	
+你好，为了更好达到计算自动化/半自动话，需要了解手动录入数据的来源，基于此，手动录入的部分项，有如下疑问：
+	1-、基价(未税)：冲压取上一年度最后一季度加权平均价 
+		1、计算的每一项的权值是多少？
+			：没有权值，冲压取上一年度最后的一个基准价格，不是平均价。
+		2、计算的每一项的价格取自于那里？
+			：入库数据自带的单价
+		3、怎么区分数据是否来自于冲压?
+			：查看采购员，以及入库仓位（余经理可以提供架构组织BU，来区分冲压-cnc-模切）
+	2-、基价金额：上一年度基准价*审核入库数量	
+		1、基准价是否就是“基价(未税)”？
+			：是的
+		2、审核入库数量取自于那里?
+			：是否就是T_IM_PurInWarehsEntry.FWrittenOffQty	已核销数量
+	3-、CD金额： 计算公式 （ 上年度未税价格-当年未税价格）* 入仓数量)
+		1、未税价格是否就是“未税单价”？
+			:是
+		2、入仓数量取自于那个值？
+			：本次收货数量
+	4-、账期天数：供应商的付款账期天数
+		1、供应商的付款账期天数是如何得来的？
+			：取自付款条件里面的天数
+	5-、类别，项目以及跟单的责任人是否必须手动输入？
+			：基本上需要手动输入，跟单可以系统导出（采购员）
+	
+****************************************************************************************************************************************
+****************************************************************************************************************************************
+****************************************************************************************************************************************
+****************************************************************************************************************************************
+****************************************************************************************************************************************
+****************************************************************************************************************************************
+
+41、处理ambari-agent （due to EOF occurred in violation of protocol (_ssl.c:661)" ）？
+error：due to EOF occurred in violation of protocol (_ssl.c:661)
+Two-way SSL authentication failed. Ensure that server and agent certificates were signed by the same CA and restart the agent.
+In order to receive a new agent certificate, remove existing certificate file from keys directory.
+	As a workaround you can turn off two-way SSL authentication in server configuration(ambari.properties)
+
+------------------------------------------------------------	
+lyzk02 ： 
+备份所在目录：
+/opt/keys-backup-ambari-server
+/opt/keys-backup-ambari-server-2
+
+/var/lib/ambari-server/keys 备份目录所有者结构
+-rwxrwxrwx. 1 ambari root    803 9月   4 13:44 ca.config
+-rw-r--r--  1 ambari ambari 7134 9月   4 14:14 ca.crt
+-rw-r--r--  1 ambari ambari 1647 9月   4 14:14 ca.csr
+-rw-r--r--  1 ambari ambari 3311 9月   4 14:14 ca.key
+drwx------. 3 ambari root   4096 11月  8 15:04 db
+-rw-r--r--  1 ambari ambari 5677 9月   4 14:14 keystore.p12
+-rw-r--r--  1 ambari ambari 4158 11月  8 15:04 lyzk01.crt
+-rw-r--r--  1 ambari ambari  534 11月  8 15:04 lyzk01.csr
+-rw-------  1 ambari root     50 9月   4 13:57 pass.txt
+
+/var/lib/ambari-server/keys/db 备份目录所有者结构
+-rw-r--r--  1 ambari ambari 162 11月  8 15:04 index.txt
+-rw-r--r--  1 ambari ambari  21 11月  8 15:04 index.txt.attr
+-rw-r--r--  1 ambari ambari  21 11月  8 15:04 index.txt.attr.old
+-rw-r--r--  1 ambari ambari 123 11月  8 15:04 index.txt.old
+drwx------. 2 ambari root    45 11月  8 15:04 newcerts
+-rw-r--r--  1 ambari ambari   3 11月  8 15:04 serial
+-rw-r--r--  1 ambari ambari   3 9月   4 14:28 serial.old
+
+/var/lib/ambari-server/keys/db/newcerts 备份目录所有者结构
+-rw-r--r-- 1 ambari ambari 7134 9月   4 14:14 01.pem
+-rw-r--r-- 1 ambari ambari 4158 9月   4 14:28 02.pem
+-rw-r--r-- 1 ambari ambari 4158 11月  8 15:04 03.pem
+------------------------------------------------------------
+
+完整错误日志：
+INFO 2019-11-08 16:57:44,546 security.py:100 - SSL Connect being called.. connecting to the server
+INFO 2019-11-08 16:57:44,550 security.py:67 - Insecure connection to https://lyzk02:8441/ failed. Reconnecting using two-way SSL authentication..
+INFO 2019-11-08 16:57:44,550 security.py:189 - Server certicate exists, ok
+INFO 2019-11-08 16:57:44,550 security.py:197 - Agent key exists, ok
+INFO 2019-11-08 16:57:44,550 security.py:205 - Agent certificate exists, ok
+INFO 2019-11-08 16:57:44,550 security.py:100 - SSL Connect being called.. connecting to the server
+ERROR 2019-11-08 16:57:44,553 security.py:87 - Two-way SSL authentication failed. Ensure that server and agent certificates were signed by the same CA and restart the agent.
+In order to receive a new agent certificate, remove existing certificate file from keys directory. As a workaround you can turn off two-way SSL authentication in server configuration(ambari.properties)
+Exiting..
+ERROR 2019-11-08 16:57:44,553 Controller.py:212 - Unable to connect to: https://lyzk02:8441/agent/v1/register/lyzk01
+Traceback (most recent call last):
+  File "/usr/lib/python2.6/site-packages/ambari_agent/Controller.py", line 165, in registerWithServer
+    ret = self.sendRequest(self.registerUrl, data)
+  File "/usr/lib/python2.6/site-packages/ambari_agent/Controller.py", line 497, in sendRequest
+    raise IOError('Request to {0} failed due to {1}'.format(url, str(exception)))
+IOError: Request to https://lyzk02:8441/agent/v1/register/lyzk01 failed due to EOF occurred in violation of protocol (_ssl.c:618)
+ERROR 2019-11-08 16:57:44,554 Controller.py:213 - Error:Request to https://lyzk02:8441/agent/v1/register/lyzk01 failed due to EOF occurred in violation of protocol (_ssl.c:618)
+
+1)-、vim /etc/ambari-agent/conf/ambari-agent.ini
+新增一项：
+[security]
+force_https_protocol=PROTOCOL_TLSv1_2
+2)-、 vim /etc/python/cert-verification.cfg  
+【同时修改 ambari-server的为disable，但是server未重启，不知道效果如何已改为disable。 没效果】
+disble
+
+1-、修改vim /usr/lib/python2.6/site-packages/ambari_agent/Controller.py
+496行
+
+
+
+-、重启ambari-server ，lymaster01 agent日志（正常日志）
+INFO 2019-11-08 17:43:48,948 Controller.py:277 - Heartbeat with server is running...
+INFO 2019-11-08 17:43:48,950 NetUtil.py:62 - Connecting to https://10.0.24.110:8440/connection_info
+INFO 2019-11-08 17:43:48,993 security.py:100 - SSL Connect being called.. connecting to the server
+INFO 2019-11-08 17:43:49,020 security.py:61 - SSL connection established. Two-way SSL authentication is turned off on the server.
+INFO 2019-11-08 17:43:49,024 Controller.py:326 - RegistrationCommand received - repeat agent registration
+
+-、/var/lib/ambari-server/keys/ca.config
+[ ca ]
+default_ca             = CA_CLIENT
+[ CA_CLIENT ]
+root_dir = /
+dir                    = $root_dir/var/lib/ambari-server/keys/db
+certs                  = $dir/certs
+new_certs_dir          = $dir/newcerts
+
+database               = $dir/index.txt
+serial                 = $dir/serial
+default_days           = 365
+
+default_crl_days       = 7
+default_md             = sha256
+
+policy                 = policy_anything
+
+[ policy_anything ]
+countryName            = optional
+stateOrProvinceName    = optional
+localityName           = optional
+organizationName       = optional
+organizationalUnitName = optional
+commonName             = optional
+emailAddress           = optional
+
+[ jdk7_ca ]
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer:always
+basicConstraints = CA:true
+
+	1-、修改ca.config的jdk=8
+	2-、删除/var/lib/ambari-server/keys/ 和/var/lib/ambari-agent/keys/
+	3-、重启ambari-agent
+	
+		1、ambari-server 服务，生成ca.crt报错(解密错误)	
+			openssl ca -config /var/lib/ambari-server/keys/ca.config -in /var/lib/ambari-server/keys/lyzk01.csr -out /var/lib/ambari-server/keys/lyzk01.crt -batch -passin pass:**** -keyfile /var/lib/ambari-server/keys/ca.key -cert /var/lib/ambari-server/keys/ca.crt
+			
+			Using configuration from /var/lib/ambari-server/keys/ca.config
+			unable to load CA private key
+			139952471873424:error:06065064:digital envelope routines:EVP_DecryptFinal_ex:ba decrypt:evp_enc.c:592:
+			139952471873424:error:0906A065:PEM routines:PEM_do_header:bad decrypt:pem_lib.c488:
+			
+			-、修改密码后，正确
+			openssl ca -config /var/lib/ambari-server/keys/ca.config -in /var/lib/ambari-server/keys/lyzk01.csr -out /var/lib/ambari-server/keys/lyzk01.crt -batch -passin pass:oO9G1YewY4xTE0zie1kS650ruz6l930i5RyE7x03bhF91vgn0G -keyfile /var/lib/ambari-server/keys/ca.key -cert /var/lib/ambari-server/keys/ca.crt
+			
+			Using configuration from /var/lib/ambari-server/keys/ca.config
+			I am unable to access the //var/lib/ambari-server/keys/db/newcerts directory
+			//var/lib/ambari-server/keys/db/newcerts: No such file or directory
+
+			
+		2、提示key不匹配(ambari-agent)
+				IOError: Request to https://lyzk02:8441/agent/v1/register/lyzk01 failed due to [X509: KEY_VALUES_MISMATCH] key values 
+				mismatch (_ssl.c:2593)
+				ERROR 2019-11-13 09:03:11,708 Controller.py:213 - Error:Request to https://lyzk02:8441/agent/v1/register/lyzk01 failed due to [X509: KEY_VALUES_MISMATCH] key values mismatch (_ssl.c:2593)
+				
+			-、每次/var/lib/ambari-agent/keys/ 目录下生成的keys文件都不一样，为什么？用了上一次的那个，key就匹配了？
+				-、删除 /var/lib/ambari-agent/keys/目录下所有文件，重启ambari-agent，key值不匹配解决 --> 继续报错
+				 ：failed due to EOF occurred in violation of protocol (_ssl.c:618)
+
+2019-12-13  待执行。。。  ，先解决key不匹配的问题。
+1-、ambari-server  添加	
+	vim /etc/ambari-agent/conf/ambari-agent.ini
+	新增一项：
+	[security]
+	force_https_protocol=PROTOCOL_TLSv1_2
+		
+****************************************************************************************************************************************
+****************************************************************************************************************************************
+****************************************************************************************************************************************
+****************************************************************************************************************************************
+
+
+42、安装svn，创建kettle文件夹
+rpm -qa subversion
+yum install -y subversion
+svnserve --version
+svn checkout https://10.0.8.18/svn/lyproject/datacenter/data_warehouse/trunk
+
+43、oracle使用desc：
+	1、sqlplus.exe + oci.dll ,无效果?
+
+44、
+SQL 错误 [2] [08S01]: Error while processing statement: FAILED: Execution Error, return code 2 from org.apache.hadoop.hive.ql.exec.tez.TezTask. Vertex failed, vertexName=Map 1, vertexId=vertex_1572493614064_0340_1_11, diagnostics=[Task failed, taskId=task_1572493614064_0340_1_11_000007, diagnostics=[TaskAttempt 0 failed, info=[Error: exceptionThrown=java.lang.OutOfMemoryError: Java heap space
+	at org.apache.hadoop.io.BoundedByteArrayOutputStream.<init>(BoundedByteArrayOutputStream.java:56)
+	at org.apache.hadoop.io.BoundedByteArrayOutputStream.<init>(BoundedByteArrayOutputStream.java:46)
+	at org.apache.tez.runtime.library.common.shuffle.MemoryFetchedInput.<init>(MemoryFetchedInput.java:38)
+	at org.apache.tez.runtime.library.common.shuffle.impl.SimpleFetchedInputAllocator.allocate
+
+45、"SELECT name,score "
+        + "FROM ("
+            + "SELECT "
+               + "name,"
+               + "score, "
+               + "row_number() OVER (PARTITION BY name ORDER BY score DESC ) rank"
+               + " FROM scores"
+        + ")  sub_scores "
+        + " WHERE rank <= 4
+		
+46、hive不支持select子查询，替换
+select A.*,B.cd_total_amount from dwservice.dws_cd_by_purchaser_month  A
+left join (select purchaser,`year`,sum(cd_amount) as cd_total_amount
+from dwservice.dws_cd_by_purchaser_month group by purchaser,`year`) B 
+on A.purchaser = B.purchaser and A.`year` = B.`year`
+
+
+47、
+	1、hadoop元数据目录 （NameNode directories）
+	2、数据节点目录一定要挂载到大的磁盘点。（DataNode directories
+		文件系统                 容量  已用  可用 已用% 挂载点
+		/dev/mapper/centos-root   50G   46G  4.5G   92% /
+		devtmpfs                  16G     0   16G    0% /dev
+		tmpfs                     16G  156K   16G    1% /dev/shm
+		tmpfs                     16G  104M   16G    1% /run
+		tmpfs                     16G     0   16G    0% /sys/fs/cgroup
+		/dev/mapper/centos-home  442G  106G  336G   25% /home
+		/dev/sda1                497M  157M  340M   32% /boot
+		tmpfs                    3.2G  8.0K  3.2G    1% /run/user/0
+		/dev/sr0                 4.1G  4.1G     0  100% /run/media/root/CentOS 7 x86_64
+		tmpfs                    3.2G  4.0K  3.2G    1% /run/user/1001
+		tmpfs                    3.2G   32K  3.2G    1% /run/user/1020
+
+
+		drwxr-xr-x    5 root root    44 9月   4 17:19 hadoop   		 16G
+		drwxr-xr-x.  14 root root  4096 11月 12 17:01 opt			 10G
+		dr-xr-x---.  25 root root  4096 11月 13 10:13 root     		 0.6G
+		drwxr-xr-x.  15 root root  4096 11月  7 14:00 usr		 	 7.1G
+		drwxr-xr-x.  22 root root  4096 11月  7 14:00 var		     12G
+	3、NodeManager 还提供了检测磁盘好坏的机制。
+	检测的磁盘目录主要是 yarn.nodemanager.local-dirs 和 yarn.nodemanager.log-dirs 参数指定的目录，这两个目录分别用于存储应用程序运行的中间结果，比如MapReduce作业中Map Task的中间输出结果）和日志文件存放目录列表。这两个参数都可以配置多个目录，多个目录之间使用逗号分隔。
+	如果这两个参数配置的目录不可用的比例达到一定的设置，则认为该节点不健康。某个目录可不可用的定义是：运行 NodeManager 节点的进程是否对这个目录可读、可写、可执行。如果这些条件都满足，这个目录则健康，否则该目录就被放入 failedDirs 列表里面。本地目录健康检测主要涉及到以下几个参数：
+    yarn.nodemanager.disk-health-checker.interval-ms：本地目录健康检测线程执行的频率，默认值为2分钟；
+    yarn.nodemanager.disk-health-checker.enable：是否启用本地目录健康检测，默认值是启用；
+	yarn.nodemanager.disk-health-checker.min-healthy-disks：正常目录数目相对于总目录总数的比例，低于这个值则认为此节点处于不正常状态，默认值为0.25。
+
+以上两种检测机制都会随着 NodeManager 节点启动而运行，并且检测到的状态会随心跳信息发送到 ResourceManager 端，然后 ResourceManager 端会根据相关的信息得到当前节点的可用情况，一旦发现这个节点不健康，则会标记此节点的状态为 NodeState.UNHEALTHY ，此后将不会忘这个节点分配任务，直到该节点状态正常
+ -、异常退出hive执行程序，产生临时文件，
+	1、删除hadoop fs -rm -r -skipTrash /tmp/hive/root/*
+	2、hdfs dfs -expunge  
+ https://cloud.tencent.com/developer/article/1363423
+	26G     ./subdir198
+	32G     ./subdir199
+	22G     ./subdir200
+	25G     ./subdir201
+	32G     ./subdir202
+	22G     ./subdir203
+	129M    ./subdir204
+	136M    ./subdir205
+
+	4、hive参数的单位
+		1)、mapred.max.split.size 单位【byte】（100 000 000 = 100M）
+			常见使用案例：
+				1、SQL里含有耗时udf
+				2、数据量较大，但是mapper数量较少（<100）
+				3、ORC压缩比太高，所以128M对应的数据行数过多
+			总结：
+				1、block是物理上的数据分割，而split是逻辑上的分割。
+				2、如果没有特别指定，split size 就等于 HDFS 的 block size 。
+				3、用户可以在M/R 程序中自定义split size。
+				4、一个split 可以包含多个blocks，也可以把一个block应用多个split操作。
+				5、一个split不会包含两个File的Block,不会跨越File边界
+				6、有多少个split，就有多少个mapper。
+原文链接：https://blog.csdn.net/tch918/article/details/89061860
+
+		2)、hive shell 中 `date` 只能在''（单引号中识别）
+48、
+虚拟机和物理机选择。
+		1、hadoop集群（hive）对磁盘io开销比较大，10台物理机比1台物理机（10台虚拟机）磁盘io快很多。
+		2、1台物理机（10台虚拟机），存在物理机挂掉，整个集群崩溃的情况。而10台物理机的集群，理论上主机挂掉一半以上照样可以提供服务。
+		3、虚拟化主机无法划分正确的机架（rack）来让hadoop合理的分布数据块存放位置。
+		4、虚拟机是共享物理机的cpu，虚拟机之间cpu峰值存在相互影响。
+	综上所述，相对于虚拟机的优点，缺点是灾难性的，故选择物理机。
+
+
+
+
+
+
+-- 显示模组：
+	1、美金为单位，财务转换为人民币，  汇率不一样， 美金单价。
+	2、一个物料 对应多个供应商。
+	3、物料类型对应物料名？     √
+	4、付款章程类型， 是 转账还是其他现金？.  √
+	5、计算方式，  当月的计算，还是  月底  结算。    √
+	6、汇总的 放各个BG的排行。  √
+设备 ---> 杂项 固定资产。
+	7、采购员可能会轮岗    
+	8、公司下面的不同BG    <->
+	9、项目号下面的CD金     <->
+	10、数据出现严重异常，提示。    <->
+	11、采购员去掉  -->  供应商采购员。   √
+	
+
+数据优化待解决：
+	1、一个物料对应多个供应商。【需要关联供应商】
+	5、计算方式，改为取上年最大的未税单价（price）。
+	2、美金为单位，财务转换为人民币，汇率不一样，美金单价。
+	3、月结类型统计的计算方式:       --> 汤加丽沟通        √
+	比如月结60天，采购额是算当月，还是60天后的那个月？
+			-、采购额算在当期。
+	4、采购员可能会轮岗  √  剔除
+	6、EAS，yifei，sap数据如何核定准确性？
+	
+	7、Y轴单位 是否要和图表详情的单位一致（同为“百万”）？  √
+	8、bug是否要在群里共享？  √
+			-、采购组人员统一反馈。
+
+	
+	9-、月结需要关联 fname
+	10-、T_BD_SupplierCompanyInfo  供应商公司表，关联 t_Bd_settlementType 查询结算方式。
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[root@lymaster01 ~]# hadoop fs -du -h  /warehouse/eas/ods
+53.3 M   /warehouse/eas/ods/ODS_EAS_NEW_EAS75_CT_LS_MATCH
+24.8 K   /warehouse/eas/ods/ODS_EAS_NEW_EAS75_ODS_EAS_NEW_EAS75_T_BD_PAYCONDITION
+3.8 M    /warehouse/eas/ods/ODS_EAS_NEW_EAS75_ODS_EAS_NEW_EAS75_T_BD_Person
+30.1 M   /warehouse/eas/ods/ODS_EAS_NEW_EAS75_ODS_EAS_NEW_EAS75_T_SM_PURREQUEST
+16.9 M   /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_BD_ACCOUNTVIEW
+67.5 K   /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_BD_CASHFLOWITEM
+3.3 K    /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_BD_CURRENCY
+569.9 K  /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_BD_CUSTOMER
+5.2 K    /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_BD_EXCHANGEAUX
+435.7 M  /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_BD_MATERIAL
+26.6 K   /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_BD_MATERIALGROUP
+81.5 M   /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_BD_MATERIALGROUPDETIAL
+5.6 K    /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_BD_MEASUREUNIT
+0        /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_BD_PAYCONDITION
+6.6 K    /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_BD_PAYCONDITIONENTRY
+85.3 K   /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_BD_PERIOD
+3.7 M    /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_BD_PERSON
+559      /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_BD_SETTLEMENTTYPE
+3.1 M    /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_BD_SUPPLIER
+15.4 M   /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_BD_SUPPLIERCOMPANYINFO
+1.0 K    /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_BD_VOUCHERTYPES
+1.5 M    /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_DB_LOCATION
+857.7 K  /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_DB_WAREHOUSE
+706.6 M  /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_GL_ACCOUNTBALANCE
+345.7 M  /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_GL_VOUCHER
+767.9 M  /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_GL_VOUCHERENTRY
+1.2 G    /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_IM_PURINWAREHSBILL
+3.0 G    /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_IM_PURINWAREHSENTRY
+1.1 M    /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_ORG_ADMIN
+26.3 K   /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_ORG_COMPANY
+19.3 K   /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_ORG_STORAGE
+535.0 M  /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_SM_PURORDER
+1.2 G    /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_SM_PURORDERENTRY
+0        /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_SM_PURREQUEST
+0        /warehouse/eas/ods/ods_eas_new_eas75_T_BD_MATERIALGROUP
+0        /warehouse/eas/ods/ods_eas_new_eas75_T_BD_MATERIALGROUPDETIAL
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------------------------------------------------------------------------------
+	
+	1、汇总BG 
+		-、原左上角图去掉，改为每个BG的CD金额排行.
+		    detail: 
+				1)、BG按照CD金额倒序(按时间段)
+				2)、鼠标指向显示，CD金额，CD比例,总金额。(按时间段)
+		【SELECT SUM(CD_AMOUNT) AS  CD_AMOUNT_ALL , SUM(CD_AMOUNT)/sum(TOTAL_AMOUNT) AS CD_PROPORTION_ALL,
+sum(TOTAL_AMOUNT) AS  TOTAL_AMOUNT_ALL,dim,BG
+FROM DW.DWS_CD_BY_AMOUNT_MONTH WHERE "DATE" BETWEEN '2019-01' AND '2019-12' AND  dim != 'unknown' 
+GROUP BY DIM,BG ORDER BY SUM(CD_AMOUNT) DESC;】
+			
+	2、所有BG
+		1-、去掉左下角的图，改为供应商的CD金额展示.
+			detail:
+				1)、供应商按照CD金额倒序.(按时间段)
+				2)、鼠标指向显示，CD金额，CD比例,总金额。(按时间段)
+		2-、物料类型的详情改为显示物料的详情.
+			detail:
+				1)、详情表，新增物料名称字段，查询返回
+		3-、右下角图，新增付款类型.
+			detail:
+				1)、详情表，新增付款类型字段，查询返回
+		4-、每个柱状图，条形图，详情金额改为 “百万”单位.
+		5-、每个报表下载excel，弹出框可以选择时间段导出.
+		
+	3、异常数据报警 (用户提供超出多少范围报警).
+	4、按区域划分，如：华东华西(区域划分规划用户提供)；
+	
+	
+49、oozie安装 
+derby ： oozie/Oozie-123
+
+-、安装提示警告
+Some service configurations are not configured properly. We recommend you review and change the highlighted configuration values. Are you sure you want to proceed without correcting configurations?
+Type 	Service 	Property 	Value 	Description
+1)-、Warning 	MapReduce2 	mapreduce.map.java.opts 	-Xmx1638m 	
+Value is less than the recommended default of -Xmx4505m
+Larger heap-size for child jvms of maps.
+      ：mapreduce.map.java.opts 其实就是启动 JVM 虚拟机时，传递给虚拟机的启动参数，而默认值 -Xmx200m 表示这个 Java 程序可以使用的最大堆内存数，一旦超过这个大小，JVM 就会抛出 Out of Memory 异常，并终止进程。而 mapreduce.map.memory.mb 设置的是 Container 的内存上限，这个参数由 NodeManager 读取并进行控制，当 Container 的内存大小超过了这个参数值，NodeManager 会负责 kill 掉 Container。
+	  也就是说，mapreduce.map.java.opts一定要小于mapreduce.map.memory.mb
+2)-、Warning 	MapReduce2 	mapreduce.map.memory.mb 	2048 	
+Value is less than the recommended default of 5632
+Value is less than the recommended minimum of 5632
+Virtual memory for single Map task
+	:参考资料-https://blog.csdn.net/u014665013/article/details/80923044
+
+3)-、Warning 	MapReduce2 	mapreduce.reduce.java.opts 	-Xmx3276m 	
+Value is less than the recommended default of -Xmx9011m
+Larger heap-size for child jvms of reduces.
+Warning 	MapReduce2 	mapreduce.reduce.memory.mb 	4096 	
+Value is less than the recommended minimum of 5632
+Value is less than the recommended default of 11264
+Virtual memory for single Reduce task
+
+4)-、Warning 	MapReduce2 	mapreduce.task.io.sort.mb 	1146 	
+Value is less than the recommended default of 2047
+The total amount of buffer memory to use while sorting files, in megabytes. By default, gives each merge stream 1MB, which should minimize seeks.
+
+5)-、Warning 	MapReduce2 	yarn.app.mapreduce.am.command-opts 	-Xmx1638m -Dhdp.version=${hdp.version} 	
+Value is less than the recommended default of -Xmx4505m
+Java opts for the MR App Master processes. The following symbol, if present, will be interpolated: @taskid@ is replaced by current TaskID. Any other occurrences of '@' will go unchanged. For example, to enable verbose gc logging to a file named for the taskid in /tmp and to set the heap maximum to be a gigabyte, pass a 'value' of: -Xmx1024m -verbose:gc -Xloggc:/tmp/@taskid@.gc Usage of -Djava.library.path can cause programs to no longer function if hadoop native libraries are used. These values should instead be set as part of LD_LIBRARY_PATH in the map / reduce JVM env using the mapreduce.map.env and mapreduce.reduce.env config settings.
+
+6)-、Warning 	MapReduce2 	yarn.app.mapreduce.am.resource.mb 	2048 	
+Value is less than the recommended default of 5632
+Value is less than the recommended minimum of 5632
+The amount of memory the MR AppMaster needs.
+
+7)-、Warning 	Tez 	tez.am.resource.memory.mb 	4096 	
+Value is less than the recommended default of 5632
+The amount of memory to be used by the AppMaster. Used only if the value is not specified explicitly by the DAG definition.
+
+8)-、Warning 	Tez 	tez.runtime.io.sort.mb 	540 	
+Value is less than the recommended default of 1486
+The size of the sort buffer when output needs to be sorted
+
+9)-、Warning 	Tez 	tez.runtime.unordered.output.buffer.size-mb 	153 	
+Value is less than the recommended default of 422
+The size of the buffer when output does not require to be sorted
+
+10)-、Warning 	Tez 	tez.task.resource.memory.mb 	2048 	
+Value is less than the recommended default of 5632
+The amount of memory to be used by launched tasks. Used only if the value is not specified explicitly by the DAG definition.
+
+11)-、Warning 	Hive 	hive.auto.convert.join.noconditionaltask.size 	572662306 	【byte】 550M
+Value is less than the recommended default of 1574821341  [1.5G]
+If hive.auto.convert.join.noconditionaltask is off, this parameter does not take affect. However, if it is on, and the sum of size for n-1 of the tables/partitions for a n-way join is smaller than this size, the join is directly converted to a mapjoin(there is no conditional task).
+	解析：Hive对于mapjoin是默认开启的
+		set hive.auto.convert.join = true; --是否自动转换为mapjoin
+		set hive.mapjoin.smalltable.filesize = 25000000; --小表的最大文件大小，默认为25000000，即25M
+		set hive.auto.convert.join.noconditionaltask = true; --是否将多个mapjoin合并为一个
+		set hive.auto.convert.join.noconditionaltask.size = 10000000; --多个mapjoin转换为1个时，所有小表的文件大小总和的最大值。
+		
+12)-、Warning 	Hive 	hive.tez.container.size 	2048 	
+Value is less than the recommended default of 5632
+By default, Tez uses the java options from map tasks. Use this property to override that value.
+
+
+13)-、Warning 	Ambari Metrics 	hbase_master_heapsize 	3072 	
+Consider allocating 4096 MB to hbase_master_heapsize in ams-hbase-env to use up some unused memory on host
+HBase Master Heap Size. In embedded mode, total heap size is sum of master and regionserver heap sizes.
+
+14)-、Warning 	Ambari Metrics 	hbase_master_xmn_size 	1024 	
+Value is greater than the recommended maximum Xmn size of 768 (20% of hbase_master_heapsize + hbase_regionserver_heapsize)
+HBase Master maximum value for young generation heap size.
+
+15)-、Warning 	Ambari Metrics 	metrics_collector_heapsize 	512 	
+Consider allocating 768 MB to metrics_collector_heapsize in ams-env to use up some unused memory on host
+Metrics Collector Heap Size
+
+50、磁盘挂载 ，设置为xfs
+	1-、fdisk -l //查看磁盘信息；
+	2-、fdisk /dev/sdb
+		新建分区输入n，p,1，一路默认；
+	3-、格式化分区为XFS：
+		mkfs.xfs -f /dev/sdb1
+	4-、先创建一个目录，然后将 /dev/sdb1 挂载到该目录下
+		mount -t xfs /dev/sdb1 /opt
+	5-、修改 /etc/fstab 来进行自动加载
+		加入下列行到/etc/fstab：修改 /etc/fstab 来进行自动加载，加入下列行到/etc/fstab：加入下列行到/etc/fstab：修改 /etc/fstab 来进行自动加载，加入下列行到/etc/fstab：
+	echo '/dev/sdb1 /opt xfs defaults 0 0' >> /etc/fstab
+https://blog.csdn.net/Maplematics/article/details/87893862
+51、设置为“^#” 分隔符 报错
+SQL 错误 [2] [08S01]: Error while processing statement: FAILED: Execution Error, return code 2 from org.apache.hadoop.hive.ql.exec.tez.TezTask. Vertex failed, vertexName=Reducer 4, vertexId=vertex_1576314161589_0043_1_04, diagnostics=[Task failed, taskId=task_1576314161589_0043_1_04_000002, diagnostics=[TaskAttempt 0 failed, info=[Error: Failure while running task:java.lang.RuntimeException: java.lang.RuntimeException: org.apache.hadoop.hive.ql.metadata.HiveException: Hive Runtime Error while processing row (tag=0) {"key":{"reducesinkkey0":"110-3M3304BC-0500","reducesinkkey1":"LSC02","reducesinkkey2":"2015"},"value":{"_col0":"华南","_col1":"","_col2":"","_col3":"01.01.08","_col4":"深圳市领略数控设备有限公司","_col5":"201511","_col6":"2015/11/16 17:04:39.580000000","_col7":"11","_col8":"","_col9":"LLSZPO150917034","_col10":"领胜城科技(江苏)有限公司","_col11":"领胜城","_col12":"3M3304BC","_col13":"灰色 导电胶带","_col14":"500mmx100m","_col15":15000,"_col16":"㎡","_col17":"BB01","_col18":"人民币","_col19":100.571599,"_col20":17,"_col21":1,"_col22":85.958632,"_col23":1508573.99,"_col24":1289379.48,"_col25":"105","_col26":"11","_col27":"/OQAAAAFAJ6A733t","_col28":"01.01.08","_col29":"深圳市领略数控设备有限公司","_col30":"/OQAAAAFAJ6A733t","_col31":"PRA1509029  10/30港车到料"}}
+	at org.apache.hadoop.hive.ql.exec.tez.TezProcessor.initializeAndRunProcessor(TezProcessor.java:173)
+	at org.apache.hadoop.hive.ql.exec.tez.TezProcessor.run(TezProcessor.java:139)
+	at org.apache.tez.runtime.LogicalIOProcessorRuntimeTask.run(LogicalIOProcessorRuntimeTask.java:347)
+	at org.apache.tez.runtime.task.TezTaskRunner$TaskRunnerCallable$1.run(TezTaskRunner.java:194)
+	at org.apache.tez.runtime.task.TezTaskRunner$TaskRunnerCallable$1.run(TezTaskRunner.java:185)
+	at java.security.AccessController.doPrivileged(Native Method)
+	
+	
+	{
+	"key": {
+		"reducesinkkey0": "110-3M3304BC-0500",
+		"reducesinkkey1": "LSC02",
+		"reducesinkkey2": "2015"
+	},
+	"value": {
+		"_col0": "华南",
+		"_col1": "",
+		"_col2": "",
+		"_col3": "01.01.08",
+		"_col4": "深圳市领略数控设备有限公司",
+		"_col5": "201511",
+		"_col6": "2015/11/16 17:04:39.580000000",
+		"_col7": "11",
+		"_col8": "",
+		"_col9": "LLSZPO150917034",
+		"_col10": "领胜城科技(江苏)有限公司",
+		"_col11": "领胜城",
+		"_col12": "3M3304BC",
+		"_col13": "灰色 导电胶带",
+		"_col14": "500mmx100m",
+		"_col15": 15000,
+		"_col16": "㎡",
+		"_col17": "BB01",
+		"_col18": "人民币",
+		"_col19": 100.571599,
+		"_col20": 17,
+		"_col21": 1,
+		"_col22": 85.958632,
+		"_col23": 1508573.99,
+		"_col24": 1289379.48,
+		"_col25": "105",
+		"_col26": "11",
+		"_col27": "/OQAAAAFAJ6A733t",
+		"_col28": "01.01.08",
+		"_col29": "深圳市领略数控设备有限公司",
+		"_col30": "/OQAAAAFAJ6A733t",
+		"_col31": "PRA1509029  10/30港车到料"
+	}
+}
+
+52、hdfs误删数据恢复
+  -、误删数据在当前用户（操作） 回收站目录下， 将数据mv回以前目录即可
+  /user/root/.Trash/Current/app/hive/warehouse/dwmiddle.db
+  
+53、hive -e 加上${l_date}  
+		-、双引号  ，里面单引号
+		-、单引号 ， 里面单引号，外面双引号。
+54、hive 大表关联小表 优化。
+
+55、观察cpu使用率（yarn）
+    是否是此任务导致集群CPU使用率：98.5%  
+		application_1576699432278_0003
+		
+		case when :		
+			方法一：
+
+			case 
+			when tb1.os = 'android' then 'android'
+			when tb1.os = 'ios' then 'iPhone'
+			else 'PC'
+			end as os,
+
+				1
+				2
+				3
+				4
+				5
+
+			方法二：
+
+			case tb1.os
+			when 'android' then 'android'
+			when 'ios' then 'iPhone'
+			else 'PC'
+			end as os,
+56、step脚本呢执行报错：
+ogging initialized using configuration in file:/etc/hive/2.5.3.0-37/0/hive-log4j.properties
+Exception in thread "main" java.lang.RuntimeException: org.apache.tez.dag.api.SessionNotRunning: TezSession has already shutdown. Application application_1576736000097_0021 failed 2 times due to ApplicationMaster for attempt appattempt_1576736000097_0021_000002 timed out. Failing the application.
