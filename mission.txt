@@ -1,94 +1,133 @@
 2019-12-04
-	1-、需IT自动系统直接链接导出：供应商的付款账期天数...？此后业务是否需要实现自动/半自动？  √
-			--、eas查找对应字段即可。
-	2-、手都完善的这些，有没有一种标准，或者规律，可供以后自动生成。
-	3-、CD-价格确认（周建-业务）   
-	4-、给特称提供科目余额的其他维度.  √
-		时间修改
-		柱状图颜色
-		布局 ： fineBI激活码：71704542-eb6d6ab18-a51d-54045fb1233a
-	5-、给到茂泉：  √
-		Eas采购相关表：
-			CT_LS_Match  // 表数据一直在更新，现在导入是全量抽取，怎么结局数据实时性？
-			T_BD_Material
-			T_BD_Supplier
-			T_IM_PurInWarehsBill
-			T_IM_PurInWarehsEntry
-			T_ORG_Storage
-			T_SM_PurOrder
-		-、数据有空格  // 去掉长度精度
-		-、数值字段，默认为0的却显示为null // 去掉长度精度
-		-、eas.ods_eas_new_eas75_t_bd_supplier 删除2019-09-24分区的数据。
-	6-、11.20之前给到世民/特称，表结构和维度图  √
-	7-、代办：
-		1、eas新增excel梳理，以及其他手动输入字段逻辑梳理
-		2、eas数据表抽取（by kettle） 
-			/warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_BD_MATERIAL/day=${sys_day}/f
-	8、
-		1)、数据更新，新增怎么个方案？
-		2)、定时任务怎么执行？
-	9、hive的set参数优化方案
-	10、为什么hivesql的join多表之后，会产生大量的中间数据（1G → 100G）
-	11、优化CD金额为负数。  √
-		1)、以前的逻辑优化
-		2)、观察mid2数据规律join的时候加上过滤条件。
-	12、unknown优化 
-	13、优化物料名称查询 -- 物料降价记录表。  √
-	14、采购求CD可以存在问题： √
-		1)、同一物料，相同年月对应不同的单价？
-		2)、同一物料，相同年月两条相同数据或者两条不同单价数据？
-		3)、同一物料，相同月份对应不同的采购员/供应商?
-				-、根据采购员/供应商分组，计算对应的cd金额。
-	15、每个图标新增，字段bu，bg    √
-	
-	16、物料名称去掉逗号  √
-	17、厂区和物料名称单独维护表√
-	18、单价单位    √
-		-、根据币别  判断是否为美元。
-	19、采购员优化。 √
-	20、账期金额，存在CD金额比总金额多的情况。  √
-	
-	21、设备的导出EXCEL，更新base表
-	22、
-		-、恢复 hadoop fs -rmr hdfs://mycluster/apps/hive/warehouse/dwservice.db/dws_cd_by_material_cut_price_month3/*
-		-、regexp_replace 未替换 "^" ？？？        √
-			select regexp_replace(material_name,'\\^','') as A,material_name from  dwmiddle.dwb_purchase_combine_mid_report_eas_final3 
+
+1-、需IT自动系统直接链接导出：供应商的付款账期天数...？此后业务是否需要实现自动/半自动？  √
+		--、eas查找对应字段即可。
+2-、手都完善的这些，有没有一种标准，或者规律，可供以后自动生成。
+3-、CD-价格确认（周建-业务）   
+4-、给特称提供科目余额的其他维度.  √
+	时间修改
+	柱状图颜色
+	布局 ： fineBI激活码：71704542-eb6d6ab18-a51d-54045fb1233a
+5-、给到茂泉：  √
+	Eas采购相关表：
+		CT_LS_Match  // 表数据一直在更新，现在导入是全量抽取，怎么结局数据实时性？
+		T_BD_Material
+		T_BD_Supplier
+		T_IM_PurInWarehsBill
+		T_IM_PurInWarehsEntry
+		T_ORG_Storage
+		T_SM_PurOrder
+	-、数据有空格  // 去掉长度精度
+	-、数值字段，默认为0的却显示为null // 去掉长度精度
+	-、eas.ods_eas_new_eas75_t_bd_supplier 删除2019-09-24分区的数据。
+6-、11.20之前给到世民/特称，表结构和维度图  √
+7-、代办：
+	1、eas新增excel梳理，以及其他手动输入字段逻辑梳理
+	2、eas数据表抽取（by kettle） 
+		/warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_BD_MATERIAL/day=${sys_day}/f
+8、
+	1)、数据更新，新增怎么个方案？
+	2)、定时任务怎么执行？
+9、hive的set参数优化方案
+10、为什么hivesql的join多表之后，会产生大量的中间数据（1G → 100G）
+11、优化CD金额为负数。  √
+	1)、以前的逻辑优化
+	2)、观察mid2数据规律join的时候加上过滤条件。
+12、unknown优化 
+13、优化物料名称查询 -- 物料降价记录表。  √
+14、采购求CD可以存在问题： √
+	1)、同一物料，相同年月对应不同的单价？
+	2)、同一物料，相同年月两条相同数据或者两条不同单价数据？
+	3)、同一物料，相同月份对应不同的采购员/供应商?
+			-、根据采购员/供应商分组，计算对应的cd金额。
+15、每个图标新增，字段bu，bg    √
+
+16、物料名称去掉逗号  √
+17、厂区和物料名称单独维护表√
+18、单价单位    √
+	-、根据币别  判断是否为美元。
+19、采购员优化。 √
+20、账期金额，存在CD金额比总金额多的情况。  √
+
+21、设备的导出EXCEL，更新base表
+22、
+	-、恢复 hadoop fs -rmr hdfs://mycluster/apps/hive/warehouse/dwservice.db/dws_cd_by_material_cut_price_month3/*
+	-、regexp_replace 未替换 "^" ？？？        √
+		select regexp_replace(material_name,'\\^','') as A,material_name from  dwmiddle.dwb_purchase_combine_mid_report_eas_final3 
 where material_code= '180-QP220150-0000';
 
-	23、-、去掉“/”数据
-	    -、确认磁材 ，深圳结构件，东莞结构件的数据。√
-		-、磁材数据显示有问题。   √
-		
-	24、导出EXCEL。  
-		-、磁材，结构件  暂时屏蔽
-		-、汇总导出的是yifie的数据
-	25、row  format  serde  'org.apache.hadoop.hive.contrib.serde2.MultiDelimitSerDe'  with  serdeproperties  ('field.delim'='^#') 
+23、-、去掉“/”数据
+	-、确认磁材 ，深圳结构件，东莞结构件的数据。√
+	-、磁材数据显示有问题。   √
+	
+24、导出EXCEL。  
+	-、磁材，结构件  暂时屏蔽
+	-、汇总导出的是yifie的数据
+25、row  format  serde  'org.apache.hadoop.hive.contrib.serde2.MultiDelimitSerDe'  with  serdeproperties  ('field.delim'='^#') 
 STORED AS orc tblproperties('orc.compression' = 'snappy');
-	26、
-		1-、存在是币别为美元的情况，对应的汇率却为1？
-				目前解决方案：取当前月报对应月份系统中的有效汇率替换，转化为统一币别计算CD。
-		2-、未税单价的有效位数不一致，是否统一位数？  6位 展示2位
-					冲压	4位
-		3-、存在amout为负数的情况
-		：查看所属BG,反馈给对应负责人	
+26、
+	1-、存在是币别为美元的情况，对应的汇率却为1？
+			目前解决方案：取当前月报对应月份系统中的有效汇率替换，转化为统一币别计算CD。
+	2-、未税单价的有效位数不一致，是否统一位数？  6位 展示2位
+				冲压	4位
+	3-、存在amout为负数的情况
+	：查看所属BG,反馈给对应负责人	
 
+	
+	1-、新的逻辑 ： 
+		-、stand_price 要设置为数值，且数字要保留6位。  √
+		-、在计算CD之前统一转化为人民币。（存在为USD且汇率为1的情况） √
+		-、去掉设备BG。 √
+		-、物料单价，计算取6位，展示取2位小数。 √
+		-、原始数据的币别要和price对应。统一用RMB，还是美元？ √
+			-、统一使用RMB
+		-、CNC转大写，yifei的nurmonth改为date  
+		-、为什么(regexp_replace( material_name,'"',''),"'",""),'\\^','')，未转化过来。
+		-、要增量抽取数据 
+		-、phoenix安装4.14版本[安装phoenix-4.9 已解决分页问题。]   √
+			-、数据迁移
+			-、安装4.14版本phoenix
+				-、注意修改phoenix端口，不与当前的phoenix冲突。
+				
+		-、生成最终基础报表（换算成RMB，币别也为人民币）
+		-、确认物料名称中，CD全为0的数据。
 		
-		1-、新的逻辑 ： 
-			-、stand_price 要设置为数值，且数字要保留6位。
-			-、在计算CD之前统一转化为人民币。（存在为USD且汇率为1的情况）
-			-、去掉设备BG。
-			-、物料单价，计算取6位，展示取2位小数。
-			-、原始数据的币别要和price对应。统一用RMB，还是美元？
-			-、CNC转大写，yifei的nurmonth改为date
-			-、为什么(regexp_replace( material_name,'"',''),"'",""),'\\^','')，未转化过来。
-			-、要增量抽取数据
-			-、phoenix安装4.14版本
-			-、生成最终基础报表（换算成RMB，币别也未人民币）
-	27、执行start.sh 
-		-、添加参数 20191216
-		-、修改第二个脚本的，添加参数l_date,以及查询基础表（from）添加l_date
+		-、内部交易相关：
+				1. CNC,冲压,显示模组BG内部交易部分不纳入采购金额；
+					显示模组-内部交易公司：帝晶大洋田第二分厂；帝晶光电；帝晶光电（深圳）；帝晶科技；帝晶科技（OEM事业部)；赣州帝晶；香港帝晶（友达）
+				2. 组装BG-内部交易金额纳入采购金额；
+				3. 模切BG-内部交易按公司与物料类别区分,需要提供区分的规则？
+			
+			-、内部公司的CD不计入（CNC,冲压,显示模组BG的内部交易部分不纳入采购金额；）
+				-、根据company表筛选 + 模糊筛选
+				-、模切单独规则：
+					关于模切的内部交易有如下规则：
+					1.成品之外的原材料--不纳入采购金额；
+						question：
+							1、当前模切一级分类中包含[原材料,成品,主材料,辅助材料,半成品],是否就是除了成品这一类别外，其他都不纳入采购金额？
+							2、不纳入采购金额，是否纳入CD。
+					2.自己生产的成品--不算采购金额，但是算CD金额；
+						question：
+							1、怎么定义是自产成品？
+					3.调拨的材料--不算采购金额，也不算CD金额；
+						question：
+							1、调拨材料怎么区分，是根据供应商是自家公司进行区分？
+					4.美金采购部分，我们都是与TLG（算是子公司）购买，我们不算与TLG的采购金额，但是我们算TLG与原厂商的采购金额。也就是TLG是个中间公司，所以我们只需要算一遍采购金额。
+						question：
+							1、美金采购怎么区分？ 根据币别？还是只要是TLG公司的都剔除掉？
+					其中调拨材料部分，就是不是自己生产的，例如：成都领益需要一卷材料，找东莞领益购买，东莞领益发现东台有，就直接从东台调货发往成都。这个就属于调拨
+			
+			1、
+			
+		-、物料一级分类中为空的值，本来就属于一级分类,如果为null,则直接拿二级分类作为一级分类。
+				
 		
-		测试 ：-不加mapjoin  6030s
+		
+27、执行start.sh 
+	-、添加参数 20191216
+	-、修改第二个脚本的，添加参数l_date,以及查询基础表（from）添加l_date
+	
+	测试 ：-不加mapjoin  6030s
 		
 计算逻辑优化（已完成）：
 	1、物料需关联对应供应商求得CD

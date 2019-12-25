@@ -1688,3 +1688,200 @@ SQL 错误 [2] [08S01]: Error while processing statement: FAILED: Execution Error,
 56、step脚本呢执行报错：
 ogging initialized using configuration in file:/etc/hive/2.5.3.0-37/0/hive-log4j.properties
 Exception in thread "main" java.lang.RuntimeException: org.apache.tez.dag.api.SessionNotRunning: TezSession has already shutdown. Application application_1576736000097_0021 failed 2 times due to ApplicationMaster for attempt appattempt_1576736000097_0021_000002 timed out. Failing the application.
+
+57、hbase修改timout相关配置之后，hbase Master日志刨析.
+2019-12-21 10:29:32,762 INFO  [RpcServer.responder] ipc.RpcServer: RpcServer.responder: stopping
+2019-12-21 10:29:47,771 WARN  [master/lymaster01/10.0.24.105:16000] zookeeper.RecoverableZooKeeper: Possibly transient ZooKeeper, quorum=lyzk01:2181,lyzk02:2181,lyzk03:2181, exception=org.apache.zookeeper.KeeperException$SessionExpiredException: KeeperErrorCode = Session expired for /hbase-unsecure/rs/lymaster01,16000,1576747278473
+zookeeper.RecoverableZooKeeper: ZooKeeper getData failed after 7 attempts
+2019-12-21 10:29:32,608 WARN  [master/lymaster01/10.0.24.105:16000] zookeeper.ZKUtil: master:16000-0x26f1cccbf2e003e, quorum=lyzk01:2181,lyzk02:2181,lyzk03:2181, baseZNode=/hbase-unsecure Unable to get data of znode /hbase-unsecure/master
+org.apache.zookeeper.KeeperException$SessionExpiredException: KeeperErrorCode = Session expired for /hbase-unsecure/master
+
+.....
+2019-12-21 10:31:39,772 INFO  [master/lymaster01/10.0.24.105:16000] regionserver.HRegionServer: master/lymaster01/10.0.24.105:16000 exiting
+2019年 12月 23日 星期一 09:41:34 CST Starting master on lymaster01
+
+	-、修改了Hbase的hbase-site.xml 中的phoenix 相关的配置之后。
+			phoenix.query.timeoutMs=1800000(ms)  【ambari 默认为60s】
+			hbase.regionserver.lease.period = 1200000(ms) 
+			hbase.rpc.timeout = 1200000 (ms)   【ambari 默认为90s】
+			hbase.client.scanner.caching = 1000 （这个属性在Ambari中为Number of Fetched Rows when Scanning from Disk=1000）
+			hbase.client.scanner.timeout.period = 1200000 
+		根据日志提示，貌似是zookeeper与hbase连接的session失效导致的。
+		-、初步原因分析--> 调大zookepper的超时时间（以前是90s）
+			<property>
+				<name>zookeeper.session.timeout</name>
+				<value>120000</value>
+			</property>
+	
+	
+	
+日志2：
+ 2019-12-24 02:30:45,471 WARN  [lymaster01:16000.activeMasterManager-EventThread] client.ConnectionManager$HConnectionImplementation: This client just lost it's session with ZooKeeper, closing it. It will be recreated next time someone needs it
+org.apache.zookeeper.KeeperException$SessionExpiredException: KeeperErrorCode = Session expired
+.....3
+2019-12-24 02:30:48,838 ERROR [master/lymaster01/10.0.24.105:16000] zookeeper.ZooKeeperWatcher: master:16000-0x36f3179c9dd006f, quorum=lyzk01:2181,lyzk02:2181,lyzk03:2181, baseZNode=/hbase-unsecure Received unexpected KeeperException, re-throwing exception
+org.apache.zookeeper.KeeperException$SessionExpiredException: KeeperErrorCode = Session expired for /hbase-unsecure/master
+	
+58、单独安装phoenix 【phoenix仓库 http://archive.apache.org/dist/phoenix/】
+	安装Phoenix 4.14.0
+	phoenix安装到hnode1节点
+
+	1. 下载Phoenix安装包apache-phoenix-4.14.0-HBase-1.2-bin.tar.gz，将其上传到/usr/local/src/software目录下
+	2. 解压
+	cd /usr/local/src/software
+	tar zxvf apache-phoenix-4.14.0-HBase-1.2-bin.tar.gz -C /usr/local/src/
+	ln -s apache-phoenix-4.14.0-HBase-1.2-bin/ phoenix
+
+	3. 然后将phoenix的phoenix-4.14.0-HBase-1.2-server.jar拷贝到每一个RegionServer【hnode1、hnode2、hnode3节点】的classpath（即HBASE_HOME/lib目录下）
+	cd /usr/local/src/phoenix
+	scp phoenix-4.14.0-HBase-1.2-server.jar root@hnode1:/usr/local/src/hbase/lib/
+	scp phoenix-4.14.0-HBase-1.2-server.jar root@hnode2:/usr/local/src/hbase/lib/
+	scp phoenix-4.14.0-HBase-1.2-server.jar root@hnode3:/usr/local/src/hbase/lib/
+
+	4. hbase-site.xml中进行phoenix的相关配置
+	cd /usr/local/src/hbase/conf
+	vim hbase-site.xml
+
+	#### 在尾部添加下面内容
+	<!--############### phoenix相关配置 ##############-->
+	<!-- 配置不检查 -->
+	<property>
+			<name>hbase.table.sanity.checks</name>
+			<value>false</value>
+	</property>
+	<!-- 使用phoenix创建索引需要配置此项 -->
+	<property>
+			<name>hbase.regionserver.wal.codec</name>
+			<value>org.apache.hadoop.hbase.regionserver.wal.IndexedWALEditCodec</value>
+	</property>
+	<!-- 开启phoenix的schema与hbase的namespace对应关系 -->
+	<property>
+			<name>phoenix.schema.isNamespaceMappingEnabled</name>
+			<value>true</value>
+	</property>
+	<!-- 是否将phoenix的系统表的schema映射到hbase的namespace -->
+	<!-- 即phoenix里的SYSTEM (该schema下的6张表)映射到hbase的SYSTEM (该namespace下的6张表) -->
+	<property>
+			<name>phoenix.schema.mapSystemTablesToNamespace</name>
+			<value>true</value>
+	</property>
+	<!--############### phoenix相关配置 ##############-->
+
+	### 再将hbase-site.xml分发到其它RegionServer上
+	cd /usr/local/src/hbase/conf
+	scp hbase-site.xml root@hnode2:/usr/local/src/hbase/conf/
+	scp hbase-site.xml root@hnode3:/usr/local/src/hbase/conf/
+
+
+	5. 将hbase-site.xml拷贝到phoenix的bin目录下
+	cd /usr/local/src/phoenix/bin/
+	mv hbase-site.xml hbase-site.xml.template
+
+	cd /usr/local/src/hbase/conf
+	cp hbase-site.xml /usr/local/src/phoenix/bin/
+
+	6. 重启HBase服务
+	cd /usr/local/src/hbase/bin
+	./stop-hbase.sh
+	./start-hbase.sh
+
+
+	7、升级ambari中phoenix版本（自己搭建phoenix，替换hbase中lib的jar）：
+		删除原有的Hbase相关phoenix软连接 [lymaster01,lyzk01,lyzk02,lyzk03]【 phoenix-server.jar -> /usr/hdp/2.5.3.0-37//phoenix/phoenix-server.jar 】
+		1-、替换hbase的lib下的phoenix-server.jar,为高版本的jar.
+			cd   /usr/hdp/2.5.3.0-37/hbase/lib
+			cp /opt/apache-phoenix-4.14.0-HBase-1.2-bin/phoenix-4.14.0-HBase-1.2-server.jar  /usr/hdp/2.5.3.0-37/phoenix
+			rm -rf  phoenix-server.jar
+			ln -s /usr/hdp/2.5.3.0-37/phoenix/phoenix-4.14.0-HBase-1.2-server.jar phoenix-server.jar
+			
+			ln -s /opt/apache-phoenix-4.14.0-HBase-1.2-bin/phoenix-4.14.0-HBase-1.2-server.jar phoenix-server.jar
+
+			恢复：
+			rm -rf  phoenix-server.jar
+			ln -s /usr/hdp/2.5.3.0-37//phoenix/phoenix-server.jar phoenix-server.jar
+
+					1)-、regionserver异常1：
+					WARN  [regionserver/lyzk03/10.0.24.111:16020] regionserver.HRegionServer: error telling master we are up
+				com.google.protobuf.ServiceException: java.io.IOException: Call to lymaster01/10.0.24.105:16000 failed on local exception: org.apache.hadoop.hbase.ipc.CallTimeoutException: Call id=54, waitTime=10001, operationTimeout=10000 expired.
+						解决：/usr/hdp/2.5.3.0-37/hbase/lib  放了两个相同类型的jar ， phoenix-server.jar  和phoenix-4.14.0-HBase-1.2-server.jar  = =
+					
+		2-、
+			1)、修改高版本的名字 为当前集群的phoenix名字.		
+				cd /usr/hdp/2.5.3.0-37/phoenix
+				mv phoenix-4.7.0.2.5.3.0-37-server.jar phoenix-4.7.0.2.5.3.0-37-server.jar-backup
+				mv phoenix-4.14.0-HBase-1.2-server.jar	phoenix-4.7.0.2.5.3.0-37-server.jar
+				
+				恢复：	
+				mv phoenix-4.7.0.2.5.3.0-37-server.jar phoenix-4.14.0-HBase-1.2-server.jar	
+				mv phoenix-4.7.0.2.5.3.0-37-server.jar-backup phoenix-4.7.0.2.5.3.0-37-server.jar 
+			
+			2)、去掉phoenix目录可能会影响的phoenix-server.jar（事实证明不影响）
+				mkdir /opt/phoenix-backup
+				mv /usr/hdp/2.5.3.0-37/phoenix/phoenix-4.7.0.2.5.3.0-37-server.jar-backup /opt/phoenix-backup/
+				mv /usr/hdp/2.5.3.0-37/phoenix/phoenix-4.7.0-HBase-1.1-server.jar /opt/phoenix-backup/
+				恢复：	
+				cp /opt/phoenix-backup/phoenix-4.7.0.2.5.3.0-37-server.jar-backup /usr/hdp/2.5.3.0-37/phoenix/
+				cp /opt/phoenix-backup/phoenix-4.7.0-HBase-1.1-server.jar  /usr/hdp/2.5.3.0-37/phoenix/
+			
+		3-、 执行上述“1-、”中的恢复
+			 
+			 恢复：执行2-2) 2-1)
+			 
+		总结：1-、单纯替换hbase中lib的phoenix-server.jar为高版本，regionServer启动报错，ipc超时（1000ms）
+			  ambari的phoenix时集成进hbase的，rs的报错(7-1-1)，暂时未解决。
+			  2-、其他解决方案：
+				方案一：
+					1、备份phoenix的数据
+					2、升级整个ambari中的phoenix。
+				方案二：
+					1、降低jar为apache-phoenix-4.14.0-HBase-1.1-bin.tar
+					2、重试7-1-..
+							rm -rf  phoenix-server.jar
+							ln -s /opt/apache-phoenix-4.14.0-HBase-1.1-bin/phoenix-4.14.0-HBase-1.1-server.jar phoenix-server.jar
+						恢复：7-1
+						
+					错误日志[D:\ly\note\20191104_purchase\log\reginserver.log]：
+					2019-12-24 12:22:46,836 ERROR [RS_OPEN_REGION-lyzk02:16020-0] index.Indexer: Must be too early a version of HBase. Disabled coprocessor
+					....
+					org.apache.hadoop.metrics2.MetricsException: Metrics source RegionServer,sub=PhoenixIndexer already exists!
+					...
+					2019-12-24 12:22:47,068 INFO  [RS_OPEN_PRIORITY_REGION-lyzk02:16020-2] coordination.ZkOpenRegionCoordination: Opening of region {ENCODED => ec61eac44ad95d739eaa3849c937612d, NAME => 'SYSTEM:CATALOG,,1567993584309.ec61eac44ad95d739eaa3849c937612d.', STARTKEY => '', ENDKEY => ''} failed, transitioning from OFFLINE to FAILED_OPEN in ZK, expecting version 0  【encoding ，默认解析时需要？】
+				
+				方案三：
+					1、继续降低jar的版本 [4.12 --> 4.9 --> 4.8]
+					2、重试7-1-..
+						rm -rf  phoenix-server.jar
+						ln -s /opt/apache-phoenix-4.8.0-HBase-1.1-bin/phoenix-4.8.0-HBase-1.1-server.jar phoenix-server.jar
+						
+						ln -s /opt/apache-phoenix-4.9.0-HBase-1.1-bin/phoenix-4.9.0-HBase-1.1-server.jar phoenix-server.jar
+
+						结果：
+							-、使用4.8版本，替换phoenix-server.jar之后，reginserver正常启动，系统正常使用，但是分页依然有异常。
+							-、要保证hbase的lib下的jar和phoenix的版本一致，phoenix命令行才能启动。
+							-、不需要启动ambari的phoenix-query-server，系统照常使用（应该是使用hbase的lib下的phoenix-server.jar进行解析。）
+						结果2：
+							-、使用4.9版本，reginserver正常启动，系统正常使用，但是正常（不用加order）。[加order by 主键，有异常，order by其他字段，无异常]
+							-、reginserver日志提示 
+							“2019-12-25 11:17:14,015 ERROR [B.fifo.QRpcServer.handler=0,queue=0,port=16020] coprocessor.MetaDataEndpointImpl: Old client is not compatible when system tables are upgraded to map to namespace”
+
+							
+59、hbase客户端连接，jar里面添加hbase-site.xml [D:\ly\firefox\apache-phoenix-4.9.0-HBase-1.1-bin\apache-phoenix-4.9.0-HBase-1.1-bin\phoenix-4.9.0-HBase-1.1-client.jar]
+[D:\ly\firefox\phoenix-4.7.0.2.5.3.0-37-client_hbasexml.jar]
+
+60、
+mysql5.7.11对应的JDBC驱动是5.1版本。
+
+mysql 5.7 用8.0版本的驱动可以，5.1版本也可以，5.5、5.6、5.7都不可以。
+
+MySQL Connectors 官方文档 上面只有version8.0和version5.1两个版本的文档
+
+version8.0文档上有说明：Connector/J 8.0 provides compatibility with all the functionality of MySQL 5.5, 5.6, 5.7, and 8.0表示兼容。
+
+ambari-server setup --jdbc-db=mysql --jdbc-driver=/opt/mysql-connector-java-5.1.27.jar
+:
+Using python  /usr/bin/python
+Setup ambari-server
+Copying /opt/mysql-connector-java-5.1.27.jar to /var/lib/ambari-server/resources
+If you are updating existing jdbc driver jar for mysql with mysql-connector-java-5.1.27.jar. Please remove the old driver jar, from all hosts. Restarting services that need the driver, will automatically copy the new jar to the hosts.
+JDBC driver was successfully initialized.
+Ambari Server 'setup' completed successfully.
