@@ -5,9 +5,9 @@ cat /etc/redhat-release
 ssh-keygen -t rsa     #在ambari-server生成密钥对
 for num in `seq 1 3`;do ssh-copy-id -i /root/.ssh/id_rsa.pub root@hadoop-$num;done
 
-	1.每台依次执行ssh-keygen, 
-	2.cat id_rsa.pub >>authorized_keys
-	3.scp /root/.ssh/authorized_keys  root@10.0.24.111:/root/.ssh/authorized_keys
+	1.每台依次执行ssh-keygen
+	2.cat /root/.ssh/id_rsa.pub >>/root/.ssh/authorized_keys
+	3.scp /root/.ssh/authorized_keys  root@10.0.24.205:/root/.ssh/authorized_keys
 	4.循环执行2,3直至其中一台有全部主机的authorized_keys，最后分发此authorized_keys至所有主机。
 
 3、 root/5678@lstech.com
@@ -141,10 +141,10 @@ enabled=1
 priority=1
 
 
-yum clean all
-yum list update
-yum makecache
-yum repolist
+yum clean all;
+yum list update;
+yum makecache;
+yum repolist;
 
 10.0.24.110
 
@@ -177,8 +177,14 @@ CREATE  TABLE IF NOT EXISTS `test_1` (
 `name` string )
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t';
 
+CREATE  TABLE IF NOT EXISTS `test_2` (
+`id` string COMMENT 'id',
+`name` string )
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t';
+
+ load data local inpath '/opt/test/test.txt' into table test.test_1;
 14、 
-	-、linux账号
+	-、linux账号  【useradd xxx， passwd xxx】
 		root/5678@lstech.com
 		lyadmin/lyadmin123
 		王英楠	  wangyingnan/wangyingnan123
@@ -194,6 +200,16 @@ ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t';
 			
 			hadoop fs -mkdir /user/jane.zhou1
 			hadoop fs -chown -R jane.zhou1:hdfs /user/jane.zhou1
+			
+			hadoop fs -mkdir /user/zeng.mao.quan
+			hadoop fs -chown -R zeng.mao.quan:hdfs /user/zeng.mao.quan
+			
+			hadoop fs -mkdir /user/root
+			hadoop fs -chown -R root:hdfs /user/root
+			
+			hadoop fs -mkdir /user/admin.ly
+			hadoop fs -chown -R admin.ly:hdfs /user/admin.ly			
+			
 	-、ambari 
 		admin	  admin/pCWldx0zqo
 		普通用户  lyambari/lyambari
@@ -206,6 +222,10 @@ ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t';
 
 配置目录：/usr/local/nginx/
 
+如果没有安装apache，可以安装如下软件，
+就有htpasswd这个命令了
+yum -y install httpd-tools
+	
 加密：
 htpasswd -c /usr/local/src/zip/nginx-1.10.2/conf/conf.d/htpasswd lynginx
 
@@ -953,7 +973,10 @@ GROUP BY B;
 34、 2019-10-29
 多个hive表join ，需不需要分开join，还是直接  a join b on xxx  join  c？
 
-35、FAILED: Execution Error, return code 1 from org.apache.hadoop.hive.ql.exec.MoveTask. java.io.IOException: rename for src pat？
+
+     mycluster/apps/hive/warehouse/dwbase.db/dwb_sap_jiegoujian_by_cd/day=2020-01-01/.hive-staging_hive_2020-01-06_16-36-48_626_2603372294236111876-1/-ext-10000/000000_0 to dest path:hdfs://mycluster/apps/hive/warehouse/dwbase.db/dwb_sap_jiegoujian_by_cd/day=2020-01-01/000000_0 returned false
+35、  工具提示：MoveTask error没有其他的错误提示时，使用MR跑任务，提示报错如下
+FAILED: Execution Error, return code 1 from org.apache.hadoop.hive.ql.exec.MoveTask. java.io.IOException: rename for src pat？
 原因：删除外部表时，数据还在，所以重新插入时，move报错，删除dest目录下的数据，即可
 
 drop table eas.ods_eas_new_eas75_t_bd_material;
@@ -974,6 +997,7 @@ hadoop fs -rmr hdfs://mycluster/warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_SM_PURORDE
 	  'hdfs://mycluster/warehouse/sap/ods/ODS_SAP_ZFFI_006'
 	3、删除hdfs数据
 	hadoop fs -rmr hdfs://mycluster/warehouse/sap/ods/ODS_SAP_ZFFI_006/day=2019-10-29/*
+	
 	
 -、shell遍历数组
 #!/bin/bash
@@ -1388,7 +1412,7 @@ on A.purchaser = B.purchaser and A.`year` = B.`year`
 				6、有多少个split，就有多少个mapper。
 原文链接：https://blog.csdn.net/tch918/article/details/89061860
 
-		2)、hive shell 中 `date` 只能在''（单引号中识别）
+		2)、hive shell 中 `date` 只能在''（单引号中识别 hive -e ''）
 48、
 虚拟机和物理机选择。
 		1、hadoop集群（hive）对磁盘io开销比较大，10台物理机比1台物理机（10台虚拟机）磁盘io快很多。
@@ -1415,7 +1439,7 @@ on A.purchaser = B.purchaser and A.`year` = B.`year`
 	9、项目号下面的CD金     <->
 	10、数据出现严重异常，提示。    <->
 	11、采购员去掉  -->  供应商采购员。   √
-	
+	3
 
 数据优化待解决：
 	1、一个物料对应多个供应商。【需要关联供应商】
@@ -1606,49 +1630,6 @@ SQL 错误 [2] [08S01]: Error while processing statement: FAILED: Execution Error,
 	at org.apache.tez.runtime.task.TezTaskRunner$TaskRunnerCallable$1.run(TezTaskRunner.java:194)
 	at org.apache.tez.runtime.task.TezTaskRunner$TaskRunnerCallable$1.run(TezTaskRunner.java:185)
 	at java.security.AccessController.doPrivileged(Native Method)
-	
-	
-	{
-	"key": {
-		"reducesinkkey0": "110-3M3304BC-0500",
-		"reducesinkkey1": "LSC02",
-		"reducesinkkey2": "2015"
-	},
-	"value": {
-		"_col0": "华南",
-		"_col1": "",
-		"_col2": "",
-		"_col3": "01.01.08",
-		"_col4": "深圳市领略数控设备有限公司",
-		"_col5": "201511",
-		"_col6": "2015/11/16 17:04:39.580000000",
-		"_col7": "11",
-		"_col8": "",
-		"_col9": "LLSZPO150917034",
-		"_col10": "领胜城科技(江苏)有限公司",
-		"_col11": "领胜城",
-		"_col12": "3M3304BC",
-		"_col13": "灰色 导电胶带",
-		"_col14": "500mmx100m",
-		"_col15": 15000,
-		"_col16": "㎡",
-		"_col17": "BB01",
-		"_col18": "人民币",
-		"_col19": 100.571599,
-		"_col20": 17,
-		"_col21": 1,
-		"_col22": 85.958632,
-		"_col23": 1508573.99,
-		"_col24": 1289379.48,
-		"_col25": "105",
-		"_col26": "11",
-		"_col27": "/OQAAAAFAJ6A733t",
-		"_col28": "01.01.08",
-		"_col29": "深圳市领略数控设备有限公司",
-		"_col30": "/OQAAAAFAJ6A733t",
-		"_col31": "PRA1509029  10/30港车到料"
-	}
-}
 
 52、hdfs误删数据恢复
   -、误删数据在当前用户（操作） 回收站目录下， 将数据mv回以前目录即可
@@ -1885,3 +1866,360 @@ Copying /opt/mysql-connector-java-5.1.27.jar to /var/lib/ambari-server/resources
 If you are updating existing jdbc driver jar for mysql with mysql-connector-java-5.1.27.jar. Please remove the old driver jar, from all hosts. Restarting services that need the driver, will automatically copy the new jar to the hosts.
 JDBC driver was successfully initialized.
 Ambari Server 'setup' completed successfully.
+
+61、ambari安装注意事项：
+	1、/var/lib/ambari-server/keys/ca.config 文件的CA修改为jdk8
+	2、hive注释乱码 和 hive支持多分隔符
+	3、phoenix解决二级索引 和 分页问题
+
+62、Package does not match intended download. Suggestion: run yum --enablerepo=base clean metadata
+	-- yum clean all 解决
+
+62.2-、tez error 数据转换
+
+FAILED: Execution Error, return code 2 from org.apache.hadoop.hive.ql.exec.tez.TezTask. Vertex failed, vertexName=Map 1, 
+vertexId=vertex_1577709896135_0038_1_00, diagnostics=[Task failed, taskId=task_1577709896135_0038_1_00_000000, diagnostics=[TaskAttempt 0 failed, 
+info=[Error: Failure while running task:java.lang.RuntimeException: java.lang.RuntimeException: org.apache.hadoop.hive.ql.metadata.HiveException: 
+Hive Runtime Error while processing row 
+
+62.3 -、Hbase 的ipc超时  
+		-、cellsPerHeartbeatCheck定义了心跳发送的周期，该值由"hbase.cells.scanned.per.heartbeat.check"配置，
+	默认是10000，表示的是每scan出10000个cell，则服务端向客户端发送一条心跳。
+		-、phoenix.query.keepAliveMs=1200000
+		   phoenix.query.timeoutMs=1200000
+		   
+Hortonworks recommends the following best practices for timeout values, located in the HBase-site.xml file:
+Setting	Value
+hbase.rpc.timeout	300000
+hbase.client.scanner.timeout.period	300000
+zookeeper.session.timeout	300000
+phoenix.query.timeoutMs	300000
+phoenix.query.keepAliveMs	300000
+
+https://www.e-learn.cn/content/wangluowenzhang/1032399
+
+	-- 解决： 只修改了集群的配置，client需要替换client的jar包中的hbase-site.xml文件。
+
+63、UAT大数据环境搭建
+
+
+10.0.24.200  uatdata01  uatzk01 uatmysql01      uatweb01        uatnginx
+10.0.24.201  uatdata02  uatzk02 uatambari       uatweb02
+10.0.24.202  mysql-node2	uatdata03  uatzk03
+10.0.24.203  mycat-node	uatdata04  uatkettle	uatmysql02  
+10.0.24.204  uatmaster01        uatmycluster
+10.0.24.205  uatmaster02        uatmycluster
+
+
+设置主机名称：
+	hostnamectl set-hostname lydata02
+	
+配置全域名：vim /etc/sysconfig/network
+NETWORKING=yes
+HOSTNAME=lydata01
+
+设置禁用ip6：vim /etc/sysctl.conf
+net.ipv6.conf.all.disable_ipv6=1
+net.ipv6.conf.default.disable_ipv6=1
+	sysctl -p 执行禁用配置：
+	
+java-home:/usr/local/jdk
+-、mysql HA
+
+mysql> mysql> SHOW MASTER STATUS;
++------------------+----------+--------------+------------------+-------------------+
+| File             | Position | Binlog_Do_DB | Binlog_Ignore_DB | Executed_Gtid_Set |
++------------------+----------+--------------+------------------+-------------------+
+| mysql-bin.000001 |      154 |              |                  |                   |
++------------------+----------+--------------+------------------+-------------------+
+
+
+CHANGE MASTER TO MASTER_HOST='10.0.24.200', MASTER_USER='repl', MASTER_PASSWORD='Zxt1234!', MASTER_LOG_FILE='mysql-bin.000001',MASTER_LOG_POS=154;
+
+CHANGE MASTER TO MASTER_HOST='10.0.24.203', MASTER_USER='repl', MASTER_PASSWORD='Zxt1234!', MASTER_LOG_FILE='mysql-bin.000002',MASTER_LOG_POS=154;
+
+-、ambari-server /usr/share/java 有mysql的驱动。mysql-connector-java-5.1.46.jar
+需要重命名为 mysql-connector-java.jar
+
+-、、上一步还未解决，可修改服务器(ambari-server)的java安全机制。
+vim 	$JAVA_HOME/jre/lib/security/java.security
+
+新增：也修改agent的java安全机制。
+
+
+
+uatdata01
+uatdata02
+uatdata03
+uatdata04
+uatmaster01
+uatmaster02
+
+uatdata01
+uatdata02
+mysql-node2
+mycat-node
+uatmaster01
+uatmaster02
+
+
+-、Ambari安装hive组件出现need string or buffer, NoneType found
+
+首先在ambari-server端执行
+
+ambari-server setup --jdbc-db=mysql --jdbc-driver=/usr/share/java/mysql-connector-java.jar
+如果执行后依旧没有反应。可能是目录下没有此文件，只需要将jar包放到相应的文件目录下即可。
+
+在mysql中为Hive设置用户：
+————————————————
+版权声明：本文为CSDN博主「稻草一根」的原创文章，遵循 CC 4.0 BY-SA 版权协议，转载请附上原文出处链接及本声明。
+原文链接：https://blog.csdn.net/zhou_shaowei/article/details/75053460
+
+
+create database oozie character set utf8 ;  
+CREATE USER 'oozie'@'%'IDENTIFIED BY 'Oozie-123';
+GRANT ALL PRIVILEGES ON *.* TO 'oozie'@'%';
+FLUSH PRIVILEGES;
+
+-、hbase启动报错， 参考日志，以及查看./zkCLi.sh 删除/hbase-un,重启hbase。
+
+参考资料:https://blog.csdn.net/u013982921/article/details/82470005
+
+
+-----------------------------------<<<<<<  again setup 之后 >>>>>>>>>>>>>>>----------------------------------------------
+-、hivemserver2  挂掉
+log：
+2020-01-03 01:54:11,379 INFO  [main-SendThread(uatdata02:2181)]: zookeeper.ClientCnxn (ClientCnxn.java:logStartConnect(1019)) - Opening socket connection to server uatdata02/10.0.24.201:2181. Will not attempt to authenticate using SASL (unknown error)
+2020-01-03 01:54:11,380 INFO  [main-SendThread(uatdata02:2181)]: zookeeper.ClientCnxn (ClientCnxn.java:primeConnection(864)) - Socket connection established to uatdata02/10.0.24.201:2181, initiating session
+2020-01-03 01:54:11,380 INFO  [main-SendThread(uatdata02:2181)]: zookeeper.ClientCnxn (ClientCnxn.java:run(1138)) - Unable to reconnect to ZooKeeper service, session 0x16f663239460010 has expired, closing socket connection
+2020-01-03 01:54:18,759 ERROR [main-EventThread]: server.HiveServer2 (HiveServer2.java:process(338)) - Failed to close the persistent ephemeral znode
+java.io.IOException: org.apache.zookeeper.KeeperException$SessionExpiredException: KeeperErrorCode = Session expired for /hiveserver2/serverUri=uatmaster02:10000;version=1.2.1000.2.5.3.0-37;sequence=0000000000
+
+
+-、zk的 warning
+2020-01-02 20:21:31,204 - INFO  [CommitProcessor:1:ZooKeeperServer@617] - Established session 0x16f663239460011 with negotiated timeout 40000 for client /10.0.24.202:41668
+2020-01-02 20:21:32,598 - WARN  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxn@357] - caught end of stream exception
+EndOfStreamException: Unable to read additional data from client sessionid 0x16f663239460011, likely client has closed socket
+        at org.apache.zookeeper.server.NIOServerCnxn.doIO(NIOServerCnxn.java:228)
+        at org.apache.zookeeper.server.NIOServerCnxnFactory.run(NIOServerCnxnFactory.java:208)
+        at java.lang.Thread.run(Thread.java:748)
+2020-01-02 20:21:32,599 - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxn@1007] - Closed socket connection for client /10.0.24.202:41668 which had sessionid 0x16f663239460011
+2020-01-02 20:21:41,044 - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxnFactory@197] - Accepted socket connection from /10.0.24.202:41672
+2020-01-02 20:21:41,046 - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:ZooKeeperServer@868] - Client attempting to establish new session at /10.0.24.202:41672
+......
+2020-01-03 10:00:49,484 - INFO  [Thread-821:NIOServerCnxn@1007] - Closed socket connection for client /10.0.24.202:59770 (no session established for client)
+2020-01-03 10:01:49,477 - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxnFactory@197] - Accepted socket connection from /10.0.24.202:59785
+2020-01-03 10:01:49,477 - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxn@827] - Processing ruok command from /10.0.24.202:59785
+2020-01-03 10:01:49,478 - INFO  [Thread-822:NIOServerCnxn@1007] - Closed socket connection for client /10.0.24.202:59785 (no session established for client)
+2020-01-03 10:02:49,478 - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxnFactory@197] - Accepted socket connection from /10.0.24.202:59808
+2020-01-03 10:02:49,478 - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxn@827] - Processing ruok command from /10.0.24.202:59808
+
+
+-- 外网给的答案：
+this issue is fixed. root cause is /etc/hosts on worker nodes. we had to add /etc/hosts to test another component and i did not follow the order , 
+FQDN is not followed by ip. that was the reason RS freaked-out.
+https://community.cloudera.com/t5/Support-Questions/Master-failed-to-complete-initialization-after-900000ms/m-p/189368
+
+
+-- 业务数据剧增，导致master启动initial时间过长。
+https://cloud.tencent.com/developer/article/1488474
+
+
+------------ ------ ------ ------ ------ ------ ------ <<<<<<：总结>>>>>>>>>>>>>------------- ------ ------ ------ ------------- ------ 
+-、当前版本还是ambari-server还是使用jdk1.7的比较好，下载ambari更高的版本可以使用jdk1.8
+
+rpm -e --nodeps extjs-2.2-1.noarch;
+rpm -e --nodeps snappy-devel-1.1.0-3.el7.x86_64;
+
+
+-、Grafana Admin Password:admin
+-、mysql  [10.0.24.203 ,10.0.24.200]
+root/1234
+
+-、linux （uat）添加用户
+
+useradd admin.ly/admin.ly123
+useradd zeng.mao.quan/zeng.mao.quan123
+useradd zhong.hai/zhong.hai123
+useradd jane.zhou1/jane.zhou1123
+useradd wang.ying.nan/wang.ying.nan123
+
+-、uatnginx/uatnginx123 
+
+
+-、linux脚本添加新用户
+编写脚本：
+#!/bin/bash
+
+cat $1 | while read line
+do
+name=`echo $line |awk -F '/' '{print $1}' `
+passwd=`echo $line |awk -F '/' '{print $2}'`
+echo $name
+echo $passwd
+useradd $name
+echo "$passwd" | passwd --stdin $name &> /dev/null
+echo "用户$name创建完成，默认密码是：$passwd"
+done
+
+==============================================================   日志报错   	====================================================================
+
+
+-、hiveserver2.log   【hive -hiveconf hive.root.logger=debug,console】
+2020-01-03 18:53:20,403 WARN  [HiveServer2-Handler-Pool: Thread-39]: metrics2.CodahaleMetrics (CodahaleMetrics.java:addGauge(299)) - A Gauge with name [init_total_count_dbs] already exists.  The old gauge will be overwritten, but this is not recommended
+
+-、客户端报错--  /tmp/hive/hive.log
+2020-01-03 19:00:11,081 INFO  [main]: tez.DagUtils (DagUtils.java:localizeResource(957)) - Localizing resource because it does not exist: file:/usr/hdp/2.5.3.0-37/hive/lib/hive-exec-1.2.1000.2.5.3.0-37.jar to dest: hdfs://uatmaster01:8020/user/hive/.hiveJars/hive-exec-1.2.1000.2.5.3.0-37-73c4176cfc45ceebf176bd04debfa4f205ac40e276e00c41be5c084b0a22f7c5.jar
+
+2020-01-03 19:00:10,842 INFO  [main]: tez.DagUtils (DagUtils.java:getHiveJarDirectory(881)) - Jar dir is null/directory doesn't exist. Choosing HIVE_INSTALL_DIR - /user/hive/.hiveJars
+
+-、hive-err.log
+Fri Jan 03 19:15:44 CST 2020 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+Fri Jan 03 19:15:44 CST 2020 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+
+解决方法：
+jdbc:mysql://127.0.0.1:3306/test?useUnicode=true&characterEncoding=utf-8&useSSL=false
+
+-、beeline可以连接： beeline -u jdbc:hive2://10.0.24.205:10000 -n hadoop
+	
+	
+
+2020-01-06  --> hiveCLi 可以使用  ，  hive2 abort， hbase abort
+一、hbase和hiveserver2每天定时挂掉
+1-、hbase 挂掉 []
+hbase error:
+This client just lost it's session with ZooKeeper, closing it. It will be recreated next time someone needs it
+
+2020-01-06 23:48:57,065 FATAL [main-EventThread] master.HMaster: Master server abort: loaded coprocessors are: [org.apache.hadoop.hbase.backup.master.BackupController]
+
+2020-01-06 23:48:57,065 FATAL [main-EventThread] master.HMaster: Exception reading unassigned node for region=1588230740
+org.apache.zookeeper.KeeperException$SessionExpiredException: KeeperErrorCode = Session expired for /hbase-unsecure/region-in-transition/1588230740
+
+Exception reading unassigned node for region=1588230740
+
+zookeeper.ClientCnxn: Unable to read additional data from server sessionid 0x36f783a9aa80007, likely server has closed socket, closing socket connection and attempting reconnect
+
+Cannot submit [ServerShutdownHandler-uatdata02,16020,1578270573995-11] because the executor is missing. Is this process shutting down?
+zookeeper.RecoverableZooKeeper: ZooKeeper delete failed after 7 attempts
+
+2020-01-06 07:43:54,402 WARN  [uatmaster02:16000.activeMasterManager] retry.RetryInvocationHandler: Exception while invoking ClientNamenodeProtocolTranslatorPB.delete over null. Not retrying because try once and fail.
+org.apache.hadoop.ipc.RemoteException(org.apache.hadoop.fs.PathIsNotEmptyDirectoryException): `/apps/hbase/data/WALs/uatdata04,16020,1578048647969-splitting is non empty': Directory is not empty
+
+
+-- 出现session expired的时间：
+2020-01-03 23:45:07
+2020-01-06 23:46:51
+2020-01-07 23:30:29
+2020-01-08 23:36:10
+2020-01-09 23:43:27
+
+	-、可能是fullGC 导致：
+	https://blog.csdn.net/yjb7268888/article/details/52980570  [fullGC]
+	https://blog.csdn.net/xuguokun1986/article/details/70884696  [修改zookeeper session timeout]
+	http://www.openskill.cn/question/435 [图解]
+	https://blog.csdn.net/liu16659/article/details/82430396 [GC]
+	https://blog.csdn.net/sinat_29480069/article/details/81503562 [GC 日志解析]
+	https://blog.csdn.net/zlfprogram/article/details/74066700  [full GC 宕机 GC日志中是否有 promotion failed和concurrent mode failure]
+	-、集群时间不同步或者 zookeeper中的数据不一致
+	https://blog.csdn.net/crq1205/article/details/82772923	
+	-、加长zookeeper的超时时间。
+	https://blog.csdn.net/qq_28652401/article/details/83510046
+	-、关于session expired
+	https://www.coder4.com/archives/3181
+	-、hiveserver2的GC调优
+	https://blog.csdn.net/mnasd/article/details/82690414
+	https://blog.csdn.net/xiaolong_4_2/article/details/84323990
+	
+	1.1、zookeeper报错 ：EndOfStreamException: Unable to read additional data from client sessionid 0x16f783a9a9c0009, likely client has closed socket
+
+	1.2、regionserver报错:
+2020-01-06 23:53:21,557 WARN  [regionserver/uatdata01/10.0.24.200:16020] regionserver.HRegionServer: Failed deleting my ephemeral node
+org.apache.zookeeper.KeeperException$SessionExpiredException: KeeperErrorCode = Session expired for /hbase-unsecure/rs/uatdata01,16020,1578270573155
+	1.3、是否是因为linux的unlimited限制导致挂掉（以及影响测试环境的mr时间？）
+	
+	1.4、ambari-metric报错（controller）：
+	WARN org.apache.hadoop.yarn.webapp.GenericExceptionHandler: INTERNAL_SERVER_ERROR 
+		java.lang.NullPointerException
+	1.5、hiveserver-2报错：
+		KeeperErrorCode = Session expired for /hiveserver2/serverUri=uatmaster02:10000;version=1.2.1000.2.5.3.0-37;sequence=0000000003
+
+
+2-、hiveserver2挂掉
+
+1and2感觉是zookeeper的session过期导致的 [持续观察。]
+
+
+3-、测试解决
+	-、增大zookeeper的session时间
+			MaxSessionTimeout=120000
+	-、删除zookeeper目录下的  hiveserver2 测试
+	-、貌似不是GC的问题
+	-、Hbase GC日志提示 Heap par new generation   total 309056K (300M)
+	-、总结 ：是由于GC导致的
+
+hiveserver2的日志(GC)：
+2020-01-08 23:27:46,015 INFO  [org.apache.hadoop.hive.common.JvmPauseMonitor$Monitor@36359723]: common.JvmPauseMonitor (JvmPauseMonitor.java:run(193)) - Detected pause in JVM or host machine (eg GC): pause of approximately 3328ms
+No GCs detected
+......
+2020-01-08 23:31:50,036 INFO  [org.apache.hadoop.hive.common.JvmPauseMonitor$Monitor@36359723]: common.JvmPauseMonitor (JvmPauseMonitor.java:run(193)) - Detected pause in JVM or host machine (eg GC): pause of approximately 1302ms
+No GCs detected
+2020-01-08 23:31:52,737 INFO  [org.apache.hadoop.hive.common.JvmPauseMonitor$Monitor@36359723]: common.JvmPauseMonitor (JvmPauseMonitor.java:run(193)) - Detected pause in JVM or host machine (eg GC): pause of approximately 2200ms
+No GCs detected
+2020-01-08 23:31:55,015 INFO  [org.apache.hadoop.hive.common.JvmPauseMonitor$Monitor@36359723]: common.JvmPauseMonitor (JvmPauseMonitor.java:run(193)) - Detected pause in JVM or host machine (eg GC): pause of approximately 1278ms
+No GCs detected
+
+hbase的日志(GC)：
+2020-01-03 23:34:35,159 WARN  [master/uatmaster02/10.0.24.205:16000] util.Sleeper: We slept 189492ms instead of 3000ms, this is likely due to a long garbage collecting pause and it's usually bad, see http://hbase.apache.org/book.html#trouble.rs.runtime.zkexpired
+......
+2020-01-06 23:38:22,914 WARN  [master/uatmaster02/10.0.24.205:16000] util.Sleeper: We slept 192929ms instead of 3000ms, this is likely due to a long garbage collecting pause and it's usually bad, see http://hbase.apache.org/book.html#trouble.rs.runtime.zkexpired
+......
+2020-01-07 23:25:58,004 WARN  [master/uatmaster02/10.0.24.205:16000] util.Sleeper: We slept 194060ms instead of 3000ms, this is likely due to a long garbage collecting pause and it's usually bad, see http://hbase.apache.org/book.html#trouble.rs.runtime.zkexpired
+
+参考资料：https://blog.csdn.net/xjping0794/article/details/78376293
+
+二-、hive重启之后，会有spark的任务在跑，怎么取消。 [1、导致hiveCli进不去， 2、hiveserver2中执行的TEZ任务，appending]
+[相关日志：D:\ly\note\20191104_purchase\uat_log\uat_hbase_gc\hive-jos.log]
+	-、spark的任务是 sparkthrift 和sparkthrift2  ，因为Operation category READ is not supported in state standby.
+	导致appending。（因为启动了8个application任务，导致append）
+20/01/09 18:36:15 INFO RetryInvocationHandler: Exception while invoking ClientNamenodeProtocolTranslatorPB.getFileInfo over uatmaster01/10.0.24.204:8020. Trying to failover immediately.
+org.apache.hadoop.ipc.RemoteException(org.apache.hadoop.ipc.StandbyException): Operation category READ is not supported in state standby
+
+  资料：spark继承HA 
+	https://www.cppentry.com/bencandy.php?fid=116&id=221660
+	-、以前异常退出的sparkthrift 在hdfs://uatmycluster/spark2-history目录下，不能正常加载【hdfs://uatmycluster/spark2-history/application_1578552094353_0005.inprogress】
+	-、为什么启动sparkthrift服务，对应的sparksubmit任务，一直在yarn任务那里挂着？
+	
+	
+	
+三、
+解决方案：
+	1-、调整hbase  ，
+		-、zk session-timeout  -- > 2minute
+		-、设置hbase-env template
+			1-、add -XX:+UseParNewGC
+			{% if security_enabled %}
+			export HBASE_OPTS="$HBASE_OPTS -XX:+UseConcMarkSweepGC -XX:+UseParNewGC -XX:ErrorFile={{log_dir}}/hs_err_pid%p.log -Djava.security.auth.login.config={{client_jaas_config_file}} -Djava.io.tmpdir={{java_io_tmpdir}}"
+			export HBASE_MASTER_OPTS="$HBASE_MASTER_OPTS -Xmx{{master_heapsize}} -Djava.security.auth.login.config={{master_jaas_config_file}} $JDK_DEPENDED_OPTS"
+			export HBASE_REGIONSERVER_OPTS="$HBASE_REGIONSERVER_OPTS -Xmn{{regionserver_xmn_size}} -XX:CMSInitiatingOccupancyFraction=70  -Xms{{regionserver_heapsize}} -Xmx{{regionserver_heapsize}} -Djava.security.auth.login.config={{regionserver_jaas_config_file}} $JDK_DEPENDED_OPTS"
+			export PHOENIX_QUERYSERVER_OPTS="$PHOENIX_QUERYSERVER_OPTS -Djava.security.auth.login.config={{queryserver_jaas_config_file}}"
+			{% else %}
+			export HBASE_OPTS="$HBASE_OPTS -XX:+UseConcMarkSweepGC -XX:+UseParNewGC -XX:ErrorFile={{log_dir}}/hs_err_pid%p.log -Djava.io.tmpdir={{java_io_tmpdir}}"
+			export HBASE_MASTER_OPTS="$HBASE_MASTER_OPTS -Xmx{{master_heapsize}} $JDK_DEPENDED_OPTS"
+			export HBASE_REGIONSERVER_OPTS="$HBASE_REGIONSERVER_OPTS -Xmn{{regionserver_xmn_size}} -XX:CMSInitiatingOccupancyFraction=70  -Xms{{regionserver_heapsize}} -Xmx{{regionserver_heapsize}} $JDK_DEPENDED_OPTS"
+			{% endif %}
+			2-、change -XX:MaxPermSize=256m
+			{% if java_version < 8 %}
+				JDK_DEPENDED_OPTS="-XX:PermSize=128m -XX:MaxPermSize=256m"
+			{% endif %}
+			
+			
+			-- regionserver.log (uatdata01)
+				2020-01-03 23:45:06,512 WARN  [main-SendThread(uatdata02:2181)] zookeeper.ClientCnxn: Session 0x36f6b0636910007 for server uatdata02/10.0.24.201:2181, unexpected error, closing socket connection and attempting reconnect
+					java.io.IOException: Broken pipe
+			--  uatmaster02 ,竟然有个hmaster进程 3476 org.apache.hadoop.hbase.master.HMaster  【Metrics Collector】
+	
+	2、调大zookeeper的session超时时间 为2个小时。
+	
+	3、
+		-、调整regionserver的 heapsize
+		-、开启regionserver 失败重启 restart 替换 abort

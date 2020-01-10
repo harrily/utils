@@ -109,20 +109,36 @@ STORED AS orc tblproperties('orc.compression' = 'snappy');
 					2.自己生产的成品--不算采购金额，但是算CD金额；
 						question：
 							1、怎么定义是自产成品？
-					3.调拨的材料--不算采购金额，也不算CD金额；
+					3.调拨的材料--不算采购金额，也不算CD金额；[其中调拨材料部分，就是不是自己生产的，例如：成都领益需要一卷材料，找东莞领益购买，东莞领益发现东台有，就直接从东台调货发往成都。这个就属于调拨]
 						question：
 							1、调拨材料怎么区分，是根据供应商是自家公司进行区分？
 					4.美金采购部分，我们都是与TLG（算是子公司）购买，我们不算与TLG的采购金额，但是我们算TLG与原厂商的采购金额。也就是TLG是个中间公司，所以我们只需要算一遍采购金额。
-						question：
-							1、美金采购怎么区分？ 根据币别？还是只要是TLG公司的都剔除掉？
-					其中调拨材料部分，就是不是自己生产的，例如：成都领益需要一卷材料，找东莞领益购买，东莞领益发现东台有，就直接从东台调货发往成都。这个就属于调拨
+							-、供应商是 TLG INVESTMENT (HK) LIMITED   01.05.03  剔除掉。
+					
 			
-			1、
+				整理1：
+					1.成品之外的原材料--不纳入采购金额；
+						1、内部交易中，1.半成品，成品都要算；2.调拨材料模切这块只有原材料调拨，也就是原材料/主材/辅材这三个会调拨，这三个的规则就是不算采购金额也不算采购CD
+					2.自己生产的成品和调拨的材料 不能区分（根据现有的规则，不需要区分）
+					3.供应商是 TLG INVESTMENT (HK) LIMITED   01.05.03  剔除掉。
+		2019-12-27沟通；	
+		-、物料一级分类中为空的值，本来就属于一级分类,如果为null,则直接拿二级分类作为一级分类。  √
+		-、内部交易区分:参考【整理1】  √
+		-、先根据新的规则  √
+			-、 580：冲压，
+				581：CNC，
+				583：模切 ，
+				587：模切 
+		-、再根据人员区分其余5W+   
+		-、UAT，日期改为2019-12  【给茂泉提示使用新的报表的数据 report】  √
+		-、material_name 包含有 '\'   √
+			: regexp_replace(material_name,'\\\\',''),
 			
-		-、物料一级分类中为空的值，本来就属于一级分类,如果为null,则直接拿二级分类作为一级分类。
-				
+		-、磁材数据异常：
+			1、日期异常，0000-00-00，0.000
+			2、单位异常，,1,10,100,1000,10000,14159.29,32707.96,6.64,74955.75,9690.27,BOX,CM,CT,G,JHR,JUA,KAN,KG,L,LIN,M,M2,M3,PAA,PAK,SET,ST,TO
 		
-		
+		-、相同物料名称，且物料id为null，怎么处理，当前是以物料名称分组，取第一条code。
 27、执行start.sh 
 	-、添加参数 20191216
 	-、修改第二个脚本的，添加参数l_date,以及查询基础表（from）添加l_date
@@ -137,4 +153,39 @@ STORED AS orc tblproperties('orc.compression' = 'snappy');
 	默认取当前月报上年度第12月单价[未税]作为基准价
 	1、若上年度第12月无值，则向下依次取11月...1月，直至取到有效值.
 	2、若上年度未取到有效值，则依次取当前月报对应年度的1月,2月...当前月，直至取到有效值.
+	
+28、
+	lymastero1:namenode1
+	2020-01-03 02:15:32,106 WARN  ipc.Client (Client.java:handleConnectionFailure(886)) - Failed to connect to server: lyzk01/10.0.24.107:8485: retries get failed due to exceeded maximum allowed retries number: 50
+java.net.ConnectException: 拒绝连接
+	2020-01-03 02:16:12,081 WARN  client.QuorumJournalManager (IPCLoggerChannel.java:call(388)) - Remote journal 10.0.24.111:8485 failed to write txns 6540164-6540164. Will try to write to this JN again after the next log roll.
+org.apache.hadoop.ipc.RemoteException(java.io.IOException): IPC's epoch 236 is less than the last promised epoch 237
+	2020-01-03 02:16:12,230 WARN  client.QuorumJournalManager (IPCLoggerChannel.java:call(388)) - Remote journal 10.0.24.110:8485 failed to write txns 6540164-6540164. Will try to write to this JN again after the next log roll.
+org.apache.hadoop.ipc.RemoteException(java.io.IOException): IPC's epoch 236 is less than the last promised epoch 237
+	2020-01-03 02:16:18,068 INFO  ipc.Client (Client.java:handleConnectionFailure(904)) - Retrying connect to server: lyzk01/10.0.24.107:8485. Already tried 31 time(s); retry policy is RetryUpToMaximumCountWithFixedSleep(maxRetries=50, sleepTime=1000 MILLISECONDS)
+	2020-01-03 02:16:19,068 INFO  client.QuorumJournalManager (QuorumCall.java:waitFor(136)) - Waited 7003 ms (timeout=20000 ms) for a response for sendEdits. Exceptions so far: [10.0.24.111:8485: IPC's epoch 236 is less than the last promised epoch 237
+
+
+29、
+	-、供应商将近一半的，CD金额为0.其实是赠品。
+	-、物料类型（一级分类）显示为null的，取物料名称（二级分类）
+	
+	新需求修改：
+		1、根据成本中心以及部门，区分BG。
+			-、成本中心为空的，需要询问经管是如何区分的。
+			-、成本中心为其他的，不属于采购，无需处理？
+		2、赠品的这一部分CD如何计算? (等待回复)
+		3、原始报表展示，要返回所有基础字段。
+			-、数据库中无字段，则添加字段
+			-、无值得数据，照常输出。
+	
+余姐，咨询了经管对接模切，组装，cnc部分同事，总结了关于生产中心区分BG的问题。
+成本中心区分BG流程：成本中心 ->BU -> BG
+1、目前采购入库单中的"成本中心"有154种，除了部分可以根据名称区分BG,其他的需要一份成本中心对应BU，BG的对照表，才能够区分。
+2、采购入库单中存在超过30%的数据"成本中心"为空的数据。这部分数据，需要人工区分。
+cnc（东莞经管）：根据采购物料类别和采购下单人等字段识别
+模切（深圳经管）：根据法人组织（库存组织）来区分
+模切（东莞经管）：根据法人组织（库存组织），然后根据库存仓位对照表，区分模切的数据。
+组装1：反馈很少存在"成本中心"为空的情况。
+
 			
