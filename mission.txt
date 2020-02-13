@@ -188,4 +188,352 @@ cnc（东莞经管）：根据采购物料类别和采购下单人等字段识�
 模切（东莞经管）：根据法人组织（库存组织），然后根据库存仓位对照表，区分模切的数据。
 组装1：反馈很少存在"成本中心"为空的情况。
 
+
+2020-01-14
+1、模具，想要一个测试账号
+2、模具系统中，不能找到对应物料的历史报价，目前他们采用手工录入excel计算。
+3、成本中心的数据如何区分？
 			
+			
+你好，根据成本中心，还有大部分数据区分不了，建议eas和模具系统业务层，添加如下字段。
+	1、eas 采购订单加字段BG选项（必填）
+	2、模具系统字段BG选项（必填） , 基准价（必填）。
+	
+	
+30、
+	-、area区域名称表，uat需要维护，脚本同样。
+	-、优先取BG,小厂， 然后根据成本中心区分。
+		
+	
+1、模具系统 
+		费用归类：冲压研发，翎裕模坊
+		采购员：
+	
+	1、时间段  -- 2019-01 ~ 2019-12
+	2、采购员  
+		  当前BG  以前的BG
+		
+	3、sap（模切，cnc）， 怎么区分BG,(小厂)  ，采购员。
+	4、sap未来协商， +BG , +返点 ， +议价  == 数据源解决
+	5、sap    磁材，结构键  与 模切，cnc，冲压，组装。
+	
+	
+	
+	
+1、模具,eas,sap 需添加BG这一个字段。（需要采购提单给it）
+2、cd金额的优化方案（加字段）需要采购和it开会确定，待定开会时间。
+	
+	
+	/root/shell/hive/purchase_bi_shell/step_shell
+	
+combine_eas_mid1_new3.sh
+combine_account_day.sh
+combine_eas_mid_report_eas_new3.sh
+combine_eas_mid1_new3_distinct.sh
+combine_eas_bg_by_costcenter.sh
+get_standardpirce.sh
+get_standardpirce2.sh
+get_correct_price.sh
+get_correct_price2.sh
+combine_muju_sap.sh
+get_report1.sh
+get_report2.sh
+get_report3.sh
+get_buyerid.sh	
+get_cd_by_buyid.sh	
+remove_inner_by_moqie.sh
+remove_inner_by_cnc_cy.sh	
+remove_inner_by_xsmz.sh
+generate_cicai_report.sh
+generate_jiegoujian_report.sh
+cd_by_ammount.sh	
+cd_by_material_cut.sh	
+cd_by_material_type.sh	
+cd_by_supplier.sh
+cd_by_account_day_pay_type.sh	
+cd_by_area.sh
+cd_by_material_name.sh	
+	
+
+
+
+
+
+
+1、添加eas，sap，摸具
+2、
+	-、uat定时启动脚本呢
+	-、uat ， phoenix 以及ipc配置。
+		1、hbase，和regionserver的指定lib目录下放置建立phoenix server服务
+			ln -s  /opt/phoenix-4.9.0-HBase-1.1-server.jar  /usr/hdp/2.5.3.0-37/hbase/lib/phoenix-server.jar
+		2、重启集群
+		3、错误提示： Error: ERROR 726 (43M10): Inconsistent namespace mapping properties. Cannot initiate
+		集群hbase-site.xml 中添加 
+		phoenix.schema.isNamespaceMappingEnabled=ture
+		4、dbeaner工具，添加属性：
+			phoenix.schema.isNamespaceMappingEnabled=True
+			phoenix.schema.mapSystemTablesToNamespace=True
+
+uat中hbase相关配置添加：
+
+hbase.client.operation.timeout=3600000
+hbase.client.scanner.timeout.period=3600000
+hbase.table.sanity.checks=false
+phoenix.query.keepAliveMs=3600000
+phoenix.schema.isNamespaceMappingEnabled=true
+phoenix.schema.mapSystemTablesToNamespace=true
+
+HBase RPC Timeout=3600000
+Phoenix Query Timeout=3600000
+	
+	结构件和磁材申城报表，使用MR查询没数据。
+	
+	模具系统
+	1、入库数量，存在小数情况
+	2、area需要维护area_company 表。
+	
+	
+	1、物料名称（material_name） ，用物料编码代替
+	2、 period, year, month, date 字段替换成正确格式在合并。
+	3、补充公司名称字段
+	
+ct_ls_match
+	
+	2020年前需要维护--BG表。
+	1、需要抽表，NEW_EAS75库T_LS_BG表（BG基础表）  -->  eas.ods_eas_new_eas75_t_ls_bg  (hive表名)
+	2、
+	select * from t_sm_purorder A left join 
+(select  fid,fname_l2 eas.ods_eas_new_eas75_t_ls_bg where day='${l_date}') B on A.cfbgid = B.fid
+	
+	
+	
+	！！！！！ important
+	1、sh脚本时间模板中，#输入参数判断逻辑 if [ $# -eq 2 ];then
+		两个参数，要大于2
+
+	2020年新任务
+	
+	1、执行每天的kettle脚本
+		-、kettle问题
+			1、No suitable driver found for jdbc:hive2://hadoop102:10000/kettle
+				清楚缓存rm -rf /opt/data-integration/system/karaf/caches
+			2、在lib下添加oracle的jar，hive相关的所有jar，mysql的jdbc相关jar包。
+			3、在windows下配置的hadoop集群的版本信息也需要在linux中的：F:\kettle\data-integration\plugins\pentaho-big-data-plugin\plugin.properties 中把active.hadoop.configuration=cdh58 改为对应的windows下配置的版本，否则会报错：org.pentaho.di.core.hadoop.NoShimSpecifiedException: Active configuration no...active.hadoop.configuration信息。
+				修改的部分：active.hadoop.configuration=hdp26
+			
+			4、Got a local filesystem, was expecting an hdfs connection(nullPoint)
+				hdfs://hdfs@mycluster:8020/warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_LS_BG/day=${sys_day}/f 
+					-、去掉hdfs://  
+					-、mycluster改为对应active的ip，或者  mycluster去掉后面的端口。
+				
+			参考资料；https://www.2cto.com/kf/201801/713626.
+			https://blog.csdn.net/weinierzui/article/details/77931346
+	2、start脚本试跑。
+	
+	
+	1、4分 40% 大数据测试平台运维。（已完成）
+	2、4分 60% kettle新增抽取eas的相关的BG关联表数据。（已完成）
+	
+	
+	/opt/ly_kettle/files/05-KettleFiles/FileRepo/Test/Shell/run_kettle_job.sh /dw/ods/mould ods_mould_p1_cdmould_job
+	
+	1、4分 30% 优化phoenix表，增量更新（完成80%）。
+	2、4分 40% 采购2020年1月份数据导出（完成90%）。
+	3、4分 30% 优化采购业务执行效率（已完成）。
+	
+	茂泉，还要麻烦你重新抽下这张表，分区也是day=2020-02-04,EAS的这张表（t_sm_purorder）需要新增抽取的字段cfbgid(业务新增的字段),忘了改了- -，之前的ktr文件（eas_purchase.ktr），
+
+
+	2020-02-06
+	1、执行start脚本。
+	1、2020年1月份数据  
+		-、确定bg字段，是否存在null的情况，继而优化成本中心区分的sql。
+			：存在，37条，待处理  【因为BG不为CNC,模切的数据，dim都为unknown，所以理论上，不会存在dim is null的情况。】
+			存在原因:物料名称中存在 "^" 特殊符号【静电要求：静电压≤100V,内外电阻＜10】
+			根本解决：（1、需要多分隔符。2、而且后续物料名称，物料model要去掉特殊符号。）
+		-、 combine_muju_sap.sh脚本中，模具日期未改为${l_date}
+			FROM dwbase.dwb_mould_poorder where day='2020-01-15'
+		-、导出  已确定 + 未确定
+	2、优化phoenix表插入
+		1、凌晨跑，维持当前不变，不影响正常使用
+		2、更新时，切换数据源
+		3、更新的数据，删除当月的数据，增量更新。
+	
+-- 测试start1 数据是否正常
+select count(1)  from dwmiddle.dwb_purchase_combine_mid1_new3  where day='2020-02-04';
+select count(1)  from dwmiddle.account_mid where day='2020-02-04';
+select count(1)  from dwmiddle.dwb_purchase_combine_mid_report_eas_new_test3  where day='2020-02-04';  --21480032
+select count(1)  from dwmiddle.dwb_purchase_combine_mid_report_eas_distinct_new3 where day='2020-02-04'; --10829476
+select BG,count(1)  from dwmiddle.dwb_purchase_combine_mid_report_eas_distinct_new3 where day='2020-02-04' 
+group by BG;
+-- 测试模具系统，sap（cnc,冲压，模切等）  ，易飞数据
+select count(1)  FROM dwbase.dwb_mould_poorder where day='2020-01-15';
+select count(1)  FROM sap.ods_sap_zfmm_044_jituan where day='2020-02-04';
+select count(1)  FROM dwbase.dwb_yifei_display_module where day='2020-01-02';  -- 319570
+
+-- dwmiddle.dwb_purchase_combine_mid_report_eas_distinct_new3 where day='2020-02-04' group by BG;
+模切	34
+冲压	2
+	5371984
+[null]	5457456
+	
+-- group by dim;
+	1	935388
+3	1748797
+5	10117
+2	671076
+	37
+unknown	7464024
+[null]	37
+
+
+	1、4分 40% 优化phoenix表，增量更新（完成90%）。
+	2、4分 60% 采购2020年1月份数据导出（已完成）。
+	
+	
+	余姐，这是2020年1月份，未区分BG的数据 + 已区分BG的数据 。
+	
+	
+余姐，我是第二类（远程办公），
+预计下周任务：测试环境定时任务维护（采购相关），uat环境投入使用（采购相关），
+具体每天工作安排如下：
+2020-02-10：
+	1、优化采购相关phoenix表的更新方式。
+	2、采购相关定时任务维护（kettle脚本 -> hive脚本 -> phoenix脚本 ）【预计完成50%】
+2020-02-11：
+	1、uat环境数据接入（采购业务） 【预计完成50%】
+	2、采购相关定时任务维护（kettle脚本 -> hive脚本 -> phoenix脚本- ）【预计完成100%】
+2020-02-12：
+	1、uat环境数据接入（采购业务）【预计完成100%】
+2020-02-13：
+	1、uat相关定时任务维护（采购业务）.【预计完成50%】
+2020-02-13：
+	1、uat相关定时任务维护（采购业务）.【预计完成100%】
+
+
+2020-02-10：
+	1、优化采购相关phoenix表的更新方式。
+	2、采购相关定时任务维护（kettle脚本 -> hive脚本 -> phoenix脚本 ）
+2020-02-11：
+	1、uat环境数据接入（采购业务） 
+	2、采购相关定时任务维护（kettle脚本 -> hive脚本 -> phoenix脚本-）
+2020-02-12：
+	1、uat环境数据接入（采购业务）
+2020-02-13：
+	1、uat相关定时任务维护（采购业务）.
+2020-02-13：
+	1、uat相关定时任务维护（采购业务）.
+	
+	
+2020-02-01 mission
+	1、sap：冲压、模切、CNC、深圳结构件、东莞结构件、磁材
+	
+			-- 结构件  根据company_no区分数据
+		select company_no,sum(original_currency_amount) from sap.ods_sap_zdmmr027 where day='2020-02-04'
+		and concat(substring(in_date,0,4),'-',substring(in_date,6,2)) = '2020-01' 
+		group by company_no;
+		
+		select distinct(factory) from sap.ods_sap_zdmmr027 where day='2020-02-04' 
+		and concat(substring(in_date,0,4),'-',substring(in_date,6,2)) = '2020-01'  ;
+		
+		-- 显示模组  1月份的数据
+		select sum((cast(ori_cur_beftax_amount as DECIMAL(28,16)))+(cast(ori_cur_tax_rate as DECIMAL(28,16)))) from dwbase.dwb_yifei_display_module where day='2020-02-04'
+		and CONCAT_WS('-', SUBSTRING(natural_month,0,4), SUBSTRING(natural_month,5,2)) = '2020-01' ;	
+			
+		-- 磁材数据
+		
+		-- 10529442.69
+		select sum((NETPR/PEINH)*MENGE) from  sap.ods_sap_zfmm_042 where day='2020-02-07' and
+		 CONCAT_WS('-',substring(budat,0,4),substring(budat,6,2)) = '2020-01' 
+		 
+	   select sum((NETPR/PEINH)*MENGE) from sap.ODS_SAP_ZMMR008_SHOW where day='2020-02-07' and 
+	   CONCAT_WS('-',substring(budat,0,4),substring(budat,6,2)) = '2020-01' 
+	   
+	   select distinct(day) from sap.ODS_SAP_ZMMR008_SHOW;
+	   select CONCAT_WS('-',substring(budat,0,4),substring(budat,6,2)) from sap.ODS_SAP_ZMMR008_SHOW where day='2020-02-07'
+		and 
+	   CONCAT_WS('-',substring(budat,0,4),substring(budat,6,2))
+	   
+	   
+	    insert into table dwbase.dwb_sap_cicai partition(day='2020-02-04')
+     SELECT supplier_code, supplier_name, po, material_code, material_des, in_date, unit, order_qty, in_qty,
+      factory_code, factory_des, company_des, tax_unit_price, in_tax_amout, material_group, material_group_des, 
+      if(untax_unit_price is null or untax_unit_price=0,tax_unit_price/1.16,untax_unit_price) as untax_unit_price , 
+      buyer, pre_tax_unit_price, pre_untax_unit_price, cd_amount, cd_percent, origin, reserved1,
+       reserved2  FROM dwbase.dwb_sap_cicai where day='2019-12-30'
+	   --  sap 数据异常（sap.ods_sap_zfmm_044_jituan）  -- > 包括cnc，冲压，模切，磁材
+			1、基准价很多为0
+			2、未税单价和含税单价异常。
+		
+	2、之后导数据，不用拿显示模组的数据。
+	3、组装去掉内部交易，
+	4、sap的结构件 ，是根据company_no来区分深圳和东莞结构件的。
+	5、整理phoenix表
+		DW.DWS_PURCHASE_REPORT_BY_EAS2 这张表数据比较大且有索引（千万级）， 目前业务改动频繁， 每次更新需要删除以前的数据，以后业务稳定后，这张表，我会跟进优化为增量更新
+		
+维度数据映射关系：
+	dwservice.dws_cd_by_amount_month3 where day='2020-02-04'  --> DW.DWS_CD_BY_AMOUNT_MONTH
+	dwservice.dws_cd_by_material_cut_price_month3 where day='2020-02-04'  -->  	DW.DWS_CD_BY_ACCOUNT_DAY_MONTH
+	dwservice.dws_cd_by_material_type_month3 where day='2020-02-04'  -->   DW.DWS_CD_BY_MATERIAL_TYPE_MONTH
+	dwservice.dws_cd_by_area_day_month3 where day='2020-02-04' -->   DW.DWS_CD_BY_AREA_MONTH
+	dwservice.dws_cd_by_supplier_month3 where day='2020-02-04'  -->  DW.DWS_CD_BY_SUPPLIER_MONTH
+	dwservice.dws_cd_by_account_day_pay_type_month  where day='2020-02-04' --> 	DW.DWS_CD_BY_ACCOUNT_DAY_MONTH
+	dwservice.dws_cd_by_material_month3 where day='2020-02-04'   -->  DW.DWS_CD_BY_MATERIAL_MONTH
+excel导出数据映射关系：
+	dwbase.dwb_sap_jiegoujian_by_cd   --> DW.DWS_PURCHASE_REPORT_BY_JIEG
+	dwbase.dwb_sap_cicai_by_cd    -->  DW.DWS_PURCHASE_REPORT_BY_CICAI
+	dwmiddle.dwb_purchase_report_cd   --> DW.DWS_PURCHASE_REPORT_BY_EAS
+	dwbase.dwb_yifei_display_module   --> DW.DWB_YIFEI_DISPLAY_MODULE
+
+
+更新方案：2种，
+	当前方案：
+		删除对应的phoenix表数据，取hive分区的数据插入phoenix表。
+		
+	后续业务优化方案
+	
+	待优化：
+		1、钟海，显示模组的拉取以及合并数据
+		2、周健磁材数据-- 合并
+	
+1、组装BG去掉内部交易，重新计算1月份组装采购额（100%）
+2、与茂泉连通phoenix。拉通所有模块（80%）
+
+
+2020-02-11
+1、数据不止生产入库单
+2、项目 -- 内部项目，外部项目
+
+
+1、采购周期是月报的取值周期是2019/12/16~2020/01/15， 当前excel取值周期是2020/01/01~2020/01/30 ,
+2、模切rita说一定需确认是否含模具系统的金额，例如：坂崎雕刻模具(昆山)有限公司，这个是模具供应商看是否有抓取到。模切的金额是算了包含了模具的未税总金额；
+模切的我这边确认下。
+3、组装的内部交易已经去掉了。
+余姐，针对1,2两条，我这边修改后，再发给你
+
+余姐，数据已修改至最新的excel。
+1、采购金额数据已更新（取值周期是2019/12/16~2020/01/15）
+2、模切数据不包括坂崎雕刻模具(昆山)有限公司此供应商的数据。
+3、组装的内部交易已经去掉了。
+
+
+2020-02-12
+1、重跑start2  √
+2、结构件的数据没有，  √
+
+任务梳理：
+1、梳理经管冲压业务逻辑以及业务代码编写（40%）
+	1-、与苏州模切以及黄江一厂，二厂，常平产值需求沟通，（100%）
+	2-、确认数据源数据准确性（50%）
+	3-、业务代码边下（待完成）
+2、uat环境，采购相关数据表构建（100%）
+
+
+-- 结构件: 需要维护sap.ODS_SAP_ZDMMR027表
+-- 磁材:需要维护dwbase.dwb_sap_cicai表【合并sql，需整理给我，我这边整合在一块】
+
+
+-- 组装数据
+	1、需要加上库存组织是LY INVESTMENT (HK) LIMITED 的数据，（内部交易貌似去除掉LY INVESTMENT (HK) LIMITED）
+	2、如果数据还是不对，需要根据库存组织东莞领杰的数据(单价除以1.13)，不用计算库存组织是LY INVESTMENT (HK) LIMITED 
+	3、组装数据包含模具系统的数据

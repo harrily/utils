@@ -1,0 +1,219 @@
+一、映射关系：
+	维度数据映射关系：
+		dwservice.dws_cd_by_amount_month3 where day='2020-02-04'  --> DW.DWS_CD_BY_AMOUNT_MONTH
+		dwservice.dws_cd_by_material_cut_price_month3 where day='2020-02-04'  -->  	DW.DWS_CD_BY_MATERIAL_CUT_PRICE_MONTH
+		dwservice.dws_cd_by_material_type_month3 where day='2020-02-04'  -->   DW.DWS_CD_BY_MATERIAL_TYPE_MONTH
+		dwservice.dws_cd_by_area_day_month3 where day='2020-02-04' -->   DW.DWS_CD_BY_AREA_MONTH
+		dwservice.dws_cd_by_supplier_month3 where day='2020-02-04'  -->  DW.DWS_CD_BY_SUPPLIER_MONTH
+		dwservice.dws_cd_by_account_day_pay_type_month  where day='2020-02-04' --> 	DW.DWS_CD_BY_ACCOUNT_DAY_MONTH
+		dwservice.dws_cd_by_material_month3 where day='2020-02-04'   -->  DW.DWS_CD_BY_MATERIAL_MONTH
+	excel导出数据映射关系：
+		dwbase.dwb_sap_jiegoujian_by_cd   --> DW.DWS_PURCHASE_REPORT_BY_JIEG
+		dwbase.dwb_sap_cicai_by_cd    -->  DW.DWS_PURCHASE_REPORT_BY_CICAI
+		dwmiddle.dwb_purchase_report_cd   --> DW.DWS_PURCHASE_REPORT_BY_EAS2
+		dwbase.dwb_yifei_display_module   --> DW.DWB_YIFEI_DISPLAY_MODULE
+
+	
+二、dwmiddle.dwb_purchase_report_cd维护说明：	
+1、建表语句：
+	CREATE TABLE DW.DWS_PURCHASE_REPORT_BY_EAS2 (
+		PKID VARCHAR(32) NOT NULL,
+		CREATE_TIME TIMESTAMP,
+		UPDATE_TIME TIMESTAMP,
+		AREA VARCHAR,
+		FACTORY_CODE VARCHAR,
+		FACTORY_AREA VARCHAR,
+		STOCK_ORG_NUMBER VARCHAR,
+		STOCK_ORG_NAME VARCHAR,
+		"DATE" VARCHAR,
+		STOCK_IN_AUDIT_TIME VARCHAR,
+		FIRST_LEVEL VARCHAR,
+		SECONDARY_LEVEL VARCHAR,
+		THIRD_LEVEL VARCHAR,
+		PO_NUMBER VARCHAR,
+		SUPPLIER_CODE VARCHAR,
+		SUPPLIER_NAME VARCHAR,
+		SUPPLIER_SIMPLE_NAME VARCHAR,
+		MATERIAL_CODE VARCHAR,
+		MATERIAL_8CODE VARCHAR,
+		MATERIAL_NAME VARCHAR,
+		MATERIAL_MODEL VARCHAR,
+		QUANTITY DECIMAL(28,16),
+		UNIT VARCHAR,
+		CURRENCY VARCHAR,
+		CURRENCY_NAME VARCHAR,
+		TAX_PRICE DECIMAL(28,16),
+		TAX_RATE DECIMAL(28,16),
+		EXCHANGE_RATE DECIMAL(28,16),
+		PRICE DECIMAL(28,16),
+		TAX_AMOUNT DECIMAL(28,16),
+		AMOUNT DECIMAL(28,16),
+		BECHMARK_PRICE DECIMAL(28,16),
+		BECHMARK_AMOUNT DECIMAL(28,16),
+		CD_AMOUNT DECIMAL(28,16),
+		CD_PROPORTION DECIMAL(28,16),
+		ACCOUNT_DAY VARCHAR,
+		ACCOUNT_AMOUNT DECIMAL(28,16),
+		MATERIAL_TYPE VARCHAR,
+		BUYER_ID VARCHAR,
+		BUYER VARCHAR,
+		DOCU_PIC VARCHAR,
+		REMARKS VARCHAR,
+		COMPANY_CODE VARCHAR,
+		COMPANY_NAME VARCHAR,
+		PAY_TYPE VARCHAR,
+		DIM VARCHAR,
+		"DAY" VARCHAR,
+			OUT_SUPP_MATERIAL_CODE VARCHAR(100),
+			PURCHASE_GROUP_NAME VARCHAR(100),
+			BRANCH_OF_FACOTY VARCHAR(100),
+			PROJECT_ID VARCHAR(100),
+			CUR_AMOUNT DECIMAL(28,16),
+			CHECK_BECHMARK_PRICE DECIMAL(28,16),
+			CHECK_BECHMARK_AMOUNT DECIMAL(28,16),
+			CHECK_CD_AMOUNT DECIMAL(28,16),
+			SUPP_PO_CODE VARCHAR(100),
+			APPOINT VARCHAR(100),
+			ORI_PROXY VARCHAR(100),
+			PERIOD VARCHAR(100),
+			ORDER_DATE VARCHAR(100),
+			SUPPLIER_PO_NUMBER VARCHAR(100),
+			ORIGIN_FIRM VARCHAR(100),
+			CLASSIFY VARCHAR(100),
+			PAY_CONDITION VARCHAR(100),
+			PAY_DAY VARCHAR(100),
+			ACREAGE VARCHAR(100),
+			LINE VARCHAR(100),
+			LINE_PIC VARCHAR(100),
+			TYPE_PIC VARCHAR(100),
+			PROJECT_PIC VARCHAR(100),
+			BIG_CLASSIFY VARCHAR(100),
+			REDUCE_PRICE_ORIG VARCHAR(100),
+			AVG_PAY_DAY VARCHAR(100),
+			REBATE_RATIO VARCHAR(100),
+			UPDATE_STATEMENT_PRICE VARCHAR(100),
+			DIFF_AMOUNT VARCHAR(100),
+			UPDATE_BECHMARK_PRICE VARCHAR(100),
+			RPL_CD_AMOUNT VARCHAR(100),
+			ALL_CD VARCHAR(100),
+			BG VARCHAR(100),
+			CONSTRAINT DWS_PURCHASE_REPORT_BY_EAS2_PK PRIMARY KEY (PKID)
+	);
+	CREATE INDEX INDEX_1_DWS_PURCHASE_REPORT_BY_EAS2 ON DW.DWS_PURCHASE_REPORT_BY_EAS2 ();
+2、创建索引:
+	CREATE INDEX INDEX_1_DWS_PURCHASE_REPORT_BY_EAS2
+ON DW.DWS_PURCHASE_REPORT_BY_EAS2 ("DATE",DIM,company_name)INCLUDE
+(area ,factory_code ,factory_area ,stock_org_number,stock_org_name ,
+stock_in_audit_time ,first_level ,secondary_level,third_level ,po_number ,
+supplier_code ,supplier_name ,supplier_simple_name,material_code ,material_8code ,
+material_name ,material_model ,quantity ,unit,currency ,currency_name ,tax_price ,
+tax_rate ,exchange_rate , price ,tax_amount ,amount ,material_type  ,
+buyer ,buyer_id,docu_pic ,remarks ,company_code ,bechmark_price ,bechmark_amount ,
+cd_amount ,cd_proportion ,account_day ,account_amount,pay_type,
+out_supp_material_code,purchase_group_name,branch_of_facoty,project_id
+,cur_amount,check_bechmark_price,check_bechmark_amount,check_cd_amount,
+supp_po_code,appoint,ori_proxy,period,order_date,supplier_po_number
+,origin_firm,classify,pay_condition,pay_day,acreage,line,line_pic
+,type_pic,project_pic,big_classify,reduce_price_orig,avg_pay_day,
+rebate_ratio,update_statement_price,diff_amount,update_bechmark_price
+,rpl_cd_amount,all_cd,bg);
+
+三、其他phoenix表维护
+
+1、物料名称表：DW.DWS_MATERIAL_NAME
+	1、删除历史数据
+		DELETE from DW.DWS_MATERIAL_NAME;
+	2、更新数据（对物料名称进行排序[根据物料的降价幅度，优化前端展示效果] ，当前是以2020-01~2020-12为周期。）
+		UPSERT INTO DW.DWS_MATERIAL_NAME
+		SELECT NEXT VALUE FOR book_sequence,D.material_name,D.dim FROM 
+		(SELECT B.material_name,B.dim,
+		CASE WHEN A.diff_num IS NULL THEN 0 ELSE A.diff_num END AS diff_num,
+		CASE WHEN A.count_num IS NULL THEN 0 ELSE A.count_num END AS count_num  FROM
+		(select material_name,dim,count(1) as diff_num,sum(num) as count_num from 
+		(select material_name,count(1) as num ,dim,price from DW.DWS_CD_BY_MATERIAL_CUT_PRICE_MONTH 
+		WHERE date BETWEEN '2020-01' AND  '2020-12'
+		group by material_name,price,dim) C group by material_name,dim) A RIGHT  JOIN 
+		(SELECT material_name,dim FROM DW.DWS_CD_BY_MATERIAL_CUT_PRICE_MONTH group by material_name,dim) B 
+		ON A.material_name = B.material_name AND A.dim = B.dim) D
+		ORDER BY D.diff_num DESC ,D.count_num DESC ;
+2、区域表以及公司表维护：
+	DW.DWS_AREA_COMPANY
+	DW.DWS_AREA
+	
+	1、删除历史数据
+		DELETE FROM  DW.DWS_AREA;
+		DELETE FROM  DW.DWS_AREA_COMPANY;
+	2、更新数据（对区域表以及公司表进行排序[优先显示默认区域有值的公司数据，优化前端展示效果] ，当前是以2020-01~2020-12为周期。）
+		
+		UPSERT INTO DW.DWS_AREA_COMPANY
+		SELECT NEXT VALUE FOR book_sequence,N.AREA,N.COMPANY_NAME,N.DIM FROM (
+		SELECT M.AREA,M.COMPANY_NAME,M.DIM,
+		CASE WHEN W.num IS NULL THEN 0 ELSE W.num END AS num2 FROM (
+		SELECT  A.AREA,A.COMPANY_NAME,A.num,A.dim  
+		FROM (SELECT AREA,COMPANY_NAME,dim,count(1) AS num FROM DW.DWS_CD_BY_AREA_MONTH
+		WHERE date BETWEEN '2020-01' AND  '2020-12'
+		GROUP BY AREA,COMPANY_NAME,dim) A ORDER BY num DESC ) W RIGHT JOIN 
+		(SELECT AREA,COMPANY_NAME,DIM FROM DW.DWS_CD_BY_AREA_MONTH GROUP BY AREA,COMPANY_NAME,dim ) 
+		M ON W.AREA = M.AREA AND W.COMPANY_NAME = M.COMPANY_NAME 
+		AND W.DIM = M.DIM
+		)N WHERE N.area IS NOT NULL 
+		ORDER BY NUM2 DESC;
+		
+		UPSERT INTO DW.DWS_AREA
+		SELECT NEXT VALUE FOR book_sequence,N.AREA,N.DIM FROM (
+		SELECT M.AREA,M.DIM,
+		CASE WHEN W.num IS NULL THEN 0 ELSE W.num END AS num2 FROM (
+		SELECT A.AREA,A.num,A.dim 
+		FROM (SELECT AREA,dim,count(1) AS num FROM DW.DWS_CD_BY_AREA_MONTH
+		WHERE date BETWEEN '2020-01' AND  '2020-12'
+		GROUP BY AREA,dim) A  ORDER BY num DESC  ) W RIGHT JOIN 
+		(SELECT AREA,DIM FROM DW.DWS_CD_BY_AREA_MONTH GROUP BY AREA,dim ) 
+		M ON W.AREA = M.AREA AND W.DIM = M.DIM 
+		)N WHERE N.area IS NOT NULL 
+		 ORDER BY NUM2 DESC;
+
+四、phoenix相关索引维护
+	以下索引，只有再修改表结构之后，才需要重新构造索引，其他ddl操作无须构建索引，系统会覆盖以前的索引。
+	1)、创建 物料降价 索引
+		CREATE INDEX INDEX_1_MATERIAL_CUT_PRICE ON DW.DWS_CD_BY_MATERIAL_CUT_PRICE_MONTH("DATE",DIM,MATERIAL_NAME,PRICE,"YEAR", "MONTH" )
+		INCLUDE(MATERIAL_8CODE,BG);
+	
+	2)、创建 供应商表查询索引
+		CREATE INDEX INDEX_1_DWS_CD_BY_SUPPLIER_MONTH ON DW.DWS_CD_BY_SUPPLIER_MONTH("DATE",DIM) 
+		INCLUDE(bg,supplier_code,supplier_name,account_day,cd_amount,cd_proportion,total_amount, "YEAR", "MONTH");
+		
+	3)、物料类型 的物料详情 建立索引 
+		CREATE INDEX INDEX_1_DWS_CD_BY_MATERIAL_MONTH
+		ON DW.DWS_CD_BY_MATERIAL_MONTH ("DATE",DIM,material_type,material_name)INCLUDE
+		(bg,cd_amount,cd_proportion,total_amount,"YEAR", "MONTH");
+
+
+
+备注：operation timeoutd（client 的jar包添加如下配置）
+    <property>
+      <name>hbase.rpc.timeout</name>
+      <value>1200000</value>
+    </property>
+	
+	    <property>
+      <name>hbase.client.operation.timeout</name>
+      <value>1200000</value>
+    </property>
+	
+	    <property>
+      <name>phoenix.query.keepAliveMs</name>
+      <value>1200000</value>
+    </property>
+    
+    <property>
+      <name>phoenix.query.timeoutMs</name>
+      <value>1200000</value>
+    </property>
+	
+	 <property>
+      <name>zookeeper.session.timeout</name>
+      <value>90000</value>
+    </property>
+    
+
+

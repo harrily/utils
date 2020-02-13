@@ -3,7 +3,7 @@ cat /etc/redhat-release
 
 2、
 ssh-keygen -t rsa     #在ambari-server生成密钥对
-for num in `seq 1 3`;do ssh-copy-id -i /root/.ssh/id_rsa.pub root@hadoop-$num;done
+for num in seq 1 3;do ssh-copy-id -i /root/.ssh/id_rsa.pub root@hadoop-$num;done
 
 	1.每台依次执行ssh-keygen
 	2.cat /root/.ssh/id_rsa.pub >>/root/.ssh/authorized_keys
@@ -172,14 +172,14 @@ mv CentOS-Base.repo CentOS-Base.repo.bak
 
 mysql-community-server
 
-CREATE  TABLE IF NOT EXISTS `test_1` (
-`id` string COMMENT 'id',
-`name` string )
+CREATE  TABLE IF NOT EXISTS test_1 (
+id string COMMENT 'id',
+name string )
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t';
 
-CREATE  TABLE IF NOT EXISTS `test_2` (
-`id` string COMMENT 'id',
-`name` string )
+CREATE  TABLE IF NOT EXISTS test_2 (
+id string COMMENT 'id',
+name string )
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t';
 
  load data local inpath '/opt/test/test.txt' into table test.test_1;
@@ -400,7 +400,7 @@ hbase.master.loadbalancer.class=org.apache.phoenix.hbase.index.balancer.IndexLoa
 			
 		参考资料:https://phoenix.apache.org/secondary_indexing.html#
 
--、phoenix 创建二级索引，operate timeout
+-、phoenix 创建二级索引超时解决：operate timeout
 phoenix.query.timeoutMs=1800000 
 hbase.regionserver.lease.period = 1200000 
 hbase.rpc.timeout = 1200000   【ambari 默认为90s】
@@ -412,19 +412,19 @@ hbase.client.scanner.timeout.period = 1200000
 23、hive创建orc+snappy格式数据
 old:orc.compress' = 'snappy
 
-	CREATE TABLE `ly_test1` (
-	`id` STRING,
-	 `name` STRING,
-	 `age` STRING,
-	 `sex` STRING)
+	CREATE TABLE ly_test1 (
+	id STRING,
+	 name STRING,
+	 age STRING,
+	 sex STRING)
 	ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
 	stored AS orc tblproperties('orc.compress' = 'snappy');
 	
 new:'orc.compression' = 'snappy'
 
-CREATE TABLE `ly_test2`(
-  `id` string COMMENT 'id',
-  `name` string)
+CREATE TABLE ly_test2(
+  id string COMMENT 'id',
+  name string)
 ROW FORMAT DELIMITED
   FIELDS TERMINATED BY '\t'
 stored AS orc tblproperties('orc.compression' = 'snappy');
@@ -559,15 +559,13 @@ insert into table ly_test2 select * from test_1;
 		add jar hdfs://mycluster:8020/user/root/hive-contrib-1.2.1000.2.5.3.0-37.jar
 	
 	-、办法4（最终解决）
-		在${HIVE_HOME}中创建文件夹auxlib，然后将hive-contrib-1.2.1000.2.5.3.0-37.jar文件放入该文件夹中。
+		在${HIVE_HOME}【/usr/hdp/2.5.3.0-37/hive】中创建文件夹 auxlib，然后将hive-contrib-1.2.1000.2.5.3.0-37.jar文件放入该文件夹中。
 		参考资料：https://blog.csdn.net/qianshangding0708/article/details/50381966
 -、多字符分隔符建表语句：
-	create table if not exists test.student1(
-	`sno` int comment '学生编号',
-	`sname` string comment '学生姓名',
-	`birthday` string comment '出生年月'
-	)comment '学生表'
-	row format serde 'org.apache.hadoop.hive.contrib.serde2.MultiDelimitSerDe' with serdeproperties ('field.delim'='^#');
+	create table if not exists test.student1(sno int comment '学生编号')comment '学生表'row format serde 'org.apache.hadoop.hive.contrib.serde2.MultiDelimitSerDe' with serdeproperties ('field.delim'='^#');
+	
+	
+	
 
 -、hive终端提示:Failed to connect to server: lymaster01/10.0.24.105:8032: retries get failed due to exceeded maximum allowed retries number: 0
 java.net.ConnectException: 拒绝连接
@@ -667,38 +665,38 @@ GL_AccAttachs
 			-、字段原币金额（md/mc），在用友库中yongyou.ods_yongyou_ufdata_072_2019_gl_accvouchz中 md与mc字段互补。
 			
 创建Hive基础表语句：
-	CREATE EXTERNAL TABLE IF NOT EXISTS `base.dwb_base_t_voucher`(
-	  `finaorg` string COMMENT '财务组织',
-	  `year` string COMMENT '会计年度',
-	  `period` string COMMENT '会计期间',
-	  `perioddate` string COMMENT '记账日期',
-	  `date` string COMMENT '业务日期',
-	  `vchtype` string COMMENT '凭证类型 ',
-	  `vchnumber` string COMMENT '凭证编号',
-	  `annex` string COMMENT '附件号',
-	  `maker` string COMMENT '制单',
-	  `approved` string COMMENT '审核 ',
-	  `casher` string COMMENT '出纳',
-	  `posted` string COMMENT '过账',
-	  `cancel` string COMMENT '作废',
-	  `account` string COMMENT '科目',
-	  `currency` string COMMENT '币别',
-	  `orgamount` decimal(19,4) COMMENT '原币金额',
-	  `currencyrate` float COMMENT '汇率',
-	  `amount` decimal(19,4) COMMENT '金额',
-	  `due` string COMMENT '借贷方向',
-	  `supplier` string COMMENT '供应商代码',
-	  `suppname` string COMMENT '供应商名称',
-	  `customer` string COMMENT '客户代码',
-	  `custname` string COMMENT '客户描述',
-	  `gainloss` string COMMENT '是否结转损益',
-	  `scope` string COMMENT '功能范围（SAP)',
-	  `cashflowprop` string COMMENT '现流性质',
-	  `origin` string COMMENT '数据来源',
-	  `reserved1` string COMMENT '预留字段1',
-	  `reserved2` string COMMENT '预留字段2')
+	CREATE EXTERNAL TABLE IF NOT EXISTS base.dwb_base_t_voucher(
+	  finaorg string COMMENT '财务组织',
+	  year string COMMENT '会计年度',
+	  period string COMMENT '会计期间',
+	  perioddate string COMMENT '记账日期',
+	  date string COMMENT '业务日期',
+	  vchtype string COMMENT '凭证类型 ',
+	  vchnumber string COMMENT '凭证编号',
+	  annex string COMMENT '附件号',
+	  maker string COMMENT '制单',
+	  approved string COMMENT '审核 ',
+	  casher string COMMENT '出纳',
+	  posted string COMMENT '过账',
+	  cancel string COMMENT '作废',
+	  account string COMMENT '科目',
+	  currency string COMMENT '币别',
+	  orgamount decimal(19,4) COMMENT '原币金额',
+	  currencyrate float COMMENT '汇率',
+	  amount decimal(19,4) COMMENT '金额',
+	  due string COMMENT '借贷方向',
+	  supplier string COMMENT '供应商代码',
+	  suppname string COMMENT '供应商名称',
+	  customer string COMMENT '客户代码',
+	  custname string COMMENT '客户描述',
+	  gainloss string COMMENT '是否结转损益',
+	  scope string COMMENT '功能范围（SAP)',
+	  cashflowprop string COMMENT '现流性质',
+	  origin string COMMENT '数据来源',
+	  reserved1 string COMMENT '预留字段1',
+	  reserved2 string COMMENT '预留字段2')
 	PARTITIONED BY (
-	  `day` string)
+	  day string)
 	ROW FORMAT DELIMITED
 	  FIELDS TERMINATED BY '^#'
 	 STORED AS orc 
@@ -706,29 +704,29 @@ GL_AccAttachs
 	 tblproperties('orc.compression' = 'snappy');
 
 
-	CREATE EXTERNAL TABLE IF NOT EXISTS `base.dwb_base_t_balance`(
-	  `year` string COMMENT '会计年度',
-	  `period` string COMMENT '会计期间',
-	  `account` string COMMENT '科目',
-	  `customer` string COMMENT '客户',
-	  `supplier` string COMMENT '供应商 ',
-	  `department` string COMMENT '部门',
-	  `currency` string COMMENT '币别',
-	  `BegDebit` decimal(19,4) COMMENT '期初借方余额',
-	  `BegCredit` decimal(19,4) COMMENT '期初贷方余额',
-	  `debit` decimal(19,4) COMMENT '本期借方发生额',
-	  `credit` decimal(19,4) COMMENT '本期贷方发生额',
-	  `accumdebit` decimal(19,4) COMMENT '本年借方累计发生额',
-	  `accumcredit` decimal(19,4) COMMENT '本年贷方累计发生额',
-	  `enddebit` decimal(19,4) COMMENT '期末借方余额',
-	  `endcredit` decimal(19,4) COMMENT '期末贷方余额',
-	  `fundsprop` string COMMENT '款项性质',
-	  `finaorg` string COMMENT '财务组织',
-	  `origin` string COMMENT '数据来源',
-	  `reserved1` string COMMENT '预留字段1',
-	  `reserved2` string COMMENT '预留字段2')
+	CREATE EXTERNAL TABLE IF NOT EXISTS base.dwb_base_t_balance(
+	  year string COMMENT '会计年度',
+	  period string COMMENT '会计期间',
+	  account string COMMENT '科目',
+	  customer string COMMENT '客户',
+	  supplier string COMMENT '供应商 ',
+	  department string COMMENT '部门',
+	  currency string COMMENT '币别',
+	  BegDebit decimal(19,4) COMMENT '期初借方余额',
+	  BegCredit decimal(19,4) COMMENT '期初贷方余额',
+	  debit decimal(19,4) COMMENT '本期借方发生额',
+	  credit decimal(19,4) COMMENT '本期贷方发生额',
+	  accumdebit decimal(19,4) COMMENT '本年借方累计发生额',
+	  accumcredit decimal(19,4) COMMENT '本年贷方累计发生额',
+	  enddebit decimal(19,4) COMMENT '期末借方余额',
+	  endcredit decimal(19,4) COMMENT '期末贷方余额',
+	  fundsprop string COMMENT '款项性质',
+	  finaorg string COMMENT '财务组织',
+	  origin string COMMENT '数据来源',
+	  reserved1 string COMMENT '预留字段1',
+	  reserved2 string COMMENT '预留字段2')
 	PARTITIONED BY (
-	  `day` string)
+	  day string)
 	ROW FORMAT DELIMITED  FIELDS TERMINATED BY '^#'
 	 STORED AS orc
 	 LOCATION 'hdfs://mycluster/warehouse/base/dwb/DWB_base_t_balance'
@@ -748,39 +746,39 @@ C:\Users\wang.ying.nan\.dbeaver4\General\Scripts
 
 前者数值
 后者  借or贷
-0	`finaorg` string COMMENT '财务组织',  
-1  `year` string COMMENT '会计年度',
-2 `period` string COMMENT '会计期间',
-3  `perioddate` string COMMENT '记账日期',
-4  `date` string COMMENT '业务日期',
-5 `vchtype` string COMMENT '凭证类型 ',yong'o
-6  `vchnumber` string COMMENT '凭证编号',
-7  `annex` string COMMENT '附件号',
-8  `maker` string COMMENT '制单',
-9  `approved` string COMMENT '审核 '
-10 `casher` string COMMENT '出纳',
-11  `posted` string COMMENT '过账',
-12  `cancel` int COMMENT '作废',
-13  `account` string COMMENT '科目',
-14 `currency` string COMMENT '币别',
-15`orgamount` decimal(19,4) COMMENT '原币金额',
-  `currency` float COMMENT '汇率',
-  `amount` decimal(19,4) COMMENT '金额',
-18 `due` string COMMENT '借贷方向',
-19  `supplier` string COMMENT '供应商代码',
-20  `suppname` string COMMENT '供应商名称',
-21 `customer` string COMMENT '客户代码',
-  `custname` string COMMENT '客户描述',
-  `gainloss` string COMMENT '是否结转损益',
-  `scope` string COMMENT '功能范围（SAP)',
-  `cashflowprop` string COMMENT '现流性质',
-  `origin` string COMMENT '数据来源',
-  `reserved1` string COMMENT '预留字段1',
-  `reserved2` string COMMENT '预留字段2')
+0	finaorg string COMMENT '财务组织',  
+1  year string COMMENT '会计年度',
+2 period string COMMENT '会计期间',
+3  perioddate string COMMENT '记账日期',
+4  date string COMMENT '业务日期',
+5 vchtype string COMMENT '凭证类型 ',yong'o
+6  vchnumber string COMMENT '凭证编号',
+7  annex string COMMENT '附件号',
+8  maker string COMMENT '制单',
+9  approved string COMMENT '审核 '
+10 casher string COMMENT '出纳',
+11  posted string COMMENT '过账',
+12  cancel int COMMENT '作废',
+13  account string COMMENT '科目',
+14 currency string COMMENT '币别',
+15orgamount decimal(19,4) COMMENT '原币金额',
+  currency float COMMENT '汇率',
+  amount decimal(19,4) COMMENT '金额',
+18 due string COMMENT '借贷方向',
+19  supplier string COMMENT '供应商代码',
+20  suppname string COMMENT '供应商名称',
+21 customer string COMMENT '客户代码',
+  custname string COMMENT '客户描述',
+  gainloss string COMMENT '是否结转损益',
+  scope string COMMENT '功能范围（SAP)',
+  cashflowprop string COMMENT '现流性质',
+  origin string COMMENT '数据来源',
+  reserved1 string COMMENT '预留字段1',
+  reserved2 string COMMENT '预留字段2')
   
   
  29.hive元数据mysql 更换（lymaster02 --> lymysql01）
- 30.hive注释，汉字乱码解决：
+ 30.hive注释，汉字乱码解决（并未真正解决）：
 	1-、 hive 设置连接jdbc的编码 ?createDatabaseIfNotExist=true&amp;useUnicode=true&amp;characterEncoding=UTF-8
 		方案1：
 			1-、删除索引 CREATE INDEX PCS_STATS_IDX ON PART_COL_STATS (DB_NAME,TABLE_NAME,COLUMN_NAME,PARTITION_NAME) USING BTREE;
@@ -838,7 +836,7 @@ C:\Users\wang.ying.nan\.dbeaver4\General\Scripts
 						alter table PARTITION_KEYS modify column PKEY_COMMENT varchar(4000) character set utf8;
 						alter table INDEX_PARAMS modify column PARAM_VALUE varchar(4000) character set utf8;
 					4)-、
-						for file in  `ls /usr/hdp/2.5.3.0-37/hive/scripts/metastore/upgrade/mysql/`
+						for file in  ls /usr/hdp/2.5.3.0-37/hive/scripts/metastore/upgrade/mysql/
 						do
 
 								echo $file
@@ -867,7 +865,6 @@ C:\Users\wang.ying.nan\.dbeaver4\General\Scripts
 						alter table PARTITION_PARAMS modify column PARAM_VALUE varchar(4000) character set utf8 ;
 						alter table PARTITION_KEYS modify column PKEY_COMMENT varchar(4000) character set utf8;
 						alter table INDEX_PARAMS modify column PARAM_VALUE varchar(4000) character set utf8;
-				三、 总结：因为hive的mysql元数据verion貌似被修改，导致错误。实际上是2.1.0 ，以前确实1.2.0【ambari会自动对比version，如果元数据信息未修改，则skip initSchema】
 						
 					测试：hive -e "load data local inpath '/root/unicode_test.txt' overwrite into table test.unicode_test";
 					utf8	
@@ -879,8 +876,10 @@ C:\Users\wang.ying.nan\.dbeaver4\General\Scripts
 				-、此处判断 是否需要skip，如果时not_if ,则跳过initSchema
 				File "/var/lib/ambari-agent/cache/common-services/HIVE/0.12.0.2.0/package/scripts/hive.py", line 320, in hive （ user = params.hive_user）
 			
-			1)、question: hive 重启，每次都会执行 -initSchema -dbType ？	
+			1)、请假一个月后，为什么question: hive 重启，每次都会执行 -initSchema -dbType ？	
 				-:以前重启不会，因为skip此过程，因为 due to not_if 
+				
+				总结：因为hive的mysql元数据verion貌似被修改，导致错误。实际上是2.1.0 ，以前确实1.2.0【ambari会自动对比version，如果元数据信息未修改，则skip initSchema】
 			
 Could not retrieve transation read-only status server
 
@@ -897,8 +896,9 @@ A Gauge with name [init_total_count_tables] already exists.  The old gauge will 
 		2、:n （跳转到文件第n行，需要回车）
 		3、vim +n filename （在打开文件后，跳转到文件的第n行）
 	-、将dev 替换 为 prod: 
-
 :%s/dev/prod/g 
+
+	示例：:%s/factory/company_no/g 
 32、 hive不支持group_concat，但是可用以下方式转换 (2018-10-12 14:13:03)
 转载
 ▼
@@ -1037,7 +1037,7 @@ round one：
 	 
 	 mv /usr/hdp/2.5.3.0-37/hive/lib/hive-exec-1.2.1000.2.5.3.0-37.jar  hive-exec-1.2.1000.2.5.3.0-37.jar-backup;
 round two：	 
-	2-、修改源码
+	2-、修改源码  (修改源码，打包，去除execjar 【D:\ly\firefox\hive.tar.gz  D:\ly\firefox\hive-exec-1.2.1000.2.4.3.0-227.jar】)
 	 
 apache源码
 http://hadoop.apache.org/releases.html
@@ -1349,9 +1349,9 @@ SQL 错误 [2] [08S01]: Error while processing statement: FAILED: Execution Error,
 		
 46、hive不支持select子查询，替换
 select A.*,B.cd_total_amount from dwservice.dws_cd_by_purchaser_month  A
-left join (select purchaser,`year`,sum(cd_amount) as cd_total_amount
-from dwservice.dws_cd_by_purchaser_month group by purchaser,`year`) B 
-on A.purchaser = B.purchaser and A.`year` = B.`year`
+left join (select purchaser,year,sum(cd_amount) as cd_total_amount
+from dwservice.dws_cd_by_purchaser_month group by purchaser,year) B 
+on A.purchaser = B.purchaser and A.year = B.year
 
 
 47、
@@ -1412,7 +1412,9 @@ on A.purchaser = B.purchaser and A.`year` = B.`year`
 				6、有多少个split，就有多少个mapper。
 原文链接：https://blog.csdn.net/tch918/article/details/89061860
 
-		2)、hive shell 中 `date` 只能在''（单引号中识别 hive -e ''）
+		2)、hive shell 中 date 只能在''（单引号中识别 hive -e ''）
+			''    date
+			"" '${l_date}'  \date\
 48、
 虚拟机和物理机选择。
 		1、hadoop集群（hive）对磁盘io开销比较大，10台物理机比1台物理机（10台虚拟机）磁盘io快很多。
@@ -1867,10 +1869,33 @@ If you are updating existing jdbc driver jar for mysql with mysql-connector-java
 JDBC driver was successfully initialized.
 Ambari Server 'setup' completed successfully.
 
-61、ambari安装注意事项：
+61、uat的ambari安装注意事项：
 	1、/var/lib/ambari-server/keys/ca.config 文件的CA修改为jdk8
 	2、hive注释乱码 和 hive支持多分隔符
-	3、phoenix解决二级索引 和 分页问题
+		-、
+		-、参考26条记录
+	3、phoenix解决二级索引和分页问题
+		-、uat相关phoenix 以及ipc配置。（安装4.9版本和ipc设置 解决分页问题，）
+			1、hbase，和regionserver的指定lib目录下放置建立phoenix server服务
+				ln -s  /opt/phoenix-4.9.0-HBase-1.1-server.jar  /usr/hdp/2.5.3.0-37/hbase/lib/phoenix-server.jar
+			2、重启集群
+			3、错误提示： Error: ERROR 726 (43M10): Inconsistent namespace mapping properties. Cannot initiate
+			集群hbase-site.xml 中添加 
+			phoenix.schema.isNamespaceMappingEnabled=ture
+			4、dbeaner工具，添加属性：
+				phoenix.schema.isNamespaceMappingEnabled=True
+				phoenix.schema.mapSystemTablesToNamespace=True
+			5、
+				uat中hbase相关配置添加：
+					hbase.client.operation.timeout=3600000
+					hbase.client.scanner.timeout.period=3600000
+					hbase.table.sanity.checks=false
+					phoenix.query.keepAliveMs=3600000
+					phoenix.schema.isNamespaceMappingEnabled=true
+					phoenix.schema.mapSystemTablesToNamespace=true
+					HBase RPC Timeout=3600000
+					Phoenix Query Timeout=3600000
+		-、二级索引解决见本文搜索关键字查找。
 
 62、Package does not match intended download. Suggestion: run yum --enablerepo=base clean metadata
 	-- yum clean all 解决
@@ -2053,8 +2078,8 @@ useradd wang.ying.nan/wang.ying.nan123
 
 cat $1 | while read line
 do
-name=`echo $line |awk -F '/' '{print $1}' `
-passwd=`echo $line |awk -F '/' '{print $2}'`
+name=echo $line |awk -F '/' '{print $1}' 
+passwd=echo $line |awk -F '/' '{print $2}'
 echo $name
 echo $passwd
 useradd $name
@@ -2103,7 +2128,7 @@ Cannot submit [ServerShutdownHandler-uatdata02,16020,1578270573995-11] because t
 zookeeper.RecoverableZooKeeper: ZooKeeper delete failed after 7 attempts
 
 2020-01-06 07:43:54,402 WARN  [uatmaster02:16000.activeMasterManager] retry.RetryInvocationHandler: Exception while invoking ClientNamenodeProtocolTranslatorPB.delete over null. Not retrying because try once and fail.
-org.apache.hadoop.ipc.RemoteException(org.apache.hadoop.fs.PathIsNotEmptyDirectoryException): `/apps/hbase/data/WALs/uatdata04,16020,1578048647969-splitting is non empty': Directory is not empty
+org.apache.hadoop.ipc.RemoteException(org.apache.hadoop.fs.PathIsNotEmptyDirectoryException): /apps/hbase/data/WALs/uatdata04,16020,1578048647969-splitting is non empty': Directory is not empty
 
 
 -- 出现session expired的时间：
@@ -2114,21 +2139,31 @@ org.apache.hadoop.ipc.RemoteException(org.apache.hadoop.fs.PathIsNotEmptyDirecto
 2020-01-09 23:43:27
 
 	-、可能是fullGC 导致：
-	https://blog.csdn.net/yjb7268888/article/details/52980570  [fullGC]
-	https://blog.csdn.net/xuguokun1986/article/details/70884696  [修改zookeeper session timeout]
-	http://www.openskill.cn/question/435 [图解]
-	https://blog.csdn.net/liu16659/article/details/82430396 [GC]
-	https://blog.csdn.net/sinat_29480069/article/details/81503562 [GC 日志解析]
-	https://blog.csdn.net/zlfprogram/article/details/74066700  [full GC 宕机 GC日志中是否有 promotion failed和concurrent mode failure]
+		https://blog.csdn.net/yjb7268888/article/details/52980570  [fullGC]
+		https://blog.csdn.net/xuguokun1986/article/details/70884696  [修改zookeeper session timeout]
+		http://www.openskill.cn/question/435 [图解]
+		https://blog.csdn.net/liu16659/article/details/82430396 [GC]
+		https://blog.csdn.net/sinat_29480069/article/details/81503562 [GC 日志解析]
+		https://blog.csdn.net/zlfprogram/article/details/74066700  [full GC 宕机 GC日志中是否有 promotion failed和concurrent mode failure]
 	-、集群时间不同步或者 zookeeper中的数据不一致
-	https://blog.csdn.net/crq1205/article/details/82772923	
+		https://blog.csdn.net/crq1205/article/details/82772923	
 	-、加长zookeeper的超时时间。
-	https://blog.csdn.net/qq_28652401/article/details/83510046
+		https://blog.csdn.net/qq_28652401/article/details/83510046
 	-、关于session expired
-	https://www.coder4.com/archives/3181
+		https://www.coder4.com/archives/3181
 	-、hiveserver2的GC调优
-	https://blog.csdn.net/mnasd/article/details/82690414
-	https://blog.csdn.net/xiaolong_4_2/article/details/84323990
+		https://blog.csdn.net/mnasd/article/details/82690414
+		https://blog.csdn.net/xiaolong_4_2/article/details/84323990
+	
+	-、hfile.block.cache.size 的原因
+		查看Regionserver中heapsize设置为32G，hfile.block.cache.size=0.4,使得block size=heapsize * hfile.block.cache.size *0.85=10.88G
+		由此可以block cache发生了CMS GC。目前使用的BlockCache优点是直接采用jvm提供的HashMap来管理Cache，简单可依赖；内存用多少占多少，JVM会帮你回收淘汰的BlOCK占用的内存。缺点更明显：
+		a.一个Block从被缓存至被淘汰，基本伴随着Heap中的位置从New区晋升到Old区
+		b.晋升在Old区的Block被淘汰后，最终由CMS进行垃圾回收，随之带来的是Heap碎片 ，old 区域变大导致cms 时间过长。
+		c.因为碎片问题，随之而来的是GC时晋升失败的FullGC，我们的线上系统根据不同的业务特点，因为这个而发生FullGC的频率，有1天的，1周的，1月半年的都有。对于高频率的， 在运维上可以通过在半夜手工触发FullGC来缓解
+		d.如果缓存的速度比淘汰的速度快，很不幸现在的代码有OOM的风险(这个可以修改下代码避免)
+		https://blog.yoodb.com/sugarliny/article/detail/1306
+		https://www.2cto.com/database/201503/384922.html
 	
 	1.1、zookeeper报错 ：EndOfStreamException: Unable to read additional data from client sessionid 0x16f783a9a9c0009, likely client has closed socket
 
@@ -2189,7 +2224,10 @@ org.apache.hadoop.ipc.RemoteException(org.apache.hadoop.ipc.StandbyException): O
 	-、以前异常退出的sparkthrift 在hdfs://uatmycluster/spark2-history目录下，不能正常加载【hdfs://uatmycluster/spark2-history/application_1578552094353_0005.inprogress】
 	-、为什么启动sparkthrift服务，对应的sparksubmit任务，一直在yarn任务那里挂着？
 	
-	
+	-、spark  启动的时候
+	20/01/10 13:40:26 WARN Client: Failed to connect to server: uatmaster01/10.0.24.204:8032: retries get failed due to exceeded maximum allowed retries number: 0 java.net.ConnectException: Connection refused
+
+
 	
 三、
 解决方案：
@@ -2218,8 +2256,314 @@ org.apache.hadoop.ipc.RemoteException(org.apache.hadoop.ipc.StandbyException): O
 					java.io.IOException: Broken pipe
 			--  uatmaster02 ,竟然有个hmaster进程 3476 org.apache.hadoop.hbase.master.HMaster  【Metrics Collector】
 	
-	2、调大zookeeper的session超时时间 为2个小时。
-	
+	2、调大zookeeper的session(MaxSessionTimeout)超时时间 为2.5个小时。
+		-、hiveserver2 
+			2020-01-14 00:24:11,979 INFO  [org.apache.hadoop.hive.common.JvmPauseMonitor$Monitor@40717ed]: common.JvmPauseMonitor (JvmPauseMonitor.java:run(193)) - Detected pause in JVM or host machine (eg GC): pause of approximately 4272ms
+			No GCs detected
+			......
+			2020-01-14 03:07:14,159 ERROR [main-EventThread]: nodes.PersistentEphemeralNode (PersistentEphemeralNode.java:deleteNode(323)) - Deleting node: /hiveserver2/serverUri=uatmaster02:10000;version=1.2.1000.2.5.3.0-37;sequence=0000000009
+			org.apache.zookeeper.KeeperException$SessionExpiredException: KeeperErrorCode = Session expired for /hiveserver2/serverUri=uatmaster02:10000;version=1.2.1000.2.5.3.0-37;sequence=0000000009
+				结论-、GC 导致 连接失效， 2.5小时候，连接不上。
+		-、hbase日志 
+			Master：
+			2020-01-14 00:24:14,974 WARN  [master/uatmaster02/10.0.24.205:16000] util.Sleeper: We slept 200949ms instead of 3000ms, this is likely due to a long garbage collecting pause and it's usually bad, see http://hbase.apache.org/book.html#trouble.rs.runtime.zkexpired
+			......
+			2020-01-14 00:27:13,054 WARN  [main-EventThread] zookeeper.RecoverableZooKeeper: Possibly transient ZooKeeper, quorum=uatdata01:2181,uatdata02:2181,uatdata03:2181, exception=org.apache.zookeeper.KeeperException$SessionExpiredException: KeeperErrorCode = Session expired for /hbase-unsecure/region-in-transition/1588230740
+			...
+			2020-01-14 00:27:13,744 ERROR [B.priority.fifo.QRpcServer.handler=17,queue=1,port=16000] master.MasterRpcServices: Region server uatdata01,16020,1578893028947 reported a fatal error:
+			ABORTING region server uatdata01,16020,1578893028947: org.apache.hadoop.hbase.YouAreDeadException: Server REPORT rejected; currently processing uatdata01,16020,1578893028947 as dead 
+			....
+			Caused by: org.apache.hadoop.hbase.ipc.RemoteWithExtrasException(org.apache.hadoop.hbase.YouAreDeadException): org.apache.hadoop.hbase.YouAreDeadException: Server REPORT rejected; currently processing uatdata01,16020,1578893028947 as dead server
+				结论
+					-、GC 
+					-、uatdata01  dead server。
+			
+			Slave1：
+				2020-01-14 00:25:08,299 INFO  [JvmPauseMonitor] util.JvmPauseMonitor: Detected pause in JVM or host machine (eg GC): pause of approximately 3944ms
+				No GCs detected
+				......
+				2020-01-14 00:27:12,090 WARN  [regionserver/uatdata01/10.0.24.200:16020-EventThread] client.ConnectionManager$HConnectionImplementation: This client just lost it's session with ZooKeeper, closing it. It will be recreated next time someone needs it
+				org.apache.zookeeper.KeeperException$SessionExpiredException: KeeperErrorCode = Session expired
+				...
+				2020-01-14 00:27:13,731 FATAL [regionserver/uatdata01/10.0.24.200:16020] regionserver.HRegionServer: ABORTING region server uatdata01,16020,1578893028947: org.apache.hadoop.hbase.YouAreDeadException: Server REPORT rejected; currently processing uatdata01,16020,1578893028947 as dead server
+
 	3、
+		-、恢复zk的MaxSessionTimeout
 		-、调整regionserver的 heapsize
 		-、开启regionserver 失败重启 restart 替换 abort
+		
+		为什么regionserver 和Zookeeper的session expired? 可能的原因有
+			1. 网络不好。
+			2. Java full GC， 这会block所有的线程。如果时间比较长，也会导致session expired.
+			怎么办？	
+			1. 将Zookeeper的timeout时间加长。
+			2. 配置“hbase.regionserver.restart.on.zk.expire” 为true。 这样子，遇到ZooKeeper session expired ，regionserver将选择 restart 而不是 abort
+			具体的配置是，在hbase-site.xml中加入
+			<property>
+				<name>zookeeper.session.timeout</name>
+				<value>90000</value>
+			</property>
+			
+			<property>
+				<name>hbase.regionserver.restart.on.zk.expire</name>
+				<value>true</value>
+				<description>
+				Zookeeper session expired will force regionserver exit.
+				Enable this will make the regionserver restart.
+				</description>
+			</property>
+			为了避免java full GC suspend thread 对Zookeeper heartbeat的影响，我们还需要对hbase-env.sh进行配置。
+			将
+			export HBASE_OPTS="$HBASE_OPTS -XX:+HeapDumpOnOutOfMemoryError \ -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode"
+			修改成
+			export HBASE_OPTS="$HBASE_OPTS -XX:+HeapDumpOnOutOfMemoryError \ -XX:+UseConcMarkSweepGC -XX:+CMSParallelRemarkEnabled \ -XX:+CMSInitiatingOccupancyFraction=70 \ -XX:+UseCMSInitiatingOccupancyOnly -XX:+UseParNewGC -Xmn256m"
+			
+				-Xmx8g -Xms8g –Xmn128m ：最大堆内存8G，最小堆内存8G，新生代内存-Xmn128m。
+				-XX:+UseParNewGC ： 设置对于新生代的垃圾回收器类型，这种类型是会停止JAVA进程，然后再进行回收的，但由于新生代体积比较小，持续时间通常只有几毫秒，因此可以接受。
+				-XX:+UseConcMarkSweepGC ：设置老生代的垃圾回收类型，如果用新生代的那个会不合适，即会导致JAVA进程停止的时间太长，用这种不会停止JAVA进程，而是在JAVA进程运行的同时，并行的进行回收。
+				-XX:CMSInitiatingOccupancyFraction ：设置CMS回收器运行的频率，避免前两个参数引起JAVA进程长时间停止，设置了这个之后，不需要停止JAVA进程，但是会提高CPU使用率。
+				
+				当前集群设置 hbase-env template :
+				export HBASE_OPTS="$HBASE_OPTS -verbose:gc -Xloggc:$HBASE_LOG_DIR/hbase.gc.log -XX:ErrorFile=$HBASE_LOG_DIR/hs_err_pid.log -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:+HeapDumpOnOutOfMemoryError -XX:+UseConcMarkSweepGC -XX:+UseParNewGC -XX:CMSInitiatingOccupancyFraction=70"
+			 
+		参考资料：http://wenda.chinahadoop.cn/question/4872’
+		
+		小结：
+		uatdata01:
+			-、[ParNew: 1359997K->36143K(1504064K)] 1359997K->36143K(8221504K) 
+			-、2020-01-14 23:30:28,665 INFO  [JvmPauseMonitor] util.JvmPauseMonitor: Detected pause in JVM or host machine (eg GC): pause of approximately 3082ms
+			No GCs detected
+			-、2020-01-14 23:35:35,208 WARN  [main-EventThread] zookeeper.RecoverableZooKeeper: Possibly transient ZooKeeper, quorum=uatdata01:2181,uatdata02:2181,uatdata03:2181, exception=org.apache.zookeeper.KeeperException$ConnectionLossException: KeeperErrorCode = ConnectionLoss for /hbase-unsecure/rs
+			
+			-、2020-01-15 23:28:36,462 INFO  [JvmPauseMonitor] util.JvmPauseMonitor: Detected pause in JVM or host machine (eg GC): pause of approximately 	3620ms
+			No GCs detected
+			-、2020-01-15 23:35:56,413 WARN  [main-EventThread] zookeeper.RecoverableZooKeeper: Possibly transient ZooKeeper, quorum=uatdata01:2181,uatdata02:2181,uatdata03:2181, exception=org.apache.zookeeper.KeeperException$ConnectionLossException: KeeperErrorCode = ConnectionLoss for /hbase-unsecure/rs
+			
+		uatdata02:
+			-、ParNew: 1359085K->22607K(1504064K)] 1359085K->22607K(8221504K)
+			-、2020-01-14 23:32:29,453 INFO  [JvmPauseMonitor] util.JvmPauseMonitor: Detected pause in JVM or host machine (eg GC): pause of approximately 3661ms
+			No GCs detected
+			-、2020-01-14 23:35:35,207 WARN  [main-EventThread] zookeeper.RecoverableZooKeeper: Possibly transient ZooKeeper, quorum=uatdata01:2181,uatdata02:2181,uatdata03:2181, exception=org.apache.zookeeper.KeeperException$ConnectionLossException: KeeperErrorCode = ConnectionLoss for /hbase-unsecure/rs
+		uatdata03:
+			-、[ParNew: 1366480K->29634K(1504064K)] 1366480K->29634K(8221504K)
+			-、2020-01-14 23:32:14,267 INFO  [JvmPauseMonitor] util.JvmPauseMonitor: Detected pause in JVM or host machine (eg GC): pause of approximately 1580ms
+			No GCs detected
+			-、2020-01-14 23:35:35,484 INFO  [regionserver/uatdata03/10.0.24.202:16020-SendThread(uatdata03:2181)] zookeeper.ClientCnxn: Unable to reconnect to ZooKeeper service, session  0x26fa3df96850001has expired, closing socket connection		
+		uatdata04:
+			-、[ParNew: 1364088K->29137K(1504064K)] 1364088K->29139K(8221504K)
+			-、2020-01-14 23:37:34,072 INFO  [JvmPauseMonitor] util.JvmPauseMonitor: Detected pause in JVM or host machine (eg GC): pause of approximately 1878ms
+			No GCs detected
+			-、2020-01-14 23:32:16,107 WARN  [main-EventThread] zookeeper.RecoverableZooKeeper: Possibly transient ZooKeeper, quorum=uatdata01:2181,uatdata02:2181,uatdata03:2181, exception=org.apache.zookeeper.KeeperException$ConnectionLossException: KeeperErrorCode = ConnectionLoss for /hbase-unsecure/rs
+			
+		uatmaster02:
+			-、[ParNew: 278398K->3556K(309056K)] 290335K->15494K(995840K)
+			-、2020-01-14 23:29:27,026 WARN  [master/uatmaster02/10.0.24.205:16000] util.Sleeper: We slept 202092ms instead of 3000ms, this is likely due to a long garbage collecting pause and it's usually bad, see http://hbase.apache.org/book.html#trouble.rs.runtime.zkexpired
+			-、2020-01-14 23:35:35,209 WARN  [main-EventThread] zookeeper.RecoverableZooKeeper: Possibly transient ZooKeeper, quorum=uatdata01:2181,uatdata02:2181,uatdata03:2181, exception=org.apache.zookeeper.KeeperException$ConnectionLossException: KeeperErrorCode = ConnectionLoss for /hbase-unsecure/rs
+
+	
+			-、2020-01-15 23:30:19,605 WARN  [master/uatmaster02/10.0.24.205:16000] util.Sleeper: We slept 203273ms instead of 3000ms, this is likely due to a -、long garbage collecting pause and it's usually bad, see http://hbase.apache.org/book.html#trouble.rs.runtime.zkexpired
+			2020-01-15 23:35:56,413 WARN  [main-EventThread] zookeeper.RecoverableZooKeeper: Possibly transient ZooKeeper, quorum=uatdata01:2181,uatdata02:2181,uatdata03:2181, exception=org.apache.zookeeper.KeeperException$ConnectionLossException: KeeperErrorCode = ConnectionLoss for /hbase-unsecure/rs
+	4、hiveserver2 安装到别的主机上试试
+		-、怀疑是微服务，后端占用jvm内存 （因为测试服务器上，跑大量MR,会导致HBase GC严重，导致zk的session expired，rs下架）
+		-、调大 hMaster 内存为2G
+		
+		-、难道是 state standby  切换导致
+		
+	5、删除zk中hiveserver2.
+	  设置-、zookeeper.session.timeout
+			hbase.rpc.timeout
+		-、zk maxsession
+		
+		
+	6-、官网解答： http://hbase.apache.org/book.html#trouble.rs.runtime.zkexpired
+		146.2.7. ZooKeeper SessionExpired events
+		Master or RegionServers shutting down with messages like those in the logs:
+
+		WARN org.apache.zookeeper.ClientCnxn: Exception
+		closing session 0x278bd16a96000f to sun.nio.ch.SelectionKeyImpl@355811ec
+		java.io.IOException: TIMED OUT
+			   at org.apache.zookeeper.ClientCnxn$SendThread.run(ClientCnxn.java:906)
+		WARN org.apache.hadoop.hbase.util.Sleeper: We slept 79410ms, ten times longer than scheduled: 5000
+		INFO org.apache.zookeeper.ClientCnxn: Attempting connection to server hostname/IP:PORT
+		INFO org.apache.zookeeper.ClientCnxn: Priming connection to java.nio.channels.SocketChannel[connected local=/IP:PORT remote=hostname/IP:PORT]
+		INFO org.apache.zookeeper.ClientCnxn: Server connection successful
+		WARN org.apache.zookeeper.ClientCnxn: Exception closing session 0x278bd16a96000d to sun.nio.ch.SelectionKeyImpl@3544d65e
+		java.io.IOException: Session Expired
+			   at org.apache.zookeeper.ClientCnxn$SendThread.readConnectResult(ClientCnxn.java:589)
+			   at org.apache.zookeeper.ClientCnxn$SendThread.doIO(ClientCnxn.java:709)
+			   at org.apache.zookeeper.ClientCnxn$SendThread.run(ClientCnxn.java:945)
+		ERROR org.apache.hadoop.hbase.regionserver.HRegionServer: ZooKeeper session expired
+		The JVM is doing a long running garbage collecting which is pausing every threads (aka "stop the world"). Since the RegionServer’s local ZooKeeper client cannot send heartbeats, the session times out. By design, we shut down any node that isn’t able to contact the ZooKeeper ensemble after getting a timeout so that it stops serving data that may already be assigned elsewhere.
+
+		Make sure you give plenty of RAM (in hbase-env.sh), the default of 1GB won’t be able to sustain long running imports.
+
+		Make sure you don’t swap, the JVM never behaves well under swapping.
+
+		Make sure you are not CPU starving the RegionServer thread. For example, if you are running a MapReduce job using 6 CPU-intensive tasks on a machine with 4 cores, you are probably starving the RegionServer enough to create longer garbage collection pauses.
+
+		Increase the ZooKeeper session timeout
+
+		If you wish to increase the session timeout, add the following to your hbase-site.xml to increase the timeout from the default of 60 seconds to 120 seconds.
+
+		<property>
+		  <name>zookeeper.session.timeout</name>
+		  <value>120000</value>
+		</property>
+		<property>
+		  <name>hbase.zookeeper.property.tickTime</name>
+		  <value>6000</value>
+		</property>
+		Be aware that setting a higher timeout means that the regions served by a failed RegionServer will take at least that amount of time to be transferred to another RegionServer. For a production system serving live requests, we would instead recommend setting it lower than 1 minute and over-provision your cluster in order the lower the memory load on each machines (hence having less garbage to collect per machine).
+
+		If this is happening during an upload which only happens once (like initially loading all your data into HBase), consider bulk loading.
+
+		See ZooKeeper, The Cluster Canary for other general information about ZooKeeper troubleshooting.
+		
+-、当前服务的hbase-env.sh
+export HBASE_MANAGES_ZK=false
+
+JDK_DEPENDED_OPTS="-XX:PermSize=128m -XX:MaxPermSize=256m"
+
+export HBASE_OPTS="$HBASE_OPTS -XX:+UseConcMarkSweepGC -XX:+UseParNewGC -XX:ErrorFile=/var/log/hbase/hs_err_pid%p.log -Djava.io.tmpdir=/tmp"
+export HBASE_MASTER_OPTS="$HBASE_MASTER_OPTS -Xmx2048m $JDK_DEPENDED_OPTS"
+export HBASE_REGIONSERVER_OPTS="$HBASE_REGIONSERVER_OPTS -Xmn1632m -XX:CMSInitiatingOccupancyFraction=70  -Xms8192m -Xmx8192m $JDK_DEPENDED_OPTS"
+
+# HBase off-heap MaxDirectMemorySize
+export HBASE_REGIONSERVER_OPTS="$HBASE_REGIONSERVER_OPTS "
+export HBASE_MASTER_OPTS="$HBASE_MASTER_OPTS "
+
+	-、设置了-XX:+UseParNewGC  ，但是 regionserver 的 -Xmn1632m（新生代内存太大），可以尝试 将此值调低测试。
+	参考资料：https://www.cnblogs.com/cenyuhai/p/3235101.html
+
+-- -- -- - - - - - -
+-- 暂时通过restapi来控制 hiveserver2 以及 hbase服务的重启
+curl -u admin:pCWldx0zqo http://10.0.24.200:8080/api/v1/clusters
+
+-- 获取某个服务的component
+curl -u admin:pCWldx0zqo -H "X-Requested-By: ambari" -X GET http://10.0.24.200:8080/api/v1/clusters/uatmycluster/services/HIVE/components/
+curl -u admin:pCWldx0zqo -H "X-Requested-By: ambari" -X GET http://10.0.24.200:8080/api/v1/clusters/uatmycluster/services/HBASE/components/
+-- 重新启动hiveserver2
+curl -u admin:pCWldx0zqo -H 'X-Requested-By: ambari' -X POST -d '{
+"RequestInfo":{
+  "command":"RESTART",
+  "context":"Restart HiveServer2 on uatmycluster",
+  "operation_level":{
+	 "level":"HOST",
+	 "cluster_name":"uatmycluster"
+  }
+},
+"Requests/resource_filters":[
+  {
+	 "service_name":"HIVE",
+	 "component_name":"HIVE_SERVER",
+	 "hosts":"uatmaster02"
+  }
+]
+}' http://10.0.24.200:8080/api/v1/clusters/uatmycluster/requests
+
+
+-- 重启 hbase的所有服务
+
+curl -u admin:pCWldx0zqo -H "X-Requested-By: ambari" -X PUT -d '{"RequestInfo":{"context":"START HBASE ALL "},"Body":{"ServiceInfo":{"state":"STARTED"}}}' http://10.0.24.200:8080/api/v1/clusters/uatmycluster/services/HBASE
+
+
+-- 单独重启 hbase master  ，hregionserver
+curl -u admin:pCWldx0zqo -H 'X-Requested-By: ambari' -X POST -d '{
+"RequestInfo":{
+  "command":"RESTART",
+  "context":"Restart HbaseMaster on uatmycluster",
+  "operation_level":{
+	 "level":"HOST",
+	 "cluster_name":"uatmycluster"
+  }
+},
+"Requests/resource_filters":[
+  {
+	 "service_name":"HBASE",
+	 "component_name":"HBASE_MASTER",
+	 "hosts":"uatmaster02"
+  }
+]
+}' http://10.0.24.200:8080/api/v1/clusters/uatmycluster/requests
+
+
+curl -u admin:pCWldx0zqo -H 'X-Requested-By: ambari' -X POST -d '{
+"RequestInfo":{
+  "command":"RESTART",
+  "context":"Restart HREGIONSERVER on uatmycluster",
+  "operation_level":{
+	 "level":"HOST",
+	 "cluster_name":"uatmycluster"
+  }
+},
+"Requests/resource_filters":[
+  {
+	 "service_name":"HBASE",
+	 "component_name":"HBASE_REGIONSERVER",
+	 "hosts":"uatdata01"
+  }
+]
+}' http://10.0.24.200:8080/api/v1/clusters/uatmycluster/requests
+
+脚本执行命令：
+*/3 * * * * source /etc/profile && cd /opt/shell/cluster_monitor  && sh moniter_hiveserver2.sh >> moniter_hiveserver2.log 2>&1
+*/3 * * * * source /etc/profile && cd /opt/shell/cluster_monitor  && sh moniter_hmaster.sh >> moniter_hmaster.log 2>&1
+*/3 * * * * source /etc/profile && cd /opt/shell/cluster_monitor  && sh moniter_rs01.sh >> moniter_rs01.log 2>&1
+*/3 * * * * source /etc/profile && cd /opt/shell/cluster_monitor  && sh moniter_rs02.sh >> moniter_rs02.log 2>&1
+*/3 * * * * source /etc/profile && cd /opt/shell/cluster_monitor  && sh moniter_rs03.sh >> moniter_rs03.log 2>&1
+*/3 * * * * source /etc/profile && cd /opt/shell/cluster_monitor  && sh moniter_rs04.sh >> moniter_rs04.log 2>&1
+
+参考资料：https://www.cnblogs.com/felixzh/p/10710204.html
+	
+-、测试telnet 
+telnet 10.0.24.110 8080
+telnet 10.0.24.200 8080
+
+韩工，你好，大数据相关的，10.0.24.20x  网段，可以ping通，端口也可以访问。
+但是10.0.24.10x网段，可以ping通，端口不可以访问。
+
+测试：
+大数据：
+10.0.24.106
+10.0.24.107
+10.0.24.110
+10.0.24.111
+java+前端：
+10.0.40.112
+10.0.40.113
+10.0.40.114
+10.0.40.115
+10.0.40.116
+
+uat：
+大数据+java+前端
+10.0.24.200
+10.0.24.201
+10.0.24.202
+10.0.24.203
+10.0.24.204
+10.0.24.205
+
+
+余姐，除了10.0.24.105，10.0.24.200这两台已开通权限的主机外，还需要开通以下主机的所有权限（包括端口）：
+测试相关主机：
+	大数据：
+	10.0.24.106
+	10.0.24.107
+	10.0.24.110
+	10.0.24.111
+	java+前端：
+	10.0.40.112
+	10.0.40.113
+	10.0.40.114
+	10.0.40.115
+	10.0.40.116
+
+uat相关主机：
+	大数据+java+前端：
+	10.0.24.200
+	10.0.24.201
+	10.0.24.202
+	10.0.24.203
+	10.0.24.204
+	10.0.24.205
