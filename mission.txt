@@ -121,6 +121,15 @@ STORED AS orc tblproperties('orc.compression' = 'snappy');
 						1、内部交易中，1.半成品，成品都要算；2.调拨材料模切这块只有原材料调拨，也就是原材料/主材/辅材这三个会调拨，这三个的规则就是不算采购金额也不算采购CD
 					2.自己生产的成品和调拨的材料 不能区分（根据现有的规则，不需要区分）
 					3.供应商是 TLG INVESTMENT (HK) LIMITED   01.05.03  剔除掉。
+					
+					
+					数据拉取规则：
+						以采购入库单为主，关联其他表单
+					内部交易规则：
+						当前模切一级分类中，除了半成品，成品，其他都要剔除内部交易。
+						内部交易是按照供应商是自家公司区分。
+					
+					
 		2019-12-27沟通；	
 		-、物料一级分类中为空的值，本来就属于一级分类,如果为null,则直接拿二级分类作为一级分类。  √
 		-、内部交易区分:参考【整理1】  √
@@ -534,6 +543,782 @@ excel导出数据映射关系：
 
 
 -- 组装数据
-	1、需要加上库存组织是LY INVESTMENT (HK) LIMITED 的数据，（内部交易貌似去除掉LY INVESTMENT (HK) LIMITED）
-	2、如果数据还是不对，需要根据库存组织东莞领杰的数据(单价除以1.13)，不用计算库存组织是LY INVESTMENT (HK) LIMITED 
-	3、组装数据包含模具系统的数据
+采购组装BG计算采购额规则：
+	1、剔除内部交易额，分为两种情况
+		情况1、内部交易中，需去掉供应商为LY INVESTMENT (HK) LIMITED的数据，另外需要计算库存组织是LY INVESTMENT (HK) LIMITED的数据。
+		情况2、内部交易中，不需要去掉供应商为LY INVESTMENT (HK) LIMITED的数据，另外不用计算库存组织是LY INVESTMENT (HK) LIMITED 的数据，转而
+		计算库存组织是东莞领杰的数据且，需要把单价换算（即单价提高3个点）。
+	2、组装数据包含模具系统的数据
+当前大数据逻辑：采用剔除内部交易额情况1来计算采购额，且优先根据成本中心区分BG。
+	数据异常的原因：
+	  1-、根据成本中心区分BG有误。 组装的部分采购员根据成本中心区分却被划分为非组装的其他BG。
+	  2-、当前系统包含部分模具系统数据（模具系统部分数据无采购员,故不能计算采购额）
+重新根据采购员计算：
+		大数据计算采购额：26.702588(百万)
+		采购计算采购额：23.884406(百万)
+	
+	  参考sql：  
+	  select sum(amount) from (
+	  select amount,buyer,company_name,supplier_name,stock_in_time, stock_in_audit_time
+     from dwmiddle.dwb_purchase_report where day='2020-02-04'
+     and `date` in ('202001','201912') 
+    and ( (regexp_replace(regexp_replace(substring(stock_in_time,0,10),'-',''),'/','')
+   	 between '20191216' and '20200115') ) 
+   	 and buyer in ('卢娜灵','阳贤','杨甲香','王艳','李周蓉')
+   	 and supplier_name != 'LY INVESTMENT (HK) LIMITED'
+   	  group by amount,buyer,company_name,supplier_name,stock_in_time,stock_in_audit_time) A
+	
+	('HN-13931','6048732','HJ-3429','6113508','HN-7454')
+	
+== shell 传递参数	
+ls | grep .sh |xargs  chmod 755
+
+	
+	2020-02-13
+1、确认数据源经管冲压业务数据准确性（80%）
+2、与采购组装沟通核对采购组装数据性（80%）
+3、uat采购phoenix，hive表构建（100%）
+
+1、采购相应模块拉通定时任务。（已完成100%）
+2、冲压经管完成业务逻辑梳理，数据确认。（已完成100%）
+3、相关BG数据导出以及对比。（已完成100%）
+4、uat环境采购相关表构建以及集群维护。（已完成100%）
+
+
+1、冲压经管相关业务代码落地。
+2、采购模块uat投入使用。
+3、系统日常运维
+2020-02-17：
+	1、苏州冲压经管相关业务代码落地。
+	2、采购模块uat相关业务接入。
+2020-02-18：
+	1、黄江一厂等冲压经管相关业务代码落地。
+	2、采购模块uat相关业务接入。
+2020-02-19：
+	1、调试经管冲压数据准确性
+2020-02-20：
+	1、调试经管冲压数据准确性
+	2、uat以及测试大数据平台日常运维与数据维护
+2020-02-21：
+	1、uat以及测试大数据平台日常运维与数据维护
+	
+	
+	
+2020-02-17
+苏州冲压：
+	1、售价是从EAS导出销售价格表，取销售组织为苏州领裕和香港公司，删除客户为关联公司；
+	根据六码按照第一顺位为生效日期最新，第二顺位为价格最低的取单价；
+	2、结单的入库数量：已结成品工单的良品入库数+返工工工单从不良品仓返工入良品数量-返工工单从正常仓领料入不良品仓数量-正常仓调拨不良品仓数量
+	3、我们有结单和入库产值  都没有从外挂取数
+	
+	 
+	1、怎么区分冲压，根据物料编码？  --> 冲压计算产值料号为880/883开头料号&（少量集团半成品料号68开头
+	2、核心单据类型
+				过滤：
+			1）：B/Z/单头工单（如果从MRB、报废仓领用，无需过滤）
+			2）：过滤不良品入库 
+	里面的过滤是什么意思？
+	3、制造厂： 根据小厂区分？ 小厂的区分（工单号是否就是billfnumber【单据编码】）
+	4、工单关闭字段什么意思？
+		审核时间,
+		
+	5、单价根据销售价目表？
+	6、入库数量确定.
+	7、审核时间 --> 确定周别
+	
+	
+phoenix  4.9 版本连接：
+lyzk02	
+
+>>>2020-02-18<<<
+1、存在日期为空的情况。(以入库审核时间为准)
+示例：订单存在两次入库情况 ==>
+   	select * from   eas.ods_eas_new_eas75_t_sm_purorder where day='2020-02-04'
+   	and fnumber = 'LYDGPO191214009';
+   	
+   	select * from  eas.ods_eas_new_eas75_t_im_purinwarehsentry where day='2020-02-04'
+   	and fpurorderNumber = 'LYDGPO191214009';
+
+2、处理完采购导出，然后创建INDEX_1_DWS_CD_BY_MATERIAL_MONTH
+3、结构件的 company_des字段没有
+4、不能根据这个详情表计算总金额，因为一个订单对应多个物料，价格会重复
+
+经理，这是基础数据，不能直接对金额汇总的出总金额（因为同样一个订单的金额，会重复在基础数据中出现【因为同样金额的记录，可能其他字段不一样】，）。
+
+
+>>>2020-02-19<<<
+1、核对其他BG的数据 ，尽量减少误差。
+2、CD来源和运算逻辑，这边各BG都给了，其实每个BG还是稍稍有点不同，所以我这边没有进行合并了，怕改了规则。你看下这些逻辑是否能够加入系统。或者从IT角度有哪些疑问，这边也先汇总下，看下周可以组织个会议讨论下。谢谢
+
+	序号	CD来源	CD运算逻辑	备注（来源情况说明）
+	1	直降	原价-现价	
+	2	替代	被替料-替代料	
+	3	返点	货款金额*返点比例	
+	4	价差	原价-现价	
+	5	废料	报价损耗外废料交回	
+	6	赠送料	免费赠送	
+	7	供应商赔偿超出成本数	超经管成本索赔	
+	8	降价往前追溯的金额	系统维护新价格时间前移	
+
+3、
+	-、修改日期为 2019-12-15~2020-01-10
+		-、且以入库审核时间为主，剔除掉入库审核时间为null的，date也置为null
+		-、修改year和month  
+		-、尽量把eas的cd表，去重复金额。（见7中详述）
+	-、计算CD时是需要供应商+物料更合适
+4、红头文件
+5、导出一份2019年cnc的数据。
+6、
+-- 虽然我们的版本已经高达2.0.0，但是对于IN的处理还是就比较简陋，没有对null值进行屏蔽，导致凡是子查询中有null值， 条件就会变成： id in ( null) , 当然， id in ( null) 这个条件是永远不会有结果的。   
+11848 61146 49298
+7、计算总金额的时候，要根据 stock_number,stock_in_audit_time,amount来保证不同维度下，金额只被计算一次。
+		select * from   eas.ods_eas_new_eas75_t_sm_purorder where day='2020-02-04'
+   	and fnumber = 'LYDGPO191214009';
+		select * from  eas.ods_eas_new_eas75_t_im_purinwarehsentry where day='2020-02-04'
+   	and fpurorderNumber = 'LYDGPO191214009';
+		-- xusEFwp4Rg2NxkitmmAotXgwYeM=
+		-- ozsKItXDTMy71yQPR9XTcngwYeM=
+		select * from   eas.ods_eas_new_eas75_t_im_purinwarehsbill where day='2020-02-04'
+   	and fid in(  'ozsKItXDTMy71yQPR9XTcngwYeM=' ,'xusEFwp4Rg2NxkitmmAotXgwYeM=') ;
+	
+8、填写第一季度个人任务规划
+9、phoenix的其余三个表的维护，需要整合进去。
+
+11、详情表，存在基准价为0，未税单价不为0，但是cd为0 ， 因为求cd时，吧基准价为0的当成未税单价，故相减=0,*数量也为0.
+10、删除测试hdfs的历史数据。
+-- 结构件 date
+-- 磁材   in_date
+-- 显示模组  date 或者NATURAL_MONTH
+-- eas表 date
+12、-、phoenix更新 ，删除指定月份的数据，导入指定月份的数据。
+	-、 采购入库单 -> 多个采购入库分录（不同的物料，各一条记录）    
+			-- 所以针对（一个入库单对应多个分录单），以同一个物料为一条记录，不会存在 重复计算，因为相同入库单和订单，amount属于不同的物料计算的，
+				--、如何区分数据join存在的冗余
+					1、根据 采购入库单号，物料号，入库审核时间，amount
+		采购订单 -> 对应多个采购入库分录单（分录单中的amout合计就是，订单的总金额）
+
+
+	示例： 根据fparentid,fmaterialid | fparentid,fmaterialid,FAmount  | all   以及+ 时间过滤组合，根据数据总条数，查看数据重复度。
+	-- 3240720  3292183  3302735
+	-- 1692055  1713861  1718009
+	-- 941861   951139   952898
+	select count(1) from (
+	select fparentid,fmaterialid ,FAmount,count(1) as cnt from eas.ods_eas_new_eas75_t_im_purinwarehsentry where day='2020-02-04'
+	and fbizdate between '2018/01/01' and '2021/01/01'
+	group by fparentid,fmaterialid,FAmount) A 
+6091043
+结论：2018-2020年的数据，可以根据【采购入库单号+物料编码+总金额+入库审核时间 	 group by stock_number,stock_in_audit_time,material_code,amount,dim】 来确定数据的唯一性。
+	正确方法：根据fid来确保采购入库单的总金额计算，不会重复或者少计算。
+	备注： 可能存在着4条都重复的数据，经上述研究，数据较少 5000条不到。
+	
+备注： 
+	-、可能存在着4条都重复的数据，经上述研究，数据较少 5000条不到。
+	-、可能存在一个物料在同一个单据中，下不同的供应商。（cnc中存在，1个情况，多算了2868元。）
+				5	2203212.54896
+				unknown	759291737.732599
+				1	209325614.479558
+				2	83655561.806451
+				3	423681412.156099
+
+				5	2203212.54896
+				unknown	759291737.732599
+				1	209328482.479558
+				2	83655561.806451
+				3	423681412.156099
+	-、在group by 后追加fid字段。
+   	 group by stock_number,stock_in_audit_time,material_code,amount,supplier_code,dim,"date",cd_amount
+   	 	 ,area,first_level,material_name
+	-、eas的sql再优化，存在 account_day,pay_type = null的情况，也join进来了
+	-、	purorder_fid 其实是 采购入库分录的fid。
+	
+	
+	
+13、sap数据映射。
+dwbase.dwb_sap_cicai         ------->  dwdetail.dwd_cicai_cd_detail
+sap.ods_sap_zdmmr027         ------->  dwdetail.dwd_jiegoujian_cd_detail
+sap.ods_sap_zfmm_044_jituan  ------->  dwdetail.dwd_jituan_cd_detail
+
+	2700
+
+1200
+3700
+8800
+1100
+8820
+8810
+	
+>>>2020-02-25<<<
+	待完善：
+		-、yifei数据整合脚本
+		-、模具系统（茂泉）
+		-、周建
+		-、uat--> phoenix 表 
+			set hive.execution.engine=mr;
+			set mapreduce.map.memory.mb=2200;
+			set mapreduce.map.java.opts=-Xmx2048m;
+			set mapreduce.reduce.java.opts=-Xmx2048m
+			set mapreduce.reduce.memory.mb=2200;
+		-、uat--yifei数据整合
+			
+		-、eas.ods_eas_new_eas75_t_bd_person中存在 ，number不是工号。
+			杨甲香  DGMMD006  HJ-3429
+		-、组装的内部交易剔除，采用新规则。【参考531行。】
+			1、是只剔除 supplier_name != 'LY INVESTMENT (HK) LIMITED' 的数据？
+			2、剔除供应商是本家公司的所有数据  【当前采用，（因为发现组装的数据，除了HK公司的，其他供应商是本家基本无，故代码无修改，同cnc，冲压一样。）】
+		-、 eas各个部门的人员分布
+冲压：
+('颜冬梅','李秋云','曾庆燊','黄利霞','皮丽芳','何清秀','杨冉','罗建婷','邹伯富','胡志美','丁冬冬','李小鹏','钱梦','王欢','晏燕芳','彭清华','李鑫','钟文','陈正蝶','岳忠林','郭梦婷','赵楠楠','胡文龙','帅建明','龚小会','苏韬','熊惠','邹依伶','罗春燕','田明舟','廖飞','凌英','徐淑伟','盛婷','朱彩玲','高美娇','陈波','陈小娟','仲玲玲','王晓','李倩倩','刘小青','史明明','王璇','魏志颖','张丹')
+
+-- '王芳'替换成id=HN-19934 ，'刘蕾'替换成id=6059501
+('HN-19934','6059501')
+组装：
+('卢娜灵','阳贤','杨甲香','王艳','李周蓉','高大顺')
+
+CNC:
+('蔡清明','陈立月','方轶','付顺喜','郭磊','何玉英','贺英凡','黄佳青','李小强','林玉梅','刘淳','刘何','刘玉','陆健爱','罗正钧','裴瑞博','秦龙海','孙文婷','王亚方','翁辉英','谢文隆','殷亚娟','杨丽红','余建春','虞桦','喻清容','袁菱鸿','占婷玉','张黎明','张晓康','张志芹','赵伟','庄金慧')
+-- '卢娜灵','阳贤' 目前不算cnc
+模切：
+('温馨','曾敏','陈大军','戴虹虹','丁丹丹','丁丽琴','丁素兰','房艳倩','高伟','古小委','顾敏','何玉玲','胡晾','季丽霞','江木兰','江荣','蒋月香','金宇倩','孔卫霞','梁月琴','刘斌','缪月','邵雅婷','孙文天','唐小燕','王万圆','吴志兰','谢芸','徐平平','徐艳','杨丽研','姚香','袁刚','张春兰','张凌云','张肖肖','赵莉','周敏','周小霞','朱欢欢','丁曼','杜丽娟','郭蓉','何寻','黄开炎','黄维维','江淋淋','李春花','李清秀','李婷','林金梅','林敏','刘爱美','刘利利','刘美','刘青玲','刘婷','刘怿','卢钰','罗依霞','欧阳楠','彭莉','任路尧','苏容','谭千','谭旋','汤夏媛','唐令','陶娟','陶仙荣','汪云','王彩霞','王晨','王凤梅','王红','王万花','王文静','巫莉琴','夏珊妹','肖梅花','谢淑艳','熊云秀','徐会','杨彩票','杨小芬','尹彩云','张艳丽','张园','赵月华','钟颖娟','周丽娟','周娜英','胡清泉','廖新华','徐彦','易思','喻璇','张炳兰','张凤梅','舒亚萍','王留芳','张静冉')		
+-- '王芳'替换成id=fanny.wang ,'刘蕾'先去掉，
+('fanny.wang')	
+
+('li.zhou.rong/李周蓉','liu.xuan.ling/刘宣伶','suzit','wang.feng.mei/王凤梅FT-3132','xiao.jing/肖晶','丁冬冬6015457','丁海军 FT-1237','任路尧','何陈','侍丹丹','全教玲','关聪聪','农杏秋 5002348','刁月','刘丹HN-13936','刘何','刘小青','刘昱杉','刘朝阳','刘玉','刘莉','刘雪华','占婷玉','卢钰HN-13886','史明明6120304','叶淑玲','吕功权5017812','吴丹','吴志兰','周来望','周雅芹','周骥泉','喻璇','夏森林','姚容HL4015','姚春梅','孔卫霞','宋小琴','帅建明','张亚HL4072','张兴彬6111137','张志芹','张新正','张春兰','张朋','张柄兰','张海容','张淋菊','张艳丽6057370','张萍','彭锦花HN-11729','徐丰华','徐国文','徐平平','徐艳6029990','徐贵谦HJ-38143','文美艳','方巧慧','曾光华','曾庆娇5013954','曾庆燊','曾玲玲','朱欢欢','朱琳琳','朱香彬','李倩倩6045186','李小鹏6040630','李慧慧','李柳琪','李正庭','李笑宇','李艳辉','李行HN-13953','杜勇','杜雷雷','杨小芬HN-15973','杨甲香','杨静秋','林春春','林玉梅','林金梅FT-403','梁小梅','模具房','江荣','汪亚平','沈桃香','濮玲玲','熊姣','熊鹏','王万圆6048497','王万花','王华云','王娟','王晓6030822','王瑶','王立伟','王雪梅','皮丽芳','窦莎','系统管理员','缪月','罗建婷HN-13930','肖坤成','肖梅花','胡丽琴','胡志美HN-18298','胡玉龙','胡胜SZ-158101','舒亚萍','苏韬','范红艳','蒋月香','蒋红','蔡春燕','蔡清明','虞桦','袁刚6027477','詹晓燕','谢容','贺英凡','赖海芳HN-8735','赵东波','赵伟','赵利英P014','赵沙沙','赵渊','邓晓聪16020479','邵甜甜','邹伯富','邹依伶','邹兰','郭磊','金宇倩','钟颖娟6030259','阳贤6048732','陆健爱','陈世容','陈兰芳','陈增辉5023844','陈增辉HN-9398','陈小娟','陈立月','陶仙荣6048030','顾敏','高美娇','魏志颖','黄利霞','黄燕丽','龙幸冬SZ-19976')		   
+	
+
+71、eas根据采购员来区分
+
+2020-02-23 1月的数据集（去重后）
+1	CNC	198106566.389558
+unknown	unknown	737641222.662433
+2	冲压	83612355.395113
+3	模切	448559472.415881
+10	汇总	1504365116.98693755
+9	磁材	27881148.25943255
+5	组装	8564351.86452
+
+2020-02-23 1月基础数据表（未去重）
+1	CNC	198384440.8197
+unknown	unknown	1070359600.326161
+2	冲压	109835543.610433
+3	模切	604498624.079963
+5	组装	8564351.86452
+
+旧（cd amount表）
+1	210973645.779228
+10	1698424848.07821755
+2	83453774.737735
+3	456621487.336187
+5	4915425.12896
+6	100373807.62
+7	101390848.09
+9	27881148.25943255
+unknown	712814711.126675
+
+旧（成本中心后）
+3	612781820.820269
+unknown	1045313661.380403
+5	4915425.12896
+1	211252430.40937
+2	109676962.953055
+
+
+
+新规则（成本中心前）
+unknown	761218980.06
+1	221365146.2
+2	94655923.71
+5	11132591.33
+3	254883433.31
+
+新规则（成本中心后）
+unknown	527145980.27
+1	286429536.28
+2	163712938.51
+5	11132591.33
+3	354835028.22
+
+新规则+模具（by buyer） 未去重
+1	211252430.40937
+3	514594402.320269
+5	31566504.946144   （有可能是因为没剔除内部交易 --> 已经剔除掉）
+2	109582207.273055
+unknown	1254438643.083691
+
+新规则+模具（没数据）+（by buyer） 已去重
+
+1	210973645.779228
+3	372121466.786187
+5	31566504.946144
+2	83359019.057735
+unknown	848662341.549963
+
+新规则+模具（没数据）+（by buyer） 未去重
+1	217576392.839228
+3	376713207.266187
+5	31566504.946144
+2	91440653.477735
+unknown	853446300.200376
+
+
+
+-- 2020-03-04  模具系统修正amount和price，buyer，stock_in_audit_time
+amount:
+1	245683390.506256
+10	1861358713.70174155
+2	106948775.898303
+3	389791378.690606
+4	3915.929204
+5	31566504.946144
+6	100373807.62
+7	101390848.09
+9	27881148.25943255
+unknown	857718943.761796	
+
+tmp表：
+1	245683390.506256
+2	106948775.898303
+5	31566504.946144
+3	389791378.690606
+4	3915.929204
+unknown	857718943.761796
+
+collect-set(eas去重，模具无须去重):  
+unknown	857718943.761796
+1	245946503.876398
+2	132588943.983623
+3	529731676.214688
+5	31566504.946144
+4	3915.929204
+
+collect-set(eas去重，模具和sap集团 = =也去重): 
+2	106957772.359803
+4	3915.929204
+1	245684755.506256
+unknown	857718943.761796
+3	390138548.564699
+5	31566504.946144
+
+cd表
+5	31566504.946144	["eas"]
+1	245962175.136398	["eas","ljiemould","dgsxmouldm","sap.ods_sap_zfmm_044","mould_wxsdxc","dtmetalmould"]
+4	3915.929204	["szsecondlymould"]
+unknown	1263495245.295524	["eas","hldflcmould","llmould","dtmetalmould","cdmould","ljiemould","moulddgobd","dtmould","dtsymould"]
+3	532264314.224688	["sap.ods_sap_zfmm_044","eas","ljiemould","suzlymould","zzmetalmould","mould_dglh","dtmould","dgcncmould","szsecondlymould","llmould","suzmould","suzlxmould","dtsymould","lskmould","dgsxmouldm"]
+2	133171964.113623	["sap.ods_sap_zfmm_044","dgsxmouldm","eas","ljiemould","dtmetalmould","cdmetalmould","dgcncmould","dtsymould"]
+
+####################
+245700426.8	      ##
+245684755.506256  ##
+为什么有差异？	  ##
+####################
+模具1月份，不同数据源统计
+
+
+
+select A.data_sources,sum(A.amount) :
+
+suzlymould	4136045.583996
+szsecondlymould	2135033.628283
+dtsymould	167541.592891
+llmould	1939905.309707
+dtmould	3418250.064283
+eas	263179399.064844
+sap.ods_sap_zfmm_044	111821875.605436
+suzmould	2231053.982268
+dgsxmouldm	17353.097341
+dgcncmould	75598.230085
+suzlxmould	20025.088507
+lskmould	29383.18584
+mould_dglh	428832.743354
+zzmetalmould	582552.229789
+ljiemould	2488337.168075
+
+excel：
+sap.ods_sap_zfmm_044	111821875.6
+eas	263262789.6
+模具：17669911.9
+
+1、分系统拉取的总金额(单位：百万)
+sap:111.8218756
+eas:263.2627896
+模具:17.6699119
+2、抓取详情见excel
+3、
+数据拉取规则：
+	以采购入库单为主，关联其他表单
+内部交易规则：
+	当前模切一级分类中，除了半成品，成品，其他都要剔除内部交易。
+	内部交易是按照供应商是自家公司区分。
+----------------------------------------------------------------------------------------------------------
+
+结构件：
+8810  ：供应商剔除领益智造科技（东莞）有限公司和东莞市欧比迪精密五金有限公司（委外，辅料等）    8800：剔除供应商为欧珀（客户需求的入库金额）
+结构件的数据
+(8810+8820)：
+124587037.8781 + 
+7924177.739199998 = 132511215.6173
+8800：133162383.2789999
+
+
+业务提供:
+101439481.9
+3289690.53
+178699535.9
+5317658.31
+
+>>>2020-02-28<<<
+
+一、当前采购额业务逻辑：
+1、BG区分规则：BG -> 采购员 -> 成本中心 
+   具体系统区分：
+  1、eas系统：cnc，冲压，模切，组装根据采购员区分（组装和cnc协助的采购员也以区分）
+  2、模具系统：根据采购员区分，组装根据采购员+费用分类区分。
+  3、sap系统：结构件根据conpany_no即可区分，松岗板材（EAS系统）目前无法区分。
+2、计算cd规则：
+  1、eas系统：价格根据物料code+供应商绑定计算
+  2、sap系统: 结构件的价格取数已优化。
+二、统计最新的差异，见《各BG对应采购总金额202001-(修订版)3.xlsx》
+
+三、question	
+	-、模具: buyer名称格式有误  
+		 windows--> regexp_extract(buyer,'([\\u4E00-\\u9FA5]+)',1)
+		 linux--> regexp_extract(label,'([\\\u4E00-\\\u9FA5]+)',1) 
+	-、入库审核时间没有/当前date格式=20200101，
+	-、amount值没有（需要 含税单价/税率 * 数量） /-、decimal(小数点后过多，会乘除不尽)
+	-、cutprice执行中断。
+	
+未加模具数据（未去重）：	
+5	31566504.946144	["eas"]
+1	211252430.40937	["sap.ods_sap_zfmm_044","eas"]
+unknown	1254438643.083691	["eas"]
+3	514594402.320269	["eas","sap.ods_sap_zfmm_044"]
+2	109582207.273055	["eas","sap.ods_sap_zfmm_044"]
+
+加模具数据（未去重）：
+5	31566504.946144	["eas"]
+1	217855177.46937	["eas","ljiemould","dgsxmouldm","sap.ods_sap_zfmm_044","dtmetalmould","mould_wxsdxc"]
+unknown	1259222601.734104	["eas","ljiemould","hldflcmould","moulddgobd"]
+3	519186142.800269	["eas","sap.ods_sap_zfmm_044","zzmetalmould","szsecondlymould","suzlymould","dtmould","suzmould","llmould","dtsymould","mould_dglh","suzlxmould","ljiemould","dgcncmould","dgsxmouldm","lskmould"]
+2	117663841.693055	["sap.ods_sap_zfmm_044","eas","dtsymould","dtmetalmould","dgsxmouldm","dgcncmould","ljiemould","cdmetalmould"]
+
+-- select dim,sum(amount) from dwmiddle.dwb_purchase_combine_mid_report_eas_distinct_new3 where day='2020-02-23' 
+and ( (regexp_replace(regexp_replace(substring(stock_in_time,0,10),'-',''),'/','')
+ between '20191216' and '20200115')  or (regexp_replace(regexp_replace(substring(stock_in_audit_time,0,10),'-',''),'/','')
+ between '20191216' and '20200115')) group by dim;
+
+	1023
+1	273615262.07
+2	162948202.42
+unknown	760780626.54
+5	7766898.94
+3	17964 6450.49
+
+
+	'6030822',
+'6120304','6059501','6101746','6115796','6121895'
+
+ ('SZ-11537','36011860','36011960','36013547','36016504','36005445','36018262',
+ '6045186','6102361','P035','DT00014714','DT00007393','DT00015289','6101279','HN-10645','HN-13923',
+ 'HN-13930','YP004','6015079','6015457','HN-19934','HJ-12112','HN-3056','HJ-3735','HJ-11323',
+ 'HJ-16898','HN-18298','HN-16436','P026','P029','HN-14238','HN-2769','F033','P-132','P044','6040630',
+ '6047483','6059158','6098498','6115318') then '2'
+ 
+
+余姐，冲压的采购员我比对了根据钉钉导出的冲压人员。
+1、《上述名单》中与《钉钉导出人员》
+-、重合40人，
+-、《钉钉导出人员》->独5人
+姓名	工号
+史明明	6120304 
+刘蕾	6059501
+罗春燕	6101746
+张丹	6115796
+王璇	6121895
+-、《上述名单》->独3人（其中"王晓"未找到工号）
+赵楠楠	HJ-5094
+罗春燕	HN-7809
+王晓		
+
+颜冬梅	SZ-11537
+李秋云	P-132
+曾庆燊	HJ-3735
+黄利霞	HJ-16898
+皮丽芳	HN-2769
+何清秀	HN-14238
+杨冉	HN-3056
+罗建婷	HN-13930
+邹伯富	HJ-12112
+胡志美	HN-18298
+丁冬冬	6015457
+李小鹏	6040630
+钱梦	6098498
+王欢	6047483
+晏燕芳	HJ-11323
+彭清华	HN-10645
+王芳	HN-19934
+李鑫	6015079
+钟文	6115318
+陈正蝶	6059158
+岳忠林	HN-16436
+郭梦婷	HN-13923
+赵楠楠	HJ-5094
+胡文龙	P044
+帅建明	P029
+龚小会	P035
+苏韬	YP004
+熊惠	P026
+邹依伶	F033
+罗春燕	HN-7809
+田明舟	36018262
+廖飞	DT00007393
+凌英	DT00015289
+徐淑伟	6101279
+盛婷	36005445
+朱彩玲	36011860
+高美娇	36011960
+陈波	6102361
+陈小娟	36013547
+仲玲玲	36016504
+李倩倩	6045186
+刘小青	DT00014714
+王晓	36009126
+		-、
+		已整理：磁材，组装（优先根据采购员，已修改）。
+		待整理：cnc，冲压，模切，（未区分的BG已反馈给采购业务，等待区分后，可区分）
+		正在整理：结构件（1、数据核对中（新增结构件库需要拉取）2、逻辑优化）
+
+维度1：改造（查询cd表详情表【未去重】）
+    select case A.dim
+when '1' then 'CNC'
+when '2' then '冲压'
+when '3' then '模切'
+when '4' then '设备'
+when '5' then '组装'  
+ELSE 'unknown' end as BG,if(cast(sum(A.cd_amount) as string) is null ,0,sum(A.cd_amount)) as cd_amount,
+if(cast(sum(A.cd_amount)/sum(A.amount) as string) is null,0,sum(A.cd_amount)/sum(A.amount)) as cd_proportion,
+if(cast(sum(A.amount) as string) is null,0,sum(A.amount)) as total_amount,
+A.dim,SUBSTRING(A.`date`,0,4) as `year`,SUBSTRING(A.`date`,6,2) as `month` ,
+A.`date` from
+(select dim,cd_amount,amount,`date`   
+from dwmiddle.dwb_purchase_report_cd where day='2020-02-04'
+group by stock_number,stock_in_audit_time,material_code,amount,`date`,cd_amount,dim,supplier_code) A
+where A.`date` = '2020-01'
+group by A.dim,SUBSTRING(A.`date`,0,4),SUBSTRING(A.`date`,6,2),A.`date`
+
+
+	测试1：
+		-- cd详情表 根据 对应字段去重复后， 3115290
+		select count(1) from (
+			select stock_number,stock_in_audit_time,material_code,amount,`date`,cd_amount,dim,supplier_code  
+		from dwmiddle.dwb_purchase_report_cd where day='2020-02-04'
+		group by stock_number,stock_in_audit_time,material_code,amount,`date`,cd_amount,dim,supplier_code ) A
+
+	测试2：
+		-- 对比cd详情表和采购入库
+
+		-- 原始表	原始表   	cd表
+		-- 3302735 3292183  3115290
+		-- 时间段过滤后	原始表		cd表			
+		-- 1718009	1713861  1657315
+
+			-- 1657315
+			select count(1) from (
+				select stock_number,stock_in_audit_time,material_code,amount,`date`,cd_amount,dim,supplier_code  
+			from dwmiddle.dwb_purchase_report_cd where day='2020-02-04'
+				and ( (regexp_replace(regexp_replace(substring(stock_in_audit_time,0,10),'-',''),'/','')
+				 between '20180101' and '20201230') ) 
+			group by stock_number,stock_in_audit_time,material_code,amount,`date`,cd_amount,dim,supplier_code ) A
+			
+			-- 1713861
+			select count(1) from (
+			select  fparentid,fmaterialid,FAmount,FBizDate from eas.ods_eas_new_eas75_t_im_purinwarehsentry where  day='2020-02-04'
+			and  (regexp_replace(regexp_replace(substring(FBizDate,0,10),'-',''),'/','')
+			 between '20180101' and '20201230')
+			group by fparentid,fmaterialid,FAmount,FBizDate) A  ;
+			
+			-- 1718009
+			select count(1) from  eas.ods_eas_new_eas75_t_im_purinwarehsentry where  day='2020-02-04' and  (regexp_replace(regexp_replace(substring(FBizDate,0,10),'-',''),'/','')
+			 between '20180101' and '20201230')
+			 
+	-、生成临时表 
+ insert overwirte dwmiddle.dwb_purchase_report_cd_tmp (day='${l_date}')
+select	A.stock_number,A.stock_in_audit_time,A.material_code,A.material_8code,A.material_name,A.cd_amount,A.amount,A.\`date\`,
+A.price,A.supplier_code,A.supplier_name,A.first_level,A.area,A.company_name,
+collect_set(A.account_day)[0] as account_day,collect_set(A.pay_type)[0] as pay_type, A.dim,'','' from 
+(select * from dwmiddle.dwb_purchase_report_cd where day='${l_date}' order by account_day desc ) A	
+group by A.stock_number,A.stock_in_audit_time,A.material_code,A.material_8code,A.material_name,A.cd_amount,A.amount,A.\`date\`,
+A.dim,A.price,A.supplier_code,A.supplier_name,A.first_level,A.area,A.company_name
+
+CREATE EXTERNAL TABLE `dwmiddle.dwb_purchase_report_cd_tmp`(
+  `stock_number` string COMMENT '采购入库单号', 
+  `stock_in_audit_time` string COMMENT '入库审核时期', 
+  `material_code` string COMMENT '物料编码', 
+  `material_8code` string COMMENT '物料8码', 
+  `material_name` string COMMENT '物料名称',
+  `cd_amount` decimal(28,16) COMMENT 'cd金额',
+  `amount` decimal(28,16) COMMENT '总金额',
+  `date` string COMMENT '日期',
+  `price` decimal(28,16) COMMENT '未税单价',
+  `supplier_code` string COMMENT '供应商编码',
+  `supplier_name` string COMMENT '供应商名称',
+  `first_level` string COMMENT '一级分类',
+  `area` string COMMENT '区域',
+  `company_name` string COMMENT '公司名称',
+  `account_day` string COMMENT '账期天数',
+  `pay_type` string COMMENT '付款日期',
+  `dim` string COMMENT '维度(1 CNC、2 冲压、3 模切、4 设备、5 组装、6 深圳结构件、7 东莞结构件、8 显示模组、9 磁材、10 汇总)',
+   fid string COMMENT '采购入库分录表id',
+  reserved2 string COMMENT '预留字段1'
+  )
+COMMENT 'CD月报基础合并数据  中间表'
+PARTITIONED BY ( 
+  `day` string)
+ROW FORMAT DELIMITED 
+  FIELDS TERMINATED BY '^' ;
+
+
+
+>>>2020-03-04<<<
+1、详情表要根据purorder_fid去重（见v3代码） √
+2、完善采购cd月报的excel	√
+3、基础表只显示2019-2020数据。  √
+4、Invalid column reference 'diff_num'  √
+5、CNC得cd金额为什么这么高？
+==========================  ==========================  ==========================  ==========================  ==========================  
+
+
+删除测试数据:
+hadoop fs -rm -r -skipTrash /apps/hive/warehouse/dwmiddle.db/dwb_purchase_combine_mid2
+hadoop fs -rm -r -skipTrash /apps/hive/warehouse/dwmiddle.db/dwb_purchase_combine_mid1_new2
+hadoop fs -rm -r -skipTrash /apps/hive/warehouse/dwmiddle.db/dwb_purchase_combine_mid_report_eas
+hadoop fs -rm -r -skipTrash /apps/hive/warehouse/dwmiddle.db/dwb_purchase_combine_mid_report_eas2
+hadoop fs -rm -r -skipTrash /apps/hive/warehouse/dwmiddle.db/dwb_purchase_combine_mid_report_eas_distinct
+hadoop fs -rm -r -skipTrash /apps/hive/warehouse/dwmiddle.db/dwb_purchase_combine_mid_report_eas_distinct_new
+hadoop fs -rm -r -skipTrash /apps/hive/warehouse/dwmiddle.db/dwb_purchase_combine_mid_report_eas_distinct_rmb
+hadoop fs -rm -r -skipTrash /apps/hive/warehouse/dwmiddle.db/dwb_purchase_combine_mid_report_eas_distinct_standard_price
+hadoop fs -rm -r -skipTrash /apps/hive/warehouse/dwmiddle.db/dwb_purchase_combine_mid_report_eas_distinct_standard_price_dim
+hadoop fs -rm -r -skipTrash /apps/hive/warehouse/dwmiddle.db/dwb_purchase_combine_mid_report_eas_distinct_standard_price_dim_sup
+hadoop fs -rm -r -skipTrash /apps/hive/warehouse/dwmiddle.db/dwb_purchase_combine_mid_report_eas_distinct_standard_price_supplier
+hadoop fs -rm -r -skipTrash /apps/hive/warehouse/dwmiddle.db/dwb_purchase_combine_mid_report_eas_distinct_standard_price_supplier_new
+hadoop fs -rm -r -skipTrash /apps/hive/warehouse/dwmiddle.db/dwb_purchase_combine_mid_report_eas_final
+hadoop fs -rm -r -skipTrash /apps/hive/warehouse/dwmiddle.db/dwb_purchase_combine_mid_report_eas_final2
+hadoop fs -rm -r -skipTrash /apps/hive/warehouse/dwmiddle.db/dwb_purchase_combine_mid_report_eas_final3
+hadoop fs -rm -r -skipTrash /apps/hive/warehouse/dwmiddle.db/dwb_purchase_combine_mid_report_eas_final4
+hadoop fs -rm -r -skipTrash /apps/hive/warehouse/dwmiddle.db/dwb_purchase_combine_mid_report_eas_final_rmb
+hadoop fs -rm -r -skipTrash /apps/hive/warehouse/dwmiddle.db/dwb_purchase_combine_mid_report_eas_final_rmb_cd
+hadoop fs -rm -r -skipTrash /apps/hive/warehouse/dwmiddle.db/dwb_purchase_combine_mid_report_eas_final_sup
+hadoop fs -rm -r -skipTrash /apps/hive/warehouse/dwmiddle.db/dwb_purchase_combine_mid_report_eas_new
+hadoop fs -rm -r -skipTrash /apps/hive/warehouse/dwmiddle.db/dwm_eas_company_material_cd_by_month2
+hadoop fs -rm -r -skipTrash /apps/hive/warehouse/dwmiddle.db/dwm_eas_material_cd_by_month
+hadoop fs -rm -r -skipTrash /apps/hive/warehouse/dwmiddle.db/dwm_eas_material_cd_by_month2
+hadoop fs -rm -r -skipTrash /apps/hive/warehouse/dwmiddle.db/dwm_eas_material_company_distinct_cd_by_month2
+hadoop fs -rm -r -skipTrash /apps/hive/warehouse/dwmiddle.db/dwm_eas_material_company_no_standard_by_cd
+hadoop fs -rm -r -skipTrash /apps/hive/warehouse/dwmiddle.db/dwm_eas_material_distinct_cd_by_month2
+hadoop fs -rm -r -skipTrash /apps/hive/warehouse/dwmiddle.db/dwm_eas_material_distinct_cd_by_month
+hadoop fs -rm -r -skipTrash /apps/hive/warehouse/dwmiddle.db/dwm_eas_material_no_standard_by_cd
+hadoop fs -rm -r -skipTrash /apps/hive/warehouse/dwmiddle.db/dwm_eas_material_purchaser_distinct_cd_by_month2
+hadoop fs -rm -r -skipTrash /apps/hive/warehouse/dwmiddle.db/dwm_eas_material_supplier_distinct_cd_by_month
+hadoop fs -rm -r -skipTrash /apps/hive/warehouse/dwmiddle.db/dwm_eas_purchaser_material_cd_by_month2
+删除历史数据表的分区：
+hadoop fs -rm -r  -skipTrash /apps/hive/warehouse/dwmiddle.db/dwb_purchase_combine_mid1_new3/day=2019-01-01
+hadoop fs -rm -r  -skipTrash /apps/hive/warehouse/dwmiddle.db/dwb_purchase_combine_mid1_new3/day=2020-01-16
+
+hadoop fs -rm -r  -skipTrash /apps/hive/warehouse/dwmiddle.db/dwb_purchase_combine_mid_report_eas_distinct_new3/day=2019-01-01
+hadoop fs -rm -r  -skipTrash /apps/hive/warehouse/dwmiddle.db/dwb_purchase_combine_mid_report_eas_distinct_new3/day=2020-01-16
+alter table dwmiddle.dwb_purchase_combine_mid_report_eas_distinct_new3 drop PARTITION(day='2020-02-24')
+
+hadoop fs -rm -r  -skipTrash /apps/hive/warehouse/dwmiddle.db/dwb_purchase_combine_mid_report_eas_new_test3/day=2019-01-01
+hadoop fs -rm -r  -skipTrash /apps/hive/warehouse/dwmiddle.db/dwb_purchase_combine_mid_report_eas_new_test3/day=2020-01-16
+alter table dwmiddle.dwb_purchase_combine_mid_report_eas_new_test3 drop PARTITION(day='2020-02-24')
+
+
+hadoop fs -rm -r  -skipTrash /apps/hive/warehouse/dwmiddle.db/dwb_purchase_report/day=2019-01-01
+
+hadoop fs -rm -r  -skipTrash /apps/hive/warehouse/dwmiddle.db/dwb_purchase_report_cd/day=2019-01-01
+hadoop fs -rm -r  -skipTrash /apps/hive/warehouse/dwmiddle.db/dwb_purchase_report_cd/day=2020-02-19
+
+hadoop fs -rm -r  -skipTrash /apps/hive/warehouse/dwmiddle.db/dwb_purchase_report_cd2/day=2019-01-01
+
+hadoop fs -rm -r  -skipTrash /apps/hive/warehouse/dwmiddle.db/dwb_purchase_standard_price/day=1000-01-01
+hadoop fs -rm -r  -skipTrash /apps/hive/warehouse/dwmiddle.db/dwb_purchase_standard_price/day=2019-01-01
+
+
+hadoop fs -rm -r  -skipTrash /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_BD_MATERIAL/day=2019-01-01
+hadoop fs -rm -r  -skipTrash /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_BD_MATERIAL/day=2019-11-14
+hadoop fs -rm -r  -skipTrash /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_BD_MATERIAL/day=2019-12-16
+hadoop fs -rm -r  -skipTrash /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_BD_MATERIAL/day=2020-01-16
+hadoop fs -rm -r  -skipTrash /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_BD_MATERIAL/day=2020-09-08
+hadoop fs -rm -r  -skipTrash /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_BD_MATERIAL/day=2020-02-14
+
+
+hadoop fs -rm -r  -skipTrash /warehouse/eas/ods/ods_eas_new_eas75_t_im_materialreqbillentry/day=2020-02-12
+
+hadoop fs -rm -r  -skipTrash /warehouse/eas/ods/ods_eas_new_eas75_t_mm_mftorderstock/day=2020-02-14
+
+hadoop fs -rm -r  -skipTrash /warehouse/eas/ods/ods_eas_new_eas75_t_im_materialreqbill/day=2020-02-12
+hadoop fs -rm -r  -skipTrash /warehouse/eas/ods/ods_eas_new_eas75_t_im_materialreqbill/day=2020-02-14
+
+hadoop fs -rm -r  -skipTrash /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_IM_PURINWAREHSENTRY/day=2019-01-01
+hadoop fs -rm -r  -skipTrash /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_IM_PURINWAREHSENTRY/day=2019-11-14
+hadoop fs -rm -r  -skipTrash  /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_IM_PURINWAREHSENTRY/day=2019-12-16
+hadoop fs -rm -r  -skipTrash /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_IM_PURINWAREHSENTRY/day=2020-01-16
+hadoop fs -rm -r  -skipTrash /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_IM_PURINWAREHSENTRY/day=2020-02-14
+
+hadoop fs -rm -r  -skipTrash /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_GL_ACCOUNTBALANCE/day=2020-02-24
+
+hadoop fs -rm -r  -skipTrash /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_GL_VOUCHER/day=2020-02-24
+
+
+hadoop fs -rm -r  -skipTrash /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_GL_VOUCHERENTRY/day=2020-02-24
+
+
+hadoop fs -rm -r  -skipTrash /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_IM_MANUFACTURERECBILLENTRY/day=2020-09-08
+
+hadoop fs -rm -r  -skipTrash /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_IM_ManufactureRecBill/day=2020-09-08
+
+
+hadoop fs -rm -r  -skipTrash /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_IM_PURINWAREHSBILL/day=2020-02-24
+
+hadoop fs -rm -r  -skipTrash /warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_SM_PURORDER/day=2020-02-24
+
+
+/warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_GL_ACCOUNTBALANCE
+/warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_GL_VOUCHER
+/warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_GL_VOUCHERENTRY
+/warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_IM_MANUFACTURERECBILLENTRY
+/warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_IM_ManufactureRecBill
+/warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_IM_PURINWAREHSBILL
+/warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_IM_PURINWAREHSENTRY
+/warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_IM_SALEISSUEBILL
+/warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_SM_PURORDER
+/warehouse/eas/ods/ODS_EAS_NEW_EAS75_T_SM_PURORDERENTRY
+/warehouse/eas/ods/ods_eas_new_eas75_t_im_manufacturerecbill
+/warehouse/eas/ods/ods_eas_new_eas75_t_im_manufacturerecbillentry
+/warehouse/eas/ods/ods_eas_new_eas75_t_im_materialreqbill
+/warehouse/eas/ods/ods_eas_new_eas75_t_im_materialreqbillentry
+/warehouse/eas/ods/ods_eas_new_eas75_t_im_otherissuebillentry
+/warehouse/eas/ods/ods_eas_new_eas75_t_im_saleissuebill
+/warehouse/eas/ods/ods_eas_new_eas75_t_im_saleissueentry
+/warehouse/eas/ods/ods_eas_new_eas75_t_mm_manufactureorder
+/warehouse/eas/ods/ods_eas_new_eas75_t_mm_mftorderstock
+
+.\administrator
+Tlg.lingyi2019
+
+123nbsp&
+
+模切：刘青玲
+CNC:罗政钧
+冲压：李秋云
+设备：赵齐云
+组装：杨甲香
+磁材:刘章卫
+结构件：陈霞
+显示模组：胡伶丽
+
+:%s/dwbase.dwb_sap_cicai/dwdetail.dwd_cicai_cd_detail/g 
+dwbase.dwb_sap_cicai   ------->dwdetail.dwd_cicai_cd_detail
+   
+sap.ods_sap_zdmmr027 --------->dwdetail.dwd_jiegoujian_cd_detail
+
+sap.ods_sap_zfmm_044_jituan ----->dwdetail.dwd_jituan_cd_detail
