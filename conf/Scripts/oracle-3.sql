@@ -1,0 +1,3 @@
+desc NEW_EAS75.T_BD_SUPPLIER;
+
+select count(1) from  NEW_EAS75.T_BD_SUPPLIER;

@@ -928,6 +928,13 @@ A Gauge with name [init_total_count_tables] already exists.  The old gauge will 
 
 nohup sh test2.sh 2020-02-04 >> test2.log 2>&1 &
 
+-- hive时间进行比较。
+select * from t_proxy_user_log_partition where datediff(to_date(device_gmt_time),'2013-12-18')>=0 and datediff(to_date(device_gmt_time),'2013-12-25')<=0
+
+
+-- hive 使用字符串between时间（末尾要直到当天结尾。）
+    A.stock_in_audit_time between '2019/12/16' and '2020/01/15 23:59:59'
+	
 32、 hive不支持group_concat，但是可用以下方式转换 (2018-10-12 14:13:03)
 转载
 ▼
@@ -1573,6 +1580,9 @@ Value is less than the recommended default of -Xmx4505m
 Larger heap-size for child jvms of maps.
       ：mapreduce.map.java.opts 其实就是启动 JVM 虚拟机时，传递给虚拟机的启动参数，而默认值 -Xmx200m 表示这个 Java 程序可以使用的最大堆内存数，一旦超过这个大小，JVM 就会抛出 Out of Memory 异常，并终止进程。而 mapreduce.map.memory.mb 设置的是 Container 的内存上限，这个参数由 NodeManager 读取并进行控制，当 Container 的内存大小超过了这个参数值，NodeManager 会负责 kill 掉 Container。
 	  也就是说，mapreduce.map.java.opts一定要小于mapreduce.map.memory.mb
+	按照如下方式设置：
+	set mapreduce.map.child.java.opts="-Xmx3072m"(注:-Xmx设置时一定要用引号，不加引号各种错误
+	set mapreduce.map.memory.mb=3288
 2)-、Warning 	MapReduce2 	mapreduce.map.memory.mb 	2048 	
 Value is less than the recommended default of 5632
 Value is less than the recommended minimum of 5632
@@ -1590,15 +1600,24 @@ Virtual memory for single Reduce task
 4)-、Warning 	MapReduce2 	mapreduce.task.io.sort.mb 	1146 	
 Value is less than the recommended default of 2047
 The total amount of buffer memory to use while sorting files, in megabytes. By default, gives each merge stream 1MB, which should minimize seeks.
-
+	解读：?Mapper中的Kvbuffer的大小默认100M，可以通过mapreduce.task.io.sort.mb（default：100）参数来调整。可以根据不同的硬件尤其是内存的大小来调整，调大的话，会减少磁盘spill的次数此时如果内存足够的话，一般都会显著提升性能。spill一般会在Buffer空间大小的80%开始进行spill（因为spill的时候还有可能别的线程在往里写数据，因为还预留空间，有可能有正在写到Buffer中的数据），可以通过mapreduce.map.sort.spill.percent（default：0.80）进行调整，Map Task在计算的时候会不断产生很多spill文件
+————————————————
+版权声明：本文为CSDN博主「aijiudu」的原创文章，遵循 CC 4.0 BY-SA 版权协议，转载请附上原文出处链接及本声明。
+原文链接：https://blog.csdn.net/aijiudu/article/details/72353510
+	
 5)-、Warning 	MapReduce2 	yarn.app.mapreduce.am.command-opts 	-Xmx1638m -Dhdp.version=${hdp.version} 	
 Value is less than the recommended default of -Xmx4505m
 Java opts for the MR App Master processes. The following symbol, if present, will be interpolated: @taskid@ is replaced by current TaskID. Any other occurrences of '@' will go unchanged. For example, to enable verbose gc logging to a file named for the taskid in /tmp and to set the heap maximum to be a gigabyte, pass a 'value' of: -Xmx1024m -verbose:gc -Xloggc:/tmp/@taskid@.gc Usage of -Djava.library.path can cause programs to no longer function if hadoop native libraries are used. These values should instead be set as part of LD_LIBRARY_PATH in the map / reduce JVM env using the mapreduce.map.env and mapreduce.reduce.env config settings.
+	解读：AM的默认jvm堆内存。
+	set yarn.app.mapreduce.am.command - opts = - Xmx10000m;  -- 
+
 
 6)-、Warning 	MapReduce2 	yarn.app.mapreduce.am.resource.mb 	2048 	
 Value is less than the recommended default of 5632
 Value is less than the recommended minimum of 5632
 The amount of memory the MR AppMaster needs.
+	解读：AM的container内存。
+	set yarn.app.mapreduce.am.resource.mb = 10000;  -- MR ApplicationMaster占用的内存量
 
 7)-、Warning 	Tez 	tez.am.resource.memory.mb 	4096 	
 Value is less than the recommended default of 5632
@@ -2648,7 +2667,8 @@ buyer
 SQL 错误 [2] [08S01]: Error while processing statement: FAILED: Execution Error, return code 2 from org.apache.hadoop.hive.ql.exec.tez.TezTask. Vertex failed, vertexName=Map 9, vertexId=vertex_1582689205045_0116_1_00, diagnostics=[Vertex vertex_1582689205045_0116_1_00 [Map 9] killed/failed due to:ROOT_INPUT_INIT_FAILURE, Vertex Input: dwb_purchase_combine_mid_report_eas_distinct_new3 initializer failed, vertex=vertex_1582689205045_0116_1_00 [Map 9], java.lang.RuntimeException: serious problem
 解决：在hive的命令行执行（会提示详细错误）
 Caused by: java.util.concurrent.ExecutionException: java.io.FileNotFoundException: File hdfs://mycluster/apps/hive/warehouse/dwmiddle.db/dwb_purchase_combine_mid_report_eas_distinct_new3/day=2019-01-01 does not exist.
-
+提示分区的文件不存在。因为hdfs文件删除了，分区却没删除。
+	-- ALTER table dwmiddle.dwb_purchase_report_cd  drop PARTITION(day='2019-01-01')
 
 -、 MR报错 （yarn log日志）
 
@@ -2727,12 +2747,12 @@ uat：
 	
 1、zookeeper启动
 	/usr/hdp/2.5.3.0-37/zookeeper/bin/zkServer.sh start
-2、namenode启动命令：
+2、namenode启动命令：(lymaster01 ,02)
 	runuser -l hdfs -c '/usr/hdp/2.5.3.0-37/hadoop/sbin/hadoop-daemon.sh start namenode'
-3、DN和HN启动
+3、DN和HN启动(lyzk01 ,02,03)
 DN：	runuser -l hdfs -c '/usr/hdp/2.5.3.0-37/hadoop/sbin/hadoop-daemon.sh start datanode'
 JN 启动：runuser -l hdfs -c '/usr/hdp/2.5.3.0-37/hadoop/sbin/hadoop-daemon.sh start journalnode' 
-4、RS启动(lymaster02)
+4、RS启动(lymaster01 ,02)
 runuser -l yarn -c '/usr/hdp/2.5.3.0-37/hadoop-yarn/sbin/yarn-daemon.sh start resourcemanager'
 4.1、启动yarn的历史服务器(lymaster02)
 runuser -l mapred -c  '/usr/hdp/2.5.3.0-37/hadoop-mapreduce/sbin/mr-jobhistory-daemon.sh start historyserver'
@@ -2821,3 +2841,48 @@ RegionServer：
 -- 切换RS主备后，依然不能进入hiveCli,发现是因为spark2和spark的任务，在yarn中阻塞，删除任务，可以进入hiveCli且可以执行MR。
 （yarn application -kill application_1583193148938_0008）
 -- 见63、《uat大数据搭建》
+
+80、 mapred-site.xml 配置解读（yarn任务报java heap space）
+	见49、
+	参考资料：https://blog.csdn.net/aijiudu/article/details/72353510
+
+	-、设置MR
+        set mapreduce.map.child.java.opts=\"-Xmx1638m\";
+        set mapreduce.map.memory.mb=2048;
+        set mapreduce.reduce.child.java.opts=\"-Xmx3276m\";
+        set mapreduce.reduce.memory.mb=4096;
+        set yarn.app.mapreduce.am.command-opts=\"-Xmx1638m\";
+        set yarn.app.mapreduce.am.resource.mb=2048;
+
+	-、设置 hive Client heap size = 4096
+
+mapreduce---Memory调优
+(1)yarn.app.mapreduce.am.resource.mb
+MR AppMaster需要的内存，默认是1536M
+(2)yarn.app.mapreduce.am.command-opts
+MR AppMaster的Java opts ，默认是-Xmx1024m
+(3)mapreduce.map.memory.mb
+每个map task所需要的内存，默认是1024M。应该是大于或者等于Container的最小内存
+(4)mapreduce.reduce.memory.mb
+每个reduce task所需要的内存，默认是1024M
+(5)mapreduce.map.java.opts
+map task进程的java.opts，默认是-Xmx200m
+(6)mapreduce.reduce.java.opts
+reduce task进程的java.opts，默认是-Xmx200m
+
+特别注意:
+mapreduce.map.memory.mb >mapreduce.map.java.opts
+mapreduce.reduce.memory.mb >mapreduce.reduce.java.opts
+mapreduce.map.java.opts / mapreduce.map.memory.mb
+=0.70~0.80
+mapreduce.reduce.java.opts / mapreduce.reduce.memory.mb
+=0.70~0.80
+在yarn container这种模式下，JVM进程跑在container中，mapreduce.{map|reduce}.java.opts 能够通过Xmx设置JVM最大的heap的使用，
+一般设置为0.75倍的memory.mb，
+
+则预留些空间会存储java,scala code等
+
+作者：吃货大米饭
+链接：https://www.jianshu.com/p/898582f88ca3
+来源：简书
+著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。

@@ -873,7 +873,6 @@ amount:
 7	101390848.09
 9	27881148.25943255
 unknown	857718943.761796	
-
 tmp表：
 1	245683390.506256
 2	106948775.898303
@@ -898,6 +897,7 @@ unknown	857718943.761796
 3	390138548.564699
 5	31566504.946144
 
+
 cd表
 5	31566504.946144	["eas"]
 1	245962175.136398	["eas","ljiemould","dgsxmouldm","sap.ods_sap_zfmm_044","mould_wxsdxc","dtmetalmould"]
@@ -906,12 +906,113 @@ unknown	1263495245.295524	["eas","hldflcmould","llmould","dtmetalmould","cdmould
 3	532264314.224688	["sap.ods_sap_zfmm_044","eas","ljiemould","suzlymould","zzmetalmould","mould_dglh","dtmould","dgcncmould","szsecondlymould","llmould","suzmould","suzlxmould","dtsymould","lskmould","dgsxmouldm"]
 2	133171964.113623	["sap.ods_sap_zfmm_044","dgsxmouldm","eas","ljiemould","dtmetalmould","cdmetalmould","dgcncmould","dtsymould"]
 
+
+
 ####################
 245700426.8	      ##
 245684755.506256  ##
 为什么有差异？	  ##
 ####################
 模具1月份，不同数据源统计
+
+2020-03-09 统计的结果
+amount表 （colllect_set所有列）
+1	245684755.506256
+10	1855765045.407817
+2	107052528.039803
+3	474638569.114699 
+ [以前数据 =392.7(百万) 是eas中pic为空但是根据成本中心可以区分的没取到。
+LLSZDD20200105002	800-NWR138-0A-R			2030.21	3	富葵]
+4	3915.929204
+5	31566504.946144
+6	163992406.58
+7	109724983.49
+9	27881148.280387
+unknown	695220233.521324
+
+
+
+cd(data_sources)
+4	3915.929204	["szsecondlymould"]
+2	107052528.039803	["eas","dgsxmouldm","dgcncmould","ljiemould","dtsymould","dtmetalmould","cdmetalmould","sap.ods_sap_zfmm_044"]
+3	474638569.114699	["eas","szsecondlymould","suzlymould","llmould","ljiemould","dgcncmould","mould_dglh","dgsxmouldm","dtmould","dtsymould","suzlxmould","suzmould","zzmetalmould","lskmould","sap.ods_sap_zfmm_044"]
+5	31566504.946144	["eas"]
+1	245684755.506256	["eas","ljiemould","dgsxmouldm","mould_wxsdxc","dtmetalmould","sap.ods_sap_zfmm_044"]
+unknown	695220233.521324	["eas","hldflcmould","llmould","dtmetalmould","cdmould","ljiemould","moulddgobd","dtmould","dtsymould"]
+
+===========================> muju  数据校对<================================
+--- 模具系统单独计算，测试(未剔除内部交易)
+-- 模具根据  自然日：`date` 来计算采购额  12831
+6.379313
+20.071897	1
+17.335246	2
+5.204427	3
+
+-- 模具根据 `stock_in_audit_time between '2019/12/16' and '2020/01/15 23:59:59'）` 来计算采购额   数量=33305
+9.068361
+34.709744	1
+24.073246	2
+18.615159	3
+-- 模具根据 （`stock_in_audit_time` 换算为月周期）date=2020-01 来计算采购额  ； 数量=33305
+9.068361
+34.709744	1
+24.073246	2
+18.615159	3
+
+-- 模具去重（  po_number, tax_price,stock_in_audit_time,stock_in_time,quantity ,buyer,data_sources,tax_rate）
+8.527054
+33.929328	1
+22.894908	2
+16.07279	3
+
+
+=======>模切数据校对<=======
+2020-02-23  模切1月数据测试：
+
+data_sources  ==>
+模具(剔除内部交易)：17.669911		18.615159（未剔除）
+eas:345.146781
+sap:111.821875
+
+
+2020-02-04 模切1月数据测试：
+data_sources  ==>
+eas:312.395527
+sap:111.474705
+
+
+=======>CNC数据校对<=======
+
+2020-02-23  CNC1月数据测试：
+data_sources  ==>
+模具：34.709744
+eas:205.584942
+sap:5.390068
+
+
+2020-02-04 CNC1月数据测试：
+data_sources  ==>
+eas:204.198971
+sap:5.388703
+
+
+=======>冲压 数据校对<=======
+2020-02-23  CNC1月数据测试：
+data_sources  ==>
+模具：23.589756
+eas:61.550042
+sap:21.912728
+
+
+2020-02-04 CNC1月数据测试：
+data_sources  ==>
+eas:61.758798
+sap:21.903731
+
+
+
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<,
 
 
 
@@ -1178,13 +1279,33 @@ ROW FORMAT DELIMITED
 
 
 
->>>2020-03-04<<<
+>>>2020-03-04	2020-03-09	<<<
 1、详情表要根据purorder_fid去重（见v3代码） √
 2、完善采购cd月报的excel	√
 3、基础表只显示2019-2020数据。  √
-4、Invalid column reference 'diff_num'  √
-5、CNC得cd金额为什么这么高？
-==========================  ==========================  ==========================  ==========================  ==========================  
+4、Invalid column reference 'diff_num'  √  【cut_price】
+5、CNC的cd金额为什么这么高？
+6、深圳结构件，页面上改为含税且剔除供应商 8830。
+7、页面上BG排名去掉dim=4 （设备） √
+8、模具系统存在冗余情况（需要根据 purorder 和 stock_in_audit_time等字段去重）
+9、模切的数据，采购员为null或者''的数据不需要。--> 去掉成本中心的过滤
+10、含税单价和含税金额校验。
+	-、模具系统：
+		-、未税和含税单价都取2位（因为存在未税小数点比含税的多。）
+		-、含税金额为null的数据，根据含税单价*数量 求得。
+		- 、 [模具系统，需要判断tax_rate是否小于0，小于0不需要除]
+	-、sap系统：
+		-、采购员charge字段，需要保证不为空（可以根据申请者id匹配名字，来补充）
+		-、含税单价<未税单价
+		-、税率和汇率值是否都正确
+		-、含税金额存在没有值的情况。
+	-、eas系统：
+		-、含税/未税金额为null的数据，根据含税单价*数量 求得。
+			含税单价为null的， 未税单价*(税率 + 1)
+			税率（换算）=  (tax_rate /100 ) 
+11、数据要以最新的时间为主计算。
+12、比对数据的脚本,要添加 "审核入库时间"作为依据.
+==============================================================================  ==========================  ==========================  
 
 
 删除测试数据:
