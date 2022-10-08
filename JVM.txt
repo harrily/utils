@@ -1,0 +1,187 @@
+
+1、年轻代 -> survivor -> 老年区 ，什么情况下？
+	晋升老年代的总结
+	1.担保机制
+		新生代中垃圾收集采用的是复制算法，当Survivor区的内存大小不足以装下一次Minor Gc中所有的存活对象的时候，
+		就启动担保机制，将Survivor不够放的活对象，直接进入到老年代。
+	2.大对象直接进入老年代
+		虚拟机提供了个-XX:pretenureSizeThreshold参数，令内存大于这个设置值的对象直接在老年代分配。这个参数只对Serial和ParNew收集器有效，Parallel Scavenge收集器不认识这个参数，一般它也不需要设置，如果遇到必须要设置这个参数的场合，可以考虑ParNew+CMS的收集器组合。
+	3.长期存活的对象进入老年代
+		就是上文说的，在Minor gc中，把age大于设置的 -XX:MaxTenuringThresholed 值的对象晋升到老年代。
+		这个age是这样计算的，jvm为每个对象定义了一个对象年龄（Age）计数器，如果对象在Eden出生并经过第一次Minor GC后仍然存活，并能够被Survivor区容纳的话，将被移到Survivor区中，并且对象年龄设为1。
+		对象在Survivor区中每“熬过”一次Minor GC，年龄就加一岁。
+	4.动态对象年龄判断
+		//TargetSurvivorRatio默认为50
+		//desired_survivor_size = survivor的空间*50%
+		 size_t desired_survivor_size = (size_t)((((double) survivor_capacity)*TargetSurvivorRatio)/100);
+		这里要说明下一个误区。
+		书上是这样讲的：如果在Survivor空间中相同年龄所有对象大小的总和大于Survivor空间的一半，年龄大于或等于该年龄的对象就可以直接进入老年代，无须等到MaxTenuringThreshold中要求的年龄。
+		然而我们上面分析过了：
+		1.不是某个年龄的对象总和，而是<=某个（N）年龄的对象总和。   则取new threshold N(max 1)   ， 其中 1 = XX:MaxTenuringThreshole
+		2.也不一定是大于SurVivor空间的一半，只是默认TargetSurvivorRatio设为50才是一半，应该是根据这个参数才对。
+
+		参考资料： https://blog.csdn.net/z69183787/article/details/104975579/
+	
+1.2、fullGC 触发条件
+	1. 调用 System.gc()
+
+	只是建议虚拟机执行 Full GC，但是虚拟机不一定真正去执行。不建议使用这种方式，而是让虚拟机管理内存。
+
+	2. 未指定老年代和新生代大小，堆伸缩时会产生fullgc,所以一定要配置-Xmx、-Xms
+
+	3. 老年代空间不足
+
+	老年代空间不足的常见场景比如大对象、大数组直接进入老年代、长期存活的对象进入老年代等。
+
+	为了避免以上原因引起的 Full GC，应当尽量不要创建过大的对象以及数组。
+
+	除此之外，可以通过 -Xmn 虚拟机参数调大新生代的大小，让对象尽量在新生代被回收掉，不进入老年代。
+
+	还可以通过 -XX:MaxTenuringThreshold 调大对象进入老年代的年龄，让对象在新生代多存活一段时间。
+
+	在执行Full GC后空间仍然不足，则抛出错误：java.lang.OutOfMemoryError: Java heap space
+
+	4. JDK 1.7 及以前的（永久代）空间满
+
+	在 JDK 1.7 及以前，HotSpot 虚拟机中的方法区是用永久代实现的，永久代中存放的为一些 Class 的信息、常量、静
+
+	态变量等数据。
+
+	当系统中要加载的类、反射的类和调用的方法较多时，永久代可能会被占满，在未配置为采用 CMS GC 的情况下也
+
+	会执行 Full GC。
+
+	如果经过 Full GC 仍然回收不了，那么虚拟机会抛出java.lang.OutOfMemoryError PermGen space
+
+	为避免以上原因引起的 Full GC，可采用的方法为增大Perm Gen或转为使用 CMS GC。
+
+	5. 空间分配担保失败
+
+	空间担保，下面两种情况是空间担保失败：
+
+	1、每次晋升的对象的平均大小 > 老年代剩余空间
+
+	2、Minor GC后存活的对象超过了老年代剩余空间
+
+	注意GC日志中是否有 promotion failed 和 concurrent mode failure 两种状况，当出现这两种状况的时候就有可能会触发Full GC。
+
+	promotion failed 是在进行 Minor GC时候，survivor space空间放不下只能晋升老年代，而此时老年代也空间不足时发生的。
+
+	concurrent mode failure 是在进行CMS GC过程，此时有对象要放入老年代而空间不足造成的，这种情况下会退化使用Serial Old收集器变成单线程的，此时是相当的慢的。
+
+	怎么调优
+
+	围绕一个点，策略就是尽量把对象在新生代使用回收，减少晋升老年代的几率。
+
+	原文链接：https://blog.csdn.net/qq_37469055/article/details/118091924
+
+
+	
+2、GC案例 
+	
+	参考资料：https://blog.csdn.net/weixin_39946798/article/details/110425076
+
+	参数说明：
+	-XX:+UseParNewGC ：
+		设置对于新生代的垃圾回收器类型，这种类型是会停止JAVA进程，然后再进行回收的，但由于新生代体积比较小，持续时间通常只有几毫秒，因此可以接受。
+	-XX:+UseConcMarkSweepGC：
+		设置老生代的垃圾回收类型，如果用新生代的那个会不合适，即会导致JAVA进程停止的时间太长，用这种不会停止JAVA进程，而是在JAVA进程运行的同时，并行的进行回收。
+	XX:CMSInitiatingOccupancyFraction ：
+		设置CMS回收器运行的频率，避免前两个参数引起JAVA进程长时间停止，设置了这个之后，不需要停止JAVA进程，但是会提高CPU使用率。
+		occupancy 	英 [ˈɒkjəpənsi] 美 [ˈɑːkjəpənsi]n.	(房屋、土地等的)占用，使用，居住;
+	-XX:NewSize:初始年轻代大小
+	-XX:MaxNewSize:最大年轻代大小
+	-XX:InitialHeapSize:定义堆的初始化大小，默认值是物理内存的1/64，其实就是:-Xms
+	-XX:MaxHeapSize:定义最大堆的大小，默认为物理内存的1/4，其实就是:-Xmx
+	-XX:SurvivorRatio:Eden区与Survivor区的大小比值
+	-XX:MaxTenuringThreshold:年轻代对象转换为老年代对象最大年龄值
+	-XX:PretenureSizeThreshold=3M:对象大小超过3M时直接在老年代分配内存
+	-XX:+UseParNewGC:使用ParNew收集器
+	-XX:+UseConcMarkSweepGC:使用CMS收集器
+	-XX:+PrintGCDetails:GC时打印详细信息
+	-Xloggc:输出GC日志信息到文件中
+
+	-XX:newSize = -XX:MaxnewSize = -Xmn
+	-XX:PermSize：表示非堆区初始内存分配大小，其缩写为 permanent size(持久化内存)
+	-XX:MaxPermSize：表示对非堆区分配的内存的最大上限。
+	-XX:+UseCMSInitiatingOccupancyOnly：指定用设定的回收阈值(-XX:CMSInitiatingOccupancyFraction 参数的值),如果不指定,JVM仅在第一次使用设定值,后续则会根据运行时采集的数据做自动调整，如果指定了该参数，那么每次JVM都会在到达规定设定值时才进行GC。不过大多数情况下，JVM都能够作出更好的垃圾收集决策，所以如果不是很有信心的话，不建议使用该参数，放心的把决定权交给JVM。
+
+	NameNode  promaster02 GC-日志解析：
+		
+	Java HotSpot(TM) 64-Bit Server VM (25.73-b02) for linux-amd64 JRE (1.8.0_73-b02), built on Jan 29 2016 17:39:45 by "java_re" with gcc 4.3.0 20080428 (Red Hat 4.3.0-8)
+	Memory: 4k page, physical 131851520k(80579632k free), swap 8257532k(8257532k free)
+	CommandLine flags:
+	 -XX:CMSInitiatingOccupancyFraction=70   【那么在老年代占用率达到70%时触发cms gc】
+	 -XX:ErrorFile=/var/log/hadoop/hdfs/hs_err_pid%p.log 
+	 -XX:InitialHeapSize=1073741824 [1024M]
+	 -XX:MaxHeapSize=1073741824  [1024M]
+	 -XX:MaxNewSize=134217728   [128M]
+	 -XX:MaxTenuringThreshold=6 
+	 -XX:NewSize=134217728     [128M]
+	 -XX:OldPLABSize=16 
+	 -XX:OnOutOfMemoryError="/usr/hdp/current/hadoop-hdfs-namenode/bin/kill-name-node" -XX:OnOutOfMemoryError="/usr/hdp/current/hadoop-hdfs-namenode/bin/kill-name-node" -XX:OnOutOfMemoryError="/usr/hdp/current/hadoop-hdfs-namenode/bin/kill-name-node" 
+	 -XX:ParallelGCThreads=8 
+	 -XX:+PrintGC 
+	 -XX:+PrintGCDateStamps 
+	 -XX:+PrintGCDetails 
+	 -XX:+PrintGCTimeStamps 
+	 -XX:+UseCMSInitiatingOccupancyOnly 
+	 -XX:+UseCompressedClassPointers 
+	 -XX:+UseCompressedOops 
+	 -XX:+UseConcMarkSweepGC 
+	 -XX:+UseParNewGC
+	2022-09-21T13:39:03.421+0800: 0.945: [GC (Allocation Failure) 2022-09-21T13:39:03.421+0800: 0.945: [ParNew: 104960K->10724K(118016K), 0.0167927 secs] 104960K->10724K(1035520K), 0.0169554 secs] [Times: user=0.06 sys=0.02, real=0.01 secs]
+	2022-09-21T13:39:03.988+0800: 1.512: [GC (Allocation Failure) 2022-09-21T13:39:03.988+0800: 1.512: [ParNew: 115684K->13055K(118016K), 0.0478255 secs] 115684K->25952K(1035520K), 0.0479294 secs] [Times: user=0.30 sys=0.01, real=0.05 secs]
+	2022-09-21T13:39:04.036+0800: 1.560: [GC (CMS Initial Mark) [1 CMS-initial-mark: 12896K(917504K)] 27895K(1035520K), 0.0053608 secs] [Times: user=0.01 sys=0.01, real=0.01 secs]
+
+
+	分析： 新生代 ：128M  , eden: from : to  = 8 : 1 : 1  ==>  102.4 , 12.8 ,12.8 
+		   老年区 ：896M
+
+
+3、GC可达性分析， 机制 解析
+
+	资料： https://zhuanlan.zhihu.com/p/301298512
+
+4、栈和堆
+	参考资料：https://blog.csdn.net/m0_58371965/article/details/122838405
+
+5、NameNode GC调优 
+
+	文件对象数量达到10,000,000，则JVM参数建议配置为：-Xms6G -Xmx6G -XX:NewSize=512M -XX:MaxNewSize=512M
+	文件对象数量达到20,000,000，则JVM参数建议配置为：-Xms12G -Xmx12G -XX:NewSize=1G -XX:MaxNewSize=1G
+	文件对象数量达到50,000,000，则JVM参数建议配置为：-Xms32G -Xmx32G -XX:NewSize=3G -XX:MaxNewSize=3G
+	文件对象数量达到100,000,000，则JVM参数建议配置为：-Xms64G -Xmx64G -XX:NewSize=6G -XX:MaxNewSize=6G
+	文件对象数量达到200,000,000，则JVM参数建议配置为：-Xms96G -Xmx96G -XX:NewSize=9G -XX:MaxNewSize=9G
+	文件对象数量达到300,000,000，则JVM参数建议配置为：-Xms164G -Xmx164G -XX:NewSize=12G -XX:MaxNewSize=12G
+	参考资料：https://cloud.tencent.com/developer/article/2066333
+	参考资料：https://toutiao.io/posts/155svp/preview  
+	
+6、NameNode  GC日志详解
+https://blog.csdn.net/weixin_40809627/article/details/82775872
+https://zhuanlan.zhihu.com/p/103603299  电商
+
+https://www.jianshu.com/p/fb5e2e4f119c 修改堆内存
+
+vim /usr/hdp/2.5.3.0-37/hadoop/conf/hadoop-env.sh 
+		namenode  1G --> 3G(3072)  128 --->  256 
+		jobtrack	-Xmx1024m  --> -Xmx2048m   -XX:NewSize=200m -XX:MaxNewSize=200m  ---> -XX:NewSize=400m -XX:MaxNewSize=400m
+		HADOOP_TASKTRACKER_OPTS   -Xmx1024m  --> -Xmx2048m 
+		datanode   -Xmx1024m  --> -Xmx2048m   -XX:NewSize=200m -XX:MaxNewSize=200m  ---> -XX:NewSize=400m -XX:MaxNewSize=400m
+vim /usr/hdp/2.5.3.0-37/hadoop/conf/yarn-env.sh
+		JAVA_HEAP_MAX=-Xmx1000m   ---> JAVA_HEAP_MAX=-Xmx3000m 
+		YARN_HEAPSIZE=1024  ---->  YARN_HEAPSIZE=3072
+		export YARN_NODEMANAGER_HEAPSIZE=1024  --> export YARN_NODEMANAGER_HEAPSIZE=2048
+		export YARN_TIMELINESERVER_HEAPSIZE=1024  --> export YARN_TIMELINESERVER_HEAPSIZE=2048
+		
+		备份： prodata02  hadoop-env.sh-backup20220928   yarn-env.sh-backup20220928
+scp /usr/hdp/2.5.3.0-37/hadoop/conf/hadoop-env.sh root@promaster01:/usr/hdp/2.5.3.0-37/hadoop/conf/
+scp /usr/hdp/2.5.3.0-37/hadoop/conf/yarn-env.sh root@promaster01:/usr/hdp/2.5.3.0-37/hadoop/conf/
+
+问题：
+	1、补全zkfc
+		*/3 * * * * source /etc/profile && cd /home/shell/cluster_monitor  && sh moniter_zkfc01.sh >> moniter_zkfc01.log 2>&1
+		*/3 * * * * source /etc/profile && cd /home/shell/cluster_monitor  && sh moniter_zkfc02.sh >> moniter_zkfc02.log 2>&1
+		*/3 * * * * source /etc/profile && cd /home/shell/cluster_monitor  && sh moniter_hmaster.sh >> moniter_hmaster.log 2>&1
+ 	2、hive没重启 --> 不影响
+	
