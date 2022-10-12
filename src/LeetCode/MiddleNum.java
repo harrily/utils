@@ -1,6 +1,13 @@
 package LeetCode;
 
 public class MiddleNum {
+	/**
+	 * 
+	 * 两数之和
+	 * @param nums1
+	 * @param nums2
+	 * @return
+	 */
 
 	 public static  double findMedianSortedArrays(int[] nums1, int[] nums2) {
 		 int[] nums = new int[nums1.length + nums2.length];
@@ -20,15 +27,15 @@ public class MiddleNum {
 	 					nums[j] = tmp;
 //	 					System.out.println(nums[i]);
 //	 					 for(int n = 0;n<nums.length;n++) {
-//	 						 System.out.println(nums[n]);
+//	 						 System.out.println("ddddd:"+nums[n]);
 //	 					 }
 	 				}
 //	 				 System.out.println("===========");
 		 		}
 		 	}
-//		 for(int i = 0;i<nums.length;i++) {
-//			 System.out.println(nums[i]+"---");
-//		 }
+		 for(int i = 0;i<nums.length;i++) {
+			 System.out.println(nums[i]+"---");
+		 }
 		 		int n = nums.length / 2 ;
 		 		System.out.println( nums.length);
 		 		 if( nums.length % 2 != 0) {

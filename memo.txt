@@ -5853,6 +5853,12 @@ java.net.ConnectException: Connection refused
 				2021-07-09 14:08:12,000 - INFO  [SessionTracker:ZooKeeperServer@347] - Expiring session 0x27a712f7c3d1ec7, timeout of 40000ms exceeded
 				2021-07-09 14:08:12,001 - INFO  [ProcessThread(sid:2 cport:-1)::PrepRequestProcessor@494] - Processed session termination for sessionid: 0x27a712f7c3d1ec7
 			
+		2022-10-11  
+			 Too many connections from /10.0.24.111 - max is 1000
+				http://t.zoukankan.com/nhz-M-p-8135229.html
+			1、重启zk   ， 连接数并未减少
+			2、重启RS， 连接数减为个位数。
+			
 124、  日期format
 
 if( int(SUBSTRING(stock_in_audit_time,9,2)) >= 16 ,
@@ -7250,6 +7256,9 @@ param="df -h"; list=("lyzk01" "lyzk02" "lyzk03" "lymaster01" "lymaster02") ;for 
 param="free -mh"; list=("prodata01" "prodata02" "prodata03" "prodata04" "promaster01" "promaster02" "proweb01" "proweb02") ;for ip in ${list[@]} ;do echo "**************** 【$ip】主机[$param] ****************" ;ssh $ip "$param"; done
 
 param="df -h"; list=("prodata01" "prodata02" "prodata03" "prodata04" "promaster01" "promaster02" "proweb01" "proweb02") ;for ip in ${list[@]} ;do echo "**************** 【$ip】主机[$param] ****************" ;ssh $ip "$param"; done
+
+-- 查看zookeeper连接数 
+ netstat -nap |grep 2181 |awk -F " " '{print $7}' | awk -F "/" '{print $1}'| sort| uniq -c | sort -k 1 -nr
 
 版本2 【不能使用，谨慎测试中】 ：
 
