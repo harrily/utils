@@ -51,8 +51,39 @@ public class SortByDichotomy {
 			}
 			return -1;
 		}
-	 
+		// Test  20221012   test  二分查找递归
+		public static int binarySearchTest20221012(int[] a,int low,int high,int goal){
+				// 找不到退出递归
+				if(low > high) {
+					return -1;
+				}
+				int mid = (low + high ) >>1 ;
+				if(a[mid] == goal ) {
+					return mid;
+				}else if(a[mid] > goal) {
+					return binarySearchTest20221012(a,low ,mid -1,goal);
+				}else {
+					return binarySearchTest20221012(a,mid+1,high,goal);
+				}
+				
+		}
 		
+			// Test 非递归  TEST
+ 				public static int binarySearchTest20221012_fe(int[] a,int low,int high,int goal){
+ 					while(low <= high) {
+ 						int mid = (low + high ) >>1 ;
+	 					if(a[mid] == goal ) {
+	 						return mid;
+	 					}else if(a[mid] > goal) {
+	 						high = mid -1;
+	 					}else {
+	 						low = mid +1 ;
+	 					}
+ 					}
+ 					return -1;
+				}
+		
+ 				//  Test
 		public static int twoSerarch(int array[],int goal) {
 			int low = 0;
 			int high = array.length-1;
@@ -71,7 +102,7 @@ public class SortByDichotomy {
 			return -1;
 			
 		}
-		
+		// test 
 		public static int twoSerarchByRecusion(int array[],int goal,int low,int high) {
 	 		int mid = 0;
 			while(low <= high) {
@@ -129,14 +160,15 @@ public class SortByDichotomy {
 		public static void main(String[] args) {
 			// 二分法自测
 			int[] a = {1,2,3,4,5,6,7,8,9};
-			//System.out.println(binarySearch(a,0,a.length - 1,3));
-			System.out.println(twoSerarch(a,3));
-			System.out.println(twoSerarchByRecusion(a, 3, 0, a.length-1));
-			
+//			System.out.println(binarySearch(a,0,a.length - 1,3));
+//			System.out.println(twoSerarch(a,3));
+//			System.out.println(twoSerarchByRecusion(a, 3, 0, a.length-1));
+			System.out.println(binarySearchTest20221012(a,0,a.length - 1,5));
+			System.out.println(binarySearchTest20221012_fe(a,0,a.length - 1,5));
 			// 归并自测
 			int[] gui = {1,11,32,41,7,6,17,8,62};
-			recusion(gui,0,gui.length-1);
-			System.out.println(Arrays.toString(gui));
+//			recusion(gui,0,gui.length-1);
+//			System.out.println(Arrays.toString(gui));
 		}
 
 }

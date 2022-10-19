@@ -16,14 +16,17 @@ public class Down100 {
 		 */
 		int number = 100;
 		int maxnum = 1000000;
-		//int[] top = new int[] {5,9,100,35,75};
-		int[] top = new int[number] ;
-		for (int i = 0; i < number; i++) {
-			top[i] = Math.abs(new Random().nextInt(maxnum));//设置为随机数
-		}
+		int[] top = new int[] { 6 ,12 ,2, 7, 9, 3, 4, 5, 10 ,8,100,22};
+//		int[] top = new int[number] ;
+//		for (int i = 0; i < number; i++) {
+//			top[i] = Math.abs(new Random().nextInt(maxnum));//设置为随机数
+//		}
 		Date startTime = new Date();
-		sortByInsert(top);  //    [1000  37ms]   [1w  42ms]    [10w  2899ms]      [100w   238790ms]
-		//sortByMaopao(top);  //  [1000  114ms]  [1w  116ms]   [10w  12582ms]     [100w  1262235ms]
+//		sortByInsert(top);  //    [1000  37ms]   [1w  42ms]    [10w  2899ms]      [100w   238790ms]
+//		sortByMaopao(top);  //  [1000  114ms]  [1w  116ms]   [10w  12582ms]     [100w  1262235ms]
+		System.out.println(Arrays.toString(top));
+		sortByMaopao(top);
+		System.out.println(Arrays.toString(top));
 		//sortBySelect(top);   // [1000  45ms ]  [1w  48ms ]   [10w  3123ms]      [100w   263240ms]
 		//System.out.println(Arrays.toString(top));
 		Date endTime = new Date();

@@ -1,0 +1,53 @@
+
+HashMap 和HashTable区别?
+1.安全性不同
+	hashMap是线程不安全的，在多线程并发环境下，可能会产生死锁等问题，因此需要开发人员自己处理多线程的安全问题。
+	hashTable是线程安全的，它的每一个方法上都有synchonized关键字，因此可以直接用多线程中。
+2.两者的父类不同
+	hashMap是继承自AbstrctMap类，
+	hashtable是继承Dictionary类。
+		不过他们都实现了，同时实现了map、Coleable、Serializable这三个接口。
+3.对Null的支持不同
+	hashTable:key和value都不能为null。如果key为Null只会抛出异常（【因为containsKey方法，中判断key不能为null，如果为null，则containsKey返回为false】），value为Null则需要手动抛出异常。
+	hashMap:key可以为Null，但是这样的key只能有一个，因为必须保证key的唯一性；可以有多的key值对应的value值为Null。
+5.初始容量大小和每次扩张容量大小不同	
+		当已用容量>总容量 * 负载因子
+	HashTable ：初始大小 11 ，扩容 = now *2 +1  ，即 new = (old << 2 ) +1 
+	HashTable ：初始大小 16 ，扩容  = now *2
+6. 计算hash值的方法不同
+	HashMap: 是使用自定义的哈希算法
+	HashTable： key的hashCode()
+7. 数据结构不一样
+	1.8后
+		HashMap ： 数组+链表 + 红黑树
+		HashTable : 数组+链表
+8、 HashMap不支持contains(Object value)方法，没有重写toString()方法
+	HashTable支持contains(Object value)方法，而且重写了toString()方法
+
+9、 HashMap只支持Iterator遍历
+	HashTable支持Iterator和Enumeration两种方式遍历
+
+10、HashMap的迭代器(Iterator)是fail-fast迭代器，而Hashtable的enumerator迭代器不是fail-fast的。
+	所以当有其它线程改变了HashMap的结构（增加或者移除元素），将会抛出ConcurrentModificationException，但迭代器本身的remove()方法移除元素则不会抛出ConcurrentModificationException异常。
+	但这并不是一个一定发生的行为，要看JVM。而Hashtable 则不会。
+	备注： 
+		fail-fast：
+			fail-fast的字面意思是“快速失败”。当我们在遍历集合元素的时候，经常会使用迭代器，但在迭代器遍历元素的过程中，
+			如果集合的结构被改变的话，就会抛出ConcurrentModificationException异常（并发修改异常），防止继续遍历【但当次的遍历依旧会遍历完成】。这就是所谓的快速失败机制。
+			
+			从源码中可以看出，使用了modCount来记录list被修改了几次，expecteModCount记录迭代器对象一开始迭代时修改的次数。
+			每次调用next方法的时候，都会对expecteModCount进行检查，
+			如果list的modCount与Iterator的expecteModCount次数不一致的话就会抛出ConcurrentModificationException异常。
+		
+		fail-safe（安全失败）：
+			发现遍历的同时其他人来修改，应当能有应对的策略，例如牺牲一定的一致性来让整个遍历完成。例如CopyOnWriteArrayList 。
+				原理：由于迭代时是对原集合的拷贝进行遍历，所以在遍历过程中对原集合所作的修改并不能被迭代器检测到，所以不会触发ConcurrentModificationException。
+				缺点：基于拷贝内容的优点是避免了Concurrent Modification Exception，但同样地，迭代器并不能访问到修改后的内容，即：迭代器遍历的是开始遍历那一刻拿到的集合拷贝，在遍历期间原集合发生的修改迭代器是不知道的。
+			场景：java.util.concurrent包下的容器都是安全失败，可以在多线程下并发使用，并发修改。
+			
+		原文链接：https://blog.csdn.net/weixin_43869269/article/details/125339913
+
+原文链接：https://blog.csdn.net/qq_42848910/article/details/107779037
+链接：https://www.zhihu.com/question/395019928/answer/1656654366
+
+HashMap 原理 ：https://www.cnblogs.com/chengxiao/p/6059914.html
