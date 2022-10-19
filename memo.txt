@@ -5857,7 +5857,7 @@ java.net.ConnectException: Connection refused
 			 Too many connections from /10.0.24.111 - max is 1000
 				http://t.zoukankan.com/nhz-M-p-8135229.html
 			1、重启zk   ， 连接数并未减少
-			2、重启RS， 连接数减为个位数。
+			2、重启RS， 连接数减为个位数。     为什么那么多连接数？还是会超了2000+
 			
 124、  日期format
 
@@ -7257,7 +7257,7 @@ param="free -mh"; list=("prodata01" "prodata02" "prodata03" "prodata04" "promast
 
 param="df -h"; list=("prodata01" "prodata02" "prodata03" "prodata04" "promaster01" "promaster02" "proweb01" "proweb02") ;for ip in ${list[@]} ;do echo "**************** 【$ip】主机[$param] ****************" ;ssh $ip "$param"; done
 
--- 查看zookeeper连接数 
+-- 查看zookeeper连接数  【Too many connections】
  netstat -nap |grep 2181 |awk -F " " '{print $7}' | awk -F "/" '{print $1}'| sort| uniq -c | sort -k 1 -nr
 
 版本2 【不能使用，谨慎测试中】 ：
