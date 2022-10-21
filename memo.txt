@@ -7266,3 +7266,83 @@ param="df -h"; list=("prodata01" "prodata02" "prodata03" "prodata04" "promaster0
 
 
 ##  ls /var/log/hbase | grep hbase-hbase-regionserver-$ip.log. | xargs ;ls /var/log/hadoop-yarn/yarn |grep yarn-yarn-nodemanager-$ip.log. | xargs ;ls /var/log/hadoop/hdfs |grep  hadoop-hdfs-datanode-$ip.log. | xargs 
+
+
+123、mysql存储过程生成日期函数  [uhr]
+
+
+	CREATE DEFINER=`root`@`%` PROCEDURE `DIM_TIME_PD`( IN BEGINDATE DATE,IN ENDDATE  DATE,IN TEMPDATE DATE )
+	BEGIN
+	-- 定义参数
+	-- 	DECLARE BEGINDATE DATE;
+	-- 	DECLARE ENDDATE DATE;
+	-- 	DECLARE TEMPDATE DATE;
+		
+	 -- 设置参数值
+	-- 	SET BEGINDATE = '2000-01-01' ;
+	-- 	SET ENDDATE = '2030-12-31' ;
+	-- 	SET TEMPDATE = BEGINDATE ;	
+		
+		-- 建表分隔符 ----------------------------------------------------------------------------------------
+		DROP TABLE IF EXISTS `dim_time`;
+	  CREATE TABLE `dim_time`  (
+	  `TIMEID`    int(0) NOT NULL AUTO_INCREMENT,
+	  `DATE`      varchar(255) NULL DEFAULT NULL,
+		`YEARMONTH` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+	  `YEAR`      varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+	  `MONTH`     varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+	  `DAY`       varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+	  `MONTHDAY`  varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+	  `WEEK`      varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+	  `WEEKDAY`   varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+		`WEEKDAYDESC`   varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+	  `SEASON`        varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+		`SEASONDESC`    varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+	  PRIMARY KEY (`TIMEID`) USING BTREE
+	) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+	 
+	SET FOREIGN_KEY_CHECKS = 1;
+	-- 建表分割符 --------------------------------------------------------------------------------------------
+	 
+	 
+	-- 循环插入日期 ---------------------------------------------------------------------------------------------
+		WHILE TEMPDATE <= ENDDATE  DO
+		
+				INSERT INTO bootdo.dim_time ( DATE,YEARMONTH,YEAR,MONTH,DAY,MONTHDAY,WEEK,WEEKDAY,WEEKDAYDESC,SEASON,SEASONDESC )
+			VALUES
+				(
+					TEMPDATE,                                -- 日期
+					LEFT(TEMPDATE,7),                        -- 年月
+					YEAR ( TEMPDATE ),                       -- 年份
+					MONTH ( TEMPDATE ),                      -- 月份
+					DAYOFYEAR(TEMPDATE),                     -- 年的第几天
+					DAYOFMONTH(TEMPDATE),                    -- 月的第几天
+					WEEKOFYEAR(TEMPDATE),                    -- 周
+					WEEKDAY(TEMPDATE),                       -- 周的第几天
+					CASE WHEN WEEKDAY(TEMPDATE)=0 THEN '星期一' 
+						 WHEN WEEKDAY(TEMPDATE)=1 THEN '星期二'
+							 WHEN WEEKDAY(TEMPDATE)=2 THEN '星期三'
+							 WHEN WEEKDAY(TEMPDATE)=3 THEN '星期四'
+							 WHEN WEEKDAY(TEMPDATE)=4 THEN '星期五'
+							 WHEN WEEKDAY(TEMPDATE)=5 THEN '星期六'
+							 WHEN WEEKDAY(TEMPDATE)=6 THEN '星期日'
+					 ELSE NULL  END,                        -- 周的第几天描述
+					QUARTER(TEMPDATE),                       -- 季节
+					CASE WHEN QUARTER(TEMPDATE)=1 THEN '春季'
+						 WHEN QUARTER(TEMPDATE)=2 THEN '夏季'
+						 WHEN QUARTER(TEMPDATE)=3 THEN '秋季'
+						 WHEN QUARTER(TEMPDATE)=4 THEN '冬季'
+					 ELSE NULL  END                           -- 季节描述
+					
+				);
+				
+			SET TEMPDATE = DATE_ADD(TEMPDATE,INTERVAL 1 DAY)	;
+	 
+	 
+		END WHILE;
+	 
+		-- 循环结束-----------------------------------------------------------------------------------------------------
+	 
+	END
+
+	https://blog.csdn.net/weixin_44813544/article/details/125269568
