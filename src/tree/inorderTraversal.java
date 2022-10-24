@@ -5,15 +5,16 @@ import java.util.List;
 
 public class inorderTraversal {
 	  
+	// 前中后序  demo
 	    public static List<Integer> inorderTraversal2(TreeNode root,List<Integer> list) {
 	            if(root == null){
 	                return list;
 	            }
-//	            list.add(root.val);
+	            list.add(root.val);
 	            inorderTraversal2(root.left, list);
 //	            list.add(root.val);
 	            inorderTraversal2(root.right, list);
-	            list.add(root.val);
+//	            list.add(root.val);
 	            return list;
 	    }
 	    /**

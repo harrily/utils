@@ -1,2 +1,11 @@
 1、二叉搜索树
-https://blog.csdn.net/qq_40693171/article/details/99699862
+	参考资料：https://blog.csdn.net/qq_40693171/article/details/99699862
+	删除操作： 
+		1、如果待删除节点是叶子节点（没有子节点），那么只需要将从父节点指向它的链接指向变为null；
+		2、如果待删除节点含有一个子节点，那么原本指向它的节点需要做调整，使其指向它的子节点；
+		3、如果待删除节点包含两个子节点，可以选择查找待删除节点左子树上的最大值或者查找其右子树上的最小值，这里我们选择后一种。
+	参考资料：https://baijiahao.baidu.com/s?id=1709147943329903315&wfr=spider&for=pc
+
+ https://blog.csdn.net/cy973071263/article/details/122543826  红黑树
+ 
+ 
