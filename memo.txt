@@ -7347,3 +7347,7 @@ param="df -h"; list=("prodata01" "prodata02" "prodata03" "prodata04" "promaster0
 	END
 
 	https://blog.csdn.net/weixin_44813544/article/details/125269568
+	
+124¡¢github  token   [https://github.com/harrily/utils.git/]
+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
+git remote set-url origin https://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@github.com/harrily/utils.git
