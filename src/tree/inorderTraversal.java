@@ -4,7 +4,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class inorderTraversal {
-	  
+	class TreeNode {
+	    int val;
+	    TreeNode left;
+	    TreeNode right;
+	    TreeNode() {}
+	    TreeNode(int val) { this.val = val; }
+	    TreeNode(int val, TreeNode left, TreeNode right) {
+	       this.val = val;
+	        this.left = left;
+	        this.right = right;
+	    }
+	}
 	// 前中后序  demo
 	    public static List<Integer> inorderTraversal2(TreeNode root,List<Integer> list) {
 	            if(root == null){
@@ -25,8 +36,9 @@ public class inorderTraversal {
 	     * @param args
 	     */
 	 public static void main(String[] args) {
-	    	TreeNode root = new TreeNode(1,new TreeNode(),new TreeNode());
-	    	TreeNode root2 = new TreeNode(2,root,new TreeNode());
+	  	 inorderTraversal i1 = new inorderTraversal();
+	    	TreeNode root = i1.new TreeNode(1,i1.new TreeNode(),i1.new TreeNode());
+	    	TreeNode root2 = i1.new TreeNode(2,root,i1.new TreeNode());
 	    	ArrayList<Integer> list = new ArrayList<Integer>();
 	    	System.out.println(inorderTraversal2(root2,list));
 	}

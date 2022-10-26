@@ -36,10 +36,11 @@ public class BinarySortTree {
 		 // 删除while测试    [15, 6, 4, 5, 7, 19, 17, 71, 50, 75]  左大
 //		 System.out.println(treeTest.Delete(23));  
 		 // // 删除递归 测试  左大 
-		 System.out.println(treeTest.removeByLeftMax(5, node));  
+//		 System.out.println(treeTest.removeByLeftMax(5, node));  
 		 // 官网 demo[15, 6, 4, 5, 7, 50, 19, 17, 71, 75] 右小
 //		 System.out.println(treeTest.remove(71, node));  
 		 System.out.println(treeTest.MiddleSearch(node,list,1));
+		 System.out.println(treeTest.getHeight(node));
 		 
 		 
 	}
@@ -120,6 +121,20 @@ public class BinarySortTree {
 		if(current.value == x) {return true;}
 		return false;
 	}
+	
+	public int getHeight(Node t)
+    {
+        if(t==null) {return -1;}//
+        int l = getHeight(t.left);
+        int r  =  getHeight(t.right);
+        System.out.println("L:"+l);
+        System.out.println("R:"+r);
+        System.out.println("max："+Math.max(l, r));
+        System.out.println("1+max："+ (1 + Math.max(l, r)));
+        System.out.println("节点value : "+t.value);
+        return 1 + Math.max(l, r);
+//        return 1+Math.max(getHeight(t.left), getHeight(t.right));
+    }
 	
 	public Node insert (int x) {
 		Node current = root;
