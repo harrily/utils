@@ -7352,7 +7352,6 @@ param="df -h"; list=("prodata01" "prodata02" "prodata03" "prodata04" "promaster0
 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
 git remote set-url origin https://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@github.com/harrily/utils.git
 
-
 git config --global user.email "17603018123@163.com"
 git config --global user.name "harrily"
 
