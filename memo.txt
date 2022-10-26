@@ -4788,14 +4788,14 @@ echo "" > $root_dir/drop.sql
 echo "" > $root_dir/delete_dir.txt
 cat $1 | while read line
 do
-    ##echo "inner1->line:"$line
+    ##echo "a1er1->line:"$line
     file=$line
     table_name="eas."`echo $line |awk -F '/' '{print $'${index}'}'`
-    #echo "inner1->table_name:"$table_name
+    #echo "a1er1->table_name:"$table_name
     drop_sql=""
     cat $2 | while read line
     do
-        ##echo "inner2->line:"$line
+        ##echo "a1er2->line:"$line
         #hive -e "show databases
 "
         echo "--start--删除文件 追加至 delete_dir.txt-->"$file/day=$line
@@ -5858,6 +5858,7 @@ java.net.ConnectException: Connection refused
 				http://t.zoukankan.com/nhz-M-p-8135229.html
 			1、重启zk   ， 连接数并未减少
 			2、重启RS， 连接数减为个位数。     为什么那么多连接数？还是会超了2000+
+		2022-10-26
 			
 124、  日期format
 
@@ -5983,7 +5984,7 @@ scp /usr/hdp/2.5.3.0-37/hadoop/conf/core-site.xml  root@promaster02:/usr/hdp/2.5
 			 
 	promaster01 -zkfc的log：	
 		2021-10-27 22:24:38,143 WARN  ha.ActiveStandbyElector (ActiveStandbyElector.java:becomeActive(863)) - 
-			Exception handling the winning of election
+			Exception handling the wa1ing of election
 				org.apache.zookeeper.KeeperException$BadVersionException: 
 				KeeperErrorCode = BadVersion for /hadoop-ha/promycluster/ActiveBreadCrumb
 		...
@@ -6880,7 +6881,7 @@ java.io.IOException: Timed out waiting 90000ms for a quorum of nodes to respond.
 		2021-11-09 22:20:08,695 INFO  recovery.ZKRMStateStore (ZKRMStateStore.java:processWatchEvent(918)) - Watcher event type: None with state:SyncConnected for path:null for Service org.apache.hadoop.yarn.server.resourcemanager.recovery.RMStateStore in state org.apache.hadoop.yarn.server.resourcemanager.recovery.RMStateStore: STARTED
 		2021-11-09 22:20:08,696 INFO  recovery.ZKRMStateStore (ZKRMStateStore.java:processWatchEvent(926)) - ZKRMStateStore Session connected
 		2021-11-09 22:20:08,696 INFO  recovery.ZKRMStateStore (ZKRMStateStore.java:processWatchEvent(931)) - ZKRMStateStore Session restored
-		2021-11-09 22:20:08,749 WARN  ha.ActiveStandbyElector (ActiveStandbyElector.java:becomeActive(863)) - Exception handling the winning of election
+		2021-11-09 22:20:08,749 WARN  ha.ActiveStandbyElector (ActiveStandbyElector.java:becomeActive(863)) - Exception handling the wa1ing of election
 		org.apache.zookeeper.KeeperException$BadVersionException: KeeperErrorCode = BadVersion for /yarn-leader-election/yarn-cluster/ActiveBreadCrumb
 				at org.apache.zookeeper.KeeperException.create(KeeperException.java:115)
 				at org.apache.zookeeper.KeeperException.create(KeeperException.java:51)
@@ -7231,7 +7232,7 @@ org.apache.zookeeper.KeeperException$ConnectionLossException: KeeperErrorCode = 
         at org.apache.zookeeper.KeeperException.create(KeeperException.java:99)
         at org.apache.zookeeper.ZooKeeper.multiInternal(ZooKeeper.java:935)
 ......
-2022-05-07 03:12:13,644 WARN  ha.ActiveStandbyElector (ActiveStandbyElector.java:becomeActive(863)) - Exception handling the winning of election
+2022-05-07 03:12:13,644 WARN  ha.ActiveStandbyElector (ActiveStandbyElector.java:becomeActive(863)) - Exception handling the wa1ing of election
 org.apache.zookeeper.KeeperException$BadVersionException: KeeperErrorCode = BadVersion for /yarn-leader-election/yarn-cluster/ActiveBreadCrumb
         at org.apache.zookeeper.KeeperException.create(KeeperException.java:115)
         at org.apache.zookeeper.KeeperException.create(KeeperException.java:51)
@@ -7299,7 +7300,7 @@ param="df -h"; list=("prodata01" "prodata02" "prodata03" "prodata04" "promaster0
 	  `SEASON`        varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
 		`SEASONDESC`    varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
 	  PRIMARY KEY (`TIMEID`) USING BTREE
-	) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+	) ENGINE = a1oDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 	 
 	SET FOREIGN_KEY_CHECKS = 1;
 	-- 建表分割符 --------------------------------------------------------------------------------------------

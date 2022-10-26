@@ -6,10 +6,15 @@ import java.util.List;
 /**
  * 二叉排序树（搜索树）
  * 从任意节点开始，节点左侧节点值总比节点右侧值要小。
+ * 
+ * 参考资料： https://blog.csdn.net/qq_40693171/article/details/99699862
+ *  avl树： https://blog.csdn.net/qq_40693171/article/details/100051631
+ *  数的高度，深度 ： https://blog.csdn.net/weixin_41969587/article/details/88420110
+ *  	https://www.cnblogs.com/jianglinliu/p/11197715.html
  */
-public class TreeTest {
+public class BinarySortTree {
 	public static void main(String[] args) {
-		 TreeTest treeTest = new TreeTest();
+		 BinarySortTree treeTest = new BinarySortTree();
 		 // 插入测试
 		 Node node = treeTest.insert(15);
 		 treeTest.insert(6);
@@ -28,10 +33,12 @@ public class TreeTest {
 		 // 前  [15, 6, 4, 5, 7, 23, 19, 17, 71, 50, 75]
 		 // 后 [5, 4, 7, 6, 17, 19, 50, 75, 71, 23, 15]
 //		 System.out.println(treeTest.MiddleSearch(node,list,2));
-		 // 删除测试    [15, 6, 4, 5, 7, 19, 17, 71, 50, 75]  左大
+		 // 删除while测试    [15, 6, 4, 5, 7, 19, 17, 71, 50, 75]  左大
 //		 System.out.println(treeTest.Delete(23));  
+		 // // 删除递归 测试  左大 
+		 System.out.println(treeTest.removeByLeftMax(5, node));  
 		 // 官网 demo[15, 6, 4, 5, 7, 50, 19, 17, 71, 75] 右小
-		 System.out.println(treeTest.remove(23, treeTest.root));  
+//		 System.out.println(treeTest.remove(71, node));  
 		 System.out.println(treeTest.MiddleSearch(node,list,1));
 		 
 		 
@@ -54,7 +61,7 @@ public class TreeTest {
        前序：  中左右      [6, 4, 5, 7] 
        后序 ：  左右中    [5, 4, 7, 6]
        中序：   左中右     [4, 5, 6, 7]
-  		参考资料： https://blog.csdn.net/qq_40693171/article/details/99699862
+  		
   		
 	 * 前中后序遍历
 	 * @param node
@@ -213,20 +220,24 @@ public class TreeTest {
 		
 	}
 	
-	
-	public Node remove(int x, Node t)// 删除节点
+	// 递归 删除节点   ,  使用右节点最小值，替换
+	public Node remove(int x, Node t)
 	{
 		if (t == null) {
 			return null;
 		}
 		if (x < t.value) {
+			System.out.println("左---------");
 			t.left = remove(x, t.left);
+			System.out.println("左+++++++++");
 		} else if (x > t.value) {
+			System.out.println("右   --------");
 			t.right = remove(x, t.right);
+			System.out.println("右  +++++++++");
 		} else if (t.left != null && t.right != null)// 左右节点均不空
 		{
 			t.value = findMin(t.right).value;// 找到右侧最小值替代
-			t.right = remove(t.value, t.right);
+			t.right = remove(t.value, t.right);  // 更新当前节点右节点，删除 需要替换的值。（即右侧最小值节点）
 		} else // 左右单空或者左右都空
 		{
 			if (t.left == null && t.right == null) {
@@ -241,5 +252,36 @@ public class TreeTest {
 		return t;
 	}
 	
+	// 递归 删除节点   ,  使用左节点最大值，替换
+	public Node removeByLeftMax(int x ,Node t) {
+		if(t == null) {
+			return null;
+		}
+		if(x < t.value) {
+			// 必须赋值  ,要不然后续替换后的值，返回不到上一层。
+			t.left = removeByLeftMax(x,t.left);
+		}else if(x > t.value) {
+			// 必须赋值
+			t.right = removeByLeftMax(x,t.right);
+		}else {
+			if( t.left != null && t.right != null) {
+				// 必须赋值
+				t.value = findMax(t.left).value;
+				// 必须赋值
+				t.left = removeByLeftMax(t.value, t.left);
+			}else {
+				if (t.left == null && t.right == null) {
+					 t = null;
+				}else if (t.right != null) {
+					 t = t.right;
+				}else if (t.left != null) {
+					 t = t.left;
+				}
+//				// 为什么要返回t????  可以不用return
+//				return t;
+			}
+		}
+		return t;
+	}
 		
 }
