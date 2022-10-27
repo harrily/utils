@@ -29,6 +29,7 @@ public class AvlTree {
     }
 
 	Node node ;
+	// 节点递归获取高度
 	public int getHeight(Node t) {
         if(t==null) {return -1;}//
         int l = getHeight(t.left);
@@ -36,6 +37,12 @@ public class AvlTree {
         return 1 + Math.max(l, r);
 //        return 1+Math.max(getHeight(t.left), getHeight(t.right));
     }
+	// insert的时候，记录新插入节点的高度，,balance不需要每次都递归获取高度。
+	public int getHeight2(Node t) {
+        if(t==null) {return -1;}//
+        return t.height;
+    }
+	
 	
 	/**
 	 * : 左 旋   (在结点oldNode 的 右结点（newNode） 的 右子树（H3） 上做了插入元素(n1,n2)的操作，我们称这种情况为 右右型 ，我们应该进行左旋转。 )	
@@ -53,10 +60,19 @@ public class AvlTree {
 	public Node getRRbalance(Node oldNode) {
 		Node newNode = oldNode.right;
 		oldNode.right = oldNode.right.left;
+		System.out.println("getHeight2(newNode.left):::"+getHeight2(newNode.left));
+		System.out.println("getHeight2(newNode.right):::"+getHeight2(newNode.right));
 		newNode.left =  oldNode; 
+		System.out.println("getHeight2(newNode.left):::"+getHeight2(newNode.left));
+		System.out.println("getHeight2(newNode.right):::"+getHeight2(newNode.right));
 		// old 和 new 树的高度需要重新计算
-		oldNode.height = Math.max(getHeight(oldNode.left),getHeight(oldNode.right))+1;
-		newNode.height = Math.max(getHeight(newNode.left),getHeight(newNode.right))+1;
+		System.out.println("oldNode.heigh:---++++---"+oldNode.height);
+		oldNode.height = Math.max(getHeight2(oldNode.left),getHeight2(oldNode.right))+1;
+		System.out.println("oldNode.heigh:-------"+oldNode.height);
+		System.out.println("getHeight2(newNode.left)>>>>>>"+getHeight2(newNode.left));
+		System.out.println("getHeight2(newNode.right)>>>>>>"+getHeight2(newNode.right));
+		newNode.height = Math.max(getHeight2(newNode.left),getHeight2(newNode.right))+1;
+		System.out.println("======="+newNode.height);
 		return newNode;
 	}
 	
@@ -79,8 +95,8 @@ public class AvlTree {
 		oldNode.left = oldNode.left.right;
 		newNode.right =  oldNode; 
 		// old 和 new 树的高度需要重新计算
-		oldNode.height = Math.max(getHeight(oldNode.left),getHeight(oldNode.right))+1;
-		newNode.height = Math.max(getHeight(newNode.left),getHeight(newNode.right))+1;
+		oldNode.height = Math.max(getHeight2(oldNode.left),getHeight2(oldNode.right))+1;
+		newNode.height = Math.max(getHeight2(newNode.left),getHeight2(newNode.right))+1;
 		return newNode;
 	}
 	
@@ -101,7 +117,7 @@ public class AvlTree {
 	 */
 	public Node getLRbalance(Node oldNode) {
 		oldNode.left = getRRbalance(oldNode.left);
-		oldNode.height = Math.max(getHeight(oldNode.left), getHeight(oldNode.right))+1;
+		oldNode.height = Math.max(getHeight2(oldNode.left), getHeight2(oldNode.right))+1;
 		Node lLbalance = getLLbalance(oldNode);
 		return lLbalance;
 	}
@@ -123,7 +139,7 @@ public class AvlTree {
 	 */
 	public Node getRLbalance(Node oldNode) {
 		oldNode.right = getLLbalance(oldNode.right);
-		oldNode.height = Math.max(getHeight(oldNode.left), getHeight(oldNode.right))+1;
+		oldNode.height = Math.max(getHeight2(oldNode.left), getHeight2(oldNode.right))+1;
 		Node lLbalance = getRRbalance(oldNode);
 		return lLbalance;
 	}
@@ -131,7 +147,7 @@ public class AvlTree {
 	
 	
 	/**
-	 *   AVL插入操作
+	 *   AVL插入操作  非递归
 	 * @param x
 	 * @return
 	 */
@@ -139,7 +155,7 @@ public class AvlTree {
 		Node current = node;
 		if(node == null) { 
 			node = new Node(x);
-			node.height=Math.max(getHeight(node.left),getHeight(node.right))+1;//不要写成递归， 递归效率低
+//			node.height=Math.max(getHeight(node.left),getHeight(node.right))+1;//不要写成递归， 递归效率低
 			System.out.println("node.height000:"+node.height + " value : "+node.value);
 			return node;
 			}
@@ -147,11 +163,11 @@ public class AvlTree {
 			if(x < current.value) {
 				if(current.left == null) {
 					current.left =  new Node(x);
-					current.height=Math.max(getHeight(current.left),getHeight(current.right))+1;//不要写成递归， 递归效率低
+//					current.height=Math.max(getHeight(current.left),getHeight(current.right))+1;//不要写成递归， 递归效率低
 					System.out.println("current.height111:"+current.height + " value : "+current.value);
 					return  current.left;
 				}else {
-					current.height=Math.max(getHeight(current.left),getHeight(current.right))+1;//不要写成递归， 递归效率低
+//					current.height=Math.max(getHeight(current.left),getHeight(current.right))+1;//不要写成递归， 递归效率低
 					System.out.println("current.height222:"+current.height+ " value : "+current.value);
 					current = current.left;
 				}
@@ -159,45 +175,94 @@ public class AvlTree {
 			if(x > current.value) {
 				if(current.right == null) {
 					current.right =  new Node(x);
-					current.height=Math.max(getHeight(current.left),getHeight(current.right))+1;//不要写成递归， 递归效率低
+//					current.height=Math.max(getHeight(current.left),getHeight(current.right))+1;//不要写成递归， 递归效率低
 					System.out.println("current.height333:"+current.height+ " value : "+current.value);
-					return  current.right;
+					return current.right;
 				}else {
-					current.height=Math.max(getHeight(current.left),getHeight(current.right))+1;//不要写成递归， 递归效率低
+//					current.height=Math.max(getHeight(current.left),getHeight(current.right))+1;//不要写成递归， 递归效率低
 					System.out.println("current.height444:"+current.height+ " value : "+current.value);
 					current = current.right;
 				}
 			}
 		}
-		
 		return current;
+		
+//		return Balance(current);
 	}
 	//  递归插入
 	public Node insert1(int value) {
 		return node = insert(value, node);
     }
-	//实现
-	public Node insert(int x,Node t)//插入   t是root的引用
+	
+	//递归实现  ,  递归从底到高， 每层遍历是否需要balance。
+	public Node insert(int x,Node t)//插入   t是node = root的引用
     {
 		Node a1=new Node(x);
-        //if(root==null) {root=a1;return root;}		
-        if(t==null)    {return a1;}
+        if(t==null)    
+        {
+        	return a1;
+        }
         //插入操作。递归实现
         else if(t!=null)
         {
             if(x<t.value)
-            { t.left=insert(x,t.left);}
+            {
+            	t.left=insert(x,t.left);
+            }
             else
-            { t.right= insert(x,t.right);}
+            { 
+            	t.right= insert(x,t.right);
+            }
         }
         /*
          * 更新当前节点的高度，因为整个插入只有被插入的一方有影响，
          * 所以递归会更新好最底层的，上层可直接调用
          */
-        t.height=Math.max(getHeight(t.left),getHeight(t.right))+1;//不要写成递归， 递归效率低
-        System.out.println("t高度:"+t.height+ " t is value : "+t.value);
-        return t;//因为java对象传参机制，需要克隆，不可直接t=xx 否则变换	  
+      //    记录当前节点的高度 (不要写成递归， 递归效率低)
+        t.height=Math.max(getHeight2(t.left),getHeight2(t.right))+1;
+        
+//        System.out.println("t高度:"+t.height+ " t is value : "+t.value);
+        return Balance(t);
+//        return t;
     }
+	
+	/**
+	 *  平衡avl数
+	 * @param node
+	 * @return
+	 */
+	public Node Balance(Node node) {
+		if(node == null) {
+			return node;
+		}
+		if(Math.abs(getHeight2(node.left) - getHeight2(node.right))  <= 1 ) {
+			System.out.println("balance:left:"+getHeight2(node.left));
+			System.out.println("balance:right:"+getHeight2(node.right));
+			System.out.println("balance: value:"+node.value);
+			return node;
+		}
+		else if(getHeight2(node.left) > getHeight2(node.right)  ) {
+//			System.out.println("1:"+ node.value);
+			if(getHeight2(node.left.left) > getHeight2(node.left.right) ) {
+//				System.out.println("2: "+ node.value);
+				return getLLbalance(node);
+			}else {
+//				System.out.println("3:"+ node.value);
+				return getLRbalance(node);
+			}
+		
+		}else {
+			System.out.println("a:"+ node.value);
+			if(getHeight2(node.right.right) > getHeight2(node.right.left)) {
+				System.out.println("b:"+ node.value +" "+ getHeight2(node.right.right) + " "+getHeight2(node.right.left));
+				return getRRbalance(node);
+			}else {
+				System.out.println("c:"+ node.value);
+				return getRLbalance(node);
+			}
+		}
+	}
+	
 	
 	public List<Integer> MiddleSearch(Node node,List<Integer> list,int flag){
 		if(node == null){
@@ -227,41 +292,55 @@ public class AvlTree {
 	
 	public static void main(String[] args) {
 		AvlTree avlTree = new AvlTree();
+		// 非递归插入
 //		 Node node = avlTree.insert(15);
-//		 avlTree.insert(6);
+//		 avlTree.insert(8);
 //		 avlTree.insert(23);
 //		 avlTree.insert(4);
-//		 avlTree.insert(7);
+//		 avlTree.insert(11);
 //		 avlTree.insert(5);
 //		 avlTree.insert(19);
-//		 avlTree.insert(17);
+//		 	avlTree.insert(17);
 ////		 treeTest.insert(21);
 //		 avlTree.insert(71);
-//		 avlTree.insert(50);
-//		 avlTree.insert(75);
+//		 	avlTree.insert(50);
+//			 avlTree.insert(75);
+//		 // 新插入不平衡节点 6
+//		 avlTree.insert(6);
+//		 Node balance = avlTree.Balance(node);
 		
 		 /**
-		  * 				     15
-		  * 			6                 23
-		  * 		4      7		 19        71
-		  *            5          17          50	  75      
-		  * 
+		  * 				      15
+		  * 				/            \
+		  * 			  8                23
+		  * 			/   \           /      \
+		  * 		  4      11		  19          71
+		  * 		    \             /         /    \	
+		  *              5          17        50	  75
+		  *               \      
+		  * 			   6(new)
 		  */
-		
-		Node insert1 = avlTree.insert1(15);
-		 avlTree.insert1(6);
+		// 递归插入
+		 Node insert1 = avlTree.insert1(15);
+		 avlTree.insert1(8);
 		 avlTree.insert1(23);
 		 avlTree.insert1(4);
-		 avlTree.insert1(7);
-		 avlTree.insert1(5);
+		 avlTree.insert1(11);
+//		 avlTree.insert1(5);  //此时插入，需要balance
 		 avlTree.insert1(19);
+		 avlTree.insert1(71);  
 		 avlTree.insert1(17);
+		 avlTree.insert1(5);
 //		 treeTest.insert(21);
-		 avlTree.insert1(71);
+//		 avlTree.insert1(71);  //此时插入，需要balance
 		 avlTree.insert1(50);
 		 avlTree.insert1(75);
-		
+		 avlTree.insert1(6);   //此时插入，需要balance
+		 
 		 List<Integer> list = new ArrayList<Integer>();
+		 List<Integer> list2 = new ArrayList<Integer>();
 		 System.out.println(avlTree.MiddleSearch(insert1, list, 1));
+//		 System.out.println(avlTree.MiddleSearch(balance, list2, 1));
+		 System.out.println(avlTree.getHeight(avlTree.node));
 	}
 }
