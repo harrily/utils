@@ -58,21 +58,25 @@ public class AvlTree {
 	 * @return
 	 */
 	public Node getRRbalance(Node oldNode) {
-		Node newNode = oldNode.right;
-		oldNode.right = oldNode.right.left;
-		System.out.println("getHeight2(newNode.left):::"+getHeight2(newNode.left));
-		System.out.println("getHeight2(newNode.right):::"+getHeight2(newNode.right));
-		newNode.left =  oldNode; 
-		System.out.println("getHeight2(newNode.left):::"+getHeight2(newNode.left));
-		System.out.println("getHeight2(newNode.right):::"+getHeight2(newNode.right));
+		/**
+		  * 				      15
+		  * 				/            \
+		  * 			  8                23
+		  * 			/   \           /      \				-->      5 
+		  * 		  4      11		  19          71			       /   \
+		  * 		    \             /         /    \				  4      6
+		  *              5          17        50	  75
+		  *               \      
+		  * 			   6(new)
+		  */
+//		System.out.println(">>>>>>>>>>>>>>>>>>>>>>"+ oldNode.value);  // 最后插入6,此时4节点不平衡 
+		Node newNode = oldNode.right;     // newNode的节点高度更新为oldNode.right
+		oldNode.right = oldNode.right.left;  //替换节点， 更新old。right的高度 （从 1 --> -1）
+		newNode.left =  oldNode; // oldNode 的高度 替换给newNodeleft， 此时是value = 4 ，height = 2
 		// old 和 new 树的高度需要重新计算
-		System.out.println("oldNode.heigh:---++++---"+oldNode.height);
-		oldNode.height = Math.max(getHeight2(oldNode.left),getHeight2(oldNode.right))+1;
-		System.out.println("oldNode.heigh:-------"+oldNode.height);
-		System.out.println("getHeight2(newNode.left)>>>>>>"+getHeight2(newNode.left));
-		System.out.println("getHeight2(newNode.right)>>>>>>"+getHeight2(newNode.right));
-		newNode.height = Math.max(getHeight2(newNode.left),getHeight2(newNode.right))+1;
-		System.out.println("======="+newNode.height);
+		oldNode.height = Math.max(getHeight2(oldNode.left),getHeight2(oldNode.right))+1; //更新oldNode的高度(即更newNode.left高度，对象引用)，  height=0
+		newNode.height = Math.max(getHeight2(newNode.left),getHeight2(newNode.right))+1; // 
+//		System.out.println("======="+newNode.height);
 		return newNode;
 	}
 	
@@ -147,7 +151,7 @@ public class AvlTree {
 	
 	
 	/**
-	 *   AVL插入操作  非递归
+	 *   AVL插入操作  非递归  ---> 待完善
 	 * @param x
 	 * @return
 	 */
@@ -218,9 +222,8 @@ public class AvlTree {
          * 更新当前节点的高度，因为整个插入只有被插入的一方有影响，
          * 所以递归会更新好最底层的，上层可直接调用
          */
-      //    记录当前节点的高度 (不要写成递归， 递归效率低)
+      //    记录当前节点的高度 (后续balance的时候，只需要更新newRoot和oldRoot的高度)
         t.height=Math.max(getHeight2(t.left),getHeight2(t.right))+1;
-        
 //        System.out.println("t高度:"+t.height+ " t is value : "+t.value);
         return Balance(t);
 //        return t;
