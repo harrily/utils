@@ -158,7 +158,7 @@ public class BinarySortTree {
 		return current;
 	}
 	
-	
+	// 删除 非递归形式
 	public boolean Delete(int x) {
 		
 		Node current = root ;
@@ -251,8 +251,8 @@ public class BinarySortTree {
 			System.out.println("右  +++++++++");
 		} else if (t.left != null && t.right != null)// 左右节点均不空
 		{
-			t.value = findMin(t.right).value;// 找到右侧最小值替代
-			t.right = remove(t.value, t.right);  // 更新当前节点右节点，删除 需要替换的值。（即右侧最小值节点）
+			t.value = findMin(t.right).value;// 找到右侧最小值替代  待删除节点的值。 
+			t.right = remove(t.value, t.right);  // 更新当前节点右节点，删除 需要替换的值。（即右侧最小值节点，此节点必没有叶子节点，故可以直接删除）
 		} else // 左右单空或者左右都空
 		{
 			if (t.left == null && t.right == null) {
