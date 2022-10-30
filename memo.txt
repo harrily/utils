@@ -7351,7 +7351,8 @@ param="df -h"; list=("prodata01" "prodata02" "prodata03" "prodata04" "promaster0
 124¡¢github  token   [https://github.com/harrily/utils.git/]
 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
 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
-git remote set-url origin https://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@github.com/harrily/utils.git
+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
+git remote set-url origin https://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@github.com/harrily/utils.git
 
 git config --global user.email "17603018123@163.com"
 git config --global user.name "harrily"
