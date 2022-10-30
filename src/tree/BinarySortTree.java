@@ -32,15 +32,15 @@ public class BinarySortTree {
 		 List<Integer> list = new ArrayList<Integer>();
 		 // 前  [15, 6, 4, 5, 7, 23, 19, 17, 71, 50, 75]
 		 // 后 [5, 4, 7, 6, 17, 19, 50, 75, 71, 23, 15]
-//		 System.out.println(treeTest.MiddleSearch(node,list,2));
+//		 System.out.println(treeTest.MiddleSearch(node,list,1));
 		 // 删除while测试    [15, 6, 4, 5, 7, 19, 17, 71, 50, 75]  左大
 //		 System.out.println(treeTest.Delete(23));  
 		 // // 删除递归 测试  左大 
-//		 System.out.println(treeTest.removeByLeftMax(5, node));  
+		 System.out.println(treeTest.removeByLeftMax(6, node));  
 		 // 官网 demo[15, 6, 4, 5, 7, 50, 19, 17, 71, 75] 右小
 //		 System.out.println(treeTest.remove(71, node));  
 		 System.out.println(treeTest.MiddleSearch(node,list,1));
-		 System.out.println(treeTest.getHeight(node));
+//		 System.out.println(treeTest.getHeight(node));
 		 
 		 
 	}
@@ -93,7 +93,7 @@ public class BinarySortTree {
 		
 		return list;
 	}
-	
+	//查找最小节点
 	public Node findMin(Node root){
 		if(root == null) { return null;}
 		while(root.left != null) {
@@ -101,7 +101,7 @@ public class BinarySortTree {
 		}
 		return root;
 	}
-	
+	//查找最大节点
 	public Node findMax(Node root){
 		if(root == null) { return null;}
 		while(root.right != null) {
@@ -109,7 +109,7 @@ public class BinarySortTree {
 		}
 		return root;
 	}
-	
+	//是否存在值x
 	public boolean isContains(int x){
 		Node current = root;
 		if(root == null) { return false;}
@@ -230,9 +230,7 @@ public class BinarySortTree {
 				return true;
 			}
 		}
-		
 		return false;
-		
 	}
 	
 	// 递归 删除节点   ,  使用右节点最小值，替换
