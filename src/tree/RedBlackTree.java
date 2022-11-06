@@ -41,4 +41,100 @@ public class RedBlackTree {
 	 * 
 	 */
 	
+	class RBTreeNode{
+		final boolean RED = false;
+		final boolean BLACK = true;
+		int key ;
+		boolean color ;
+		RBTreeNode left ;
+		RBTreeNode right ;
+		RBTreeNode parent;
+		
+		public RBTreeNode(int key){
+			this.key = key;
+			this.color = RED;
+		}
+		public RBTreeNode(int key,RBTreeNode left,RBTreeNode right ,RBTreeNode parent){
+			this.key = key;
+			this.color = RED;
+			this.left = left;
+			this.right = right;
+			this.parent = parent;
+		}
+		
+		public int getKey() {
+			return key;
+		}
+		public void setKey(int key) {
+			this.key = key;
+		}
+		public boolean isColor() {
+			return color;
+		}
+		public void setColor(boolean color) {
+			this.color = color;
+		}
+		public RBTreeNode getLeft() {
+			return left;
+		}
+		public void setLeft(RBTreeNode left) {
+			this.left = left;
+		}
+		public RBTreeNode getRight() {
+			return right;
+		}
+		public void setRight(RBTreeNode right) {
+			this.right = right;
+		}
+		public RBTreeNode getParent() {
+			return parent;
+		}
+		public void setParent(RBTreeNode parent) {
+			this.parent = parent;
+		}
+	} 
+	
+	RBTreeNode root ;
+	final boolean RED = false;
+	final boolean BLACK = true;
+	/**
+	 *   红黑树插入操作
+	 * @param key
+	 * @return
+	 */
+	public RBTreeNode insert(int key) {
+		RBTreeNode node = root;
+		if(root == null) {
+			root = new RBTreeNode(key);
+			root.setColor(BLACK);
+			return root;
+		}
+		while(node != null) {
+			if(key > node.key ) {
+				if(node.right == null) {
+					RBTreeNode rbTreeNode = new RBTreeNode(key);
+					rbTreeNode.setParent(node);
+					return rbTreeNode;
+				}else {
+					node = node.right;
+				}
+			}
+			if(key < node.key) {
+				if(node.left == null) {
+					RBTreeNode rbTreeNode = new RBTreeNode(key);
+					rbTreeNode.setParent(node);
+					return rbTreeNode;
+				}else {
+					node = node.left;
+				}
+			}
+		}
+		return node;
+	}
+	
+	
+	
+	
+	
+	
 }
