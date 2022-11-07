@@ -1,9 +1,6 @@
 package tree;
 
 public class RedBlackTree {
-	
-	
-	
 	/**
 	 * 
 	 * 		插入情况汇总
@@ -41,6 +38,133 @@ public class RedBlackTree {
 	 * 
 	 */
 	
+	RBTreeNode root ;
+	final boolean RED = false;
+	final boolean BLACK = true;
+	/**
+	 *   红黑树插入操作
+	 * @param key
+	 * @return
+	 */
+	public RBTreeNode insert(int key) {
+		RBTreeNode node = root;
+		if(root == null) {
+			root = new RBTreeNode(key);
+			root.color= BLACK;
+			return root;
+		}
+		while(node != null) {
+			if(key > node.key ) {
+				if(node.right == null) {
+					RBTreeNode rbTreeNode = new RBTreeNode(key);
+					rbTreeNode.parent = node;
+					return rbTreeNode;
+				}else {
+					node = node.right;
+				}
+			}
+			if(key < node.key) {
+				if(node.left == null) {
+					RBTreeNode rbTreeNode = new RBTreeNode(key);
+					rbTreeNode.parent = node;
+					return rbTreeNode;
+				}else {
+					node = node.left;
+				}
+			}
+		}
+		return node;
+	}
+	
+	/**
+	 * 
+	 	oldNode 
+	2  		 newNode 
+		     4     5
+		             inNode
+	 *  左旋
+	 * @param node
+	 * @return
+	 */
+	public RBTreeNode getRRbalance(RBTreeNode oldNode) {
+	    RBTreeNode newNode = oldNode.right;
+	    RBTreeNode parent = oldNode.parent;
+	    oldNode.right = newNode.left;
+	    // newNode的左节点，父节点赋值（父节点的左右节点赋值已操作，其实就是oldNode的左右节点重赋值）
+	    if(newNode.left != null) {
+	    	newNode.left.parent = oldNode;
+	    }
+	    newNode.left = oldNode;
+	    // 更新newNode的父节点
+	    newNode.parent = parent;
+	    // oldNode 的父节点，  左or右节点重新赋值
+	    if(parent != null) {
+	    	if(parent.left != null && parent.left  == oldNode) {
+	    		parent.left = newNode;
+	    	}else {
+	    		parent.right = newNode;
+	    	}
+	    }
+	    // 更新oldNode的父节点
+	    oldNode.parent = newNode;
+		return newNode;
+		
+//		    RedBlackTreeNode right = node.getRight();
+//	        RedBlackTreeNode parent = node.getParent();
+//	 
+//	        node.setRight(right.getLeft());
+//	        if(right.getLeft() != null){
+//	            right.getLeft().setParent(node);
+//	        }
+//	        node.setParent(right);
+//	 
+//	        right.setLeft(node);
+//	        if(parent == null){
+//	            root = right;
+//	            right.setParent(null);
+//	        }else{
+//	            right.setParent(parent);
+//	            if(parent.getLeft() != null && parent.getLeft() == node){
+//	                parent.setLeft(right);
+//	            }else{
+//	                parent.setRight(right);
+//	            }
+//	        }
+
+		
+	}
+	/**
+	 * 右旋
+	 * 
+				 	oldNode 
+				newNode  	6	  
+			    4     5
+		   innode		             
+	 * 
+	 * @param node
+	 * @return
+	 */
+	public RBTreeNode getLLbalance(RBTreeNode oldNode) {
+		RBTreeNode newNode = oldNode.left;
+	    RBTreeNode parent = oldNode.parent;
+	    oldNode.left = newNode.right;
+	    if(newNode.right != null) {
+	    	newNode.right.parent = oldNode;
+	    }
+	    newNode.right = oldNode;
+	    newNode.parent = parent;
+	    if(parent != null) {
+	    	if(parent.left != null && parent.left  == oldNode) {
+	    		parent.left = newNode;
+	    	}else {
+	    		parent.right = newNode;
+	    	}
+	    }
+	    oldNode.parent = newNode;
+		return newNode;
+	}
+	
+
 	class RBTreeNode{
 		final boolean RED = false;
 		final boolean BLACK = true;
@@ -62,78 +186,37 @@ public class RedBlackTree {
 			this.parent = parent;
 		}
 		
-		public int getKey() {
-			return key;
-		}
-		public void setKey(int key) {
-			this.key = key;
-		}
-		public boolean isColor() {
-			return color;
-		}
-		public void setColor(boolean color) {
-			this.color = color;
-		}
-		public RBTreeNode getLeft() {
-			return left;
-		}
-		public void setLeft(RBTreeNode left) {
-			this.left = left;
-		}
-		public RBTreeNode getRight() {
-			return right;
-		}
-		public void setRight(RBTreeNode right) {
-			this.right = right;
-		}
-		public RBTreeNode getParent() {
-			return parent;
-		}
-		public void setParent(RBTreeNode parent) {
-			this.parent = parent;
-		}
+//		public int getKey() {
+//			return key;
+//		}
+//		public void setKey(int key) {
+//			this.key = key;
+//		}
+//		public boolean isColor() {
+//			return color;
+//		}
+//		public void setColor(boolean color) {
+//			this.color = color;
+//		}
+//		public RBTreeNode getLeft() {
+//			return left;
+//		}
+//		public void setLeft(RBTreeNode left) {
+//			this.left = left;
+//		}
+//		public RBTreeNode getRight() {
+//			return right;
+//		}
+//		public void setRight(RBTreeNode right) {
+//			this.right = right;
+//		}
+//		public RBTreeNode getParent() {
+//			return parent;
+//		}
+//		public void setParent(RBTreeNode parent) {
+//			this.parent = parent;
+//		}
 	} 
-	
-	RBTreeNode root ;
-	final boolean RED = false;
-	final boolean BLACK = true;
-	/**
-	 *   红黑树插入操作
-	 * @param key
-	 * @return
-	 */
-	public RBTreeNode insert(int key) {
-		RBTreeNode node = root;
-		if(root == null) {
-			root = new RBTreeNode(key);
-			root.setColor(BLACK);
-			return root;
-		}
-		while(node != null) {
-			if(key > node.key ) {
-				if(node.right == null) {
-					RBTreeNode rbTreeNode = new RBTreeNode(key);
-					rbTreeNode.setParent(node);
-					return rbTreeNode;
-				}else {
-					node = node.right;
-				}
-			}
-			if(key < node.key) {
-				if(node.left == null) {
-					RBTreeNode rbTreeNode = new RBTreeNode(key);
-					rbTreeNode.setParent(node);
-					return rbTreeNode;
-				}else {
-					node = node.left;
-				}
-			}
-		}
-		return node;
-	}
-	
-	
-	
 	
 	
 	
