@@ -1,5 +1,10 @@
 package tree;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import tree.AvlTree.Node;
+
 public class RedBlackTree {
 	/**
 	 * 
@@ -56,24 +61,94 @@ public class RedBlackTree {
 		while(node != null) {
 			if(key > node.key ) {
 				if(node.right == null) {
-					RBTreeNode rbTreeNode = new RBTreeNode(key);
-					rbTreeNode.parent = node;
-					return rbTreeNode;
+					RBTreeNode newNode = new RBTreeNode(key);
+					newNode.parent = node;
+					newNode.color = RED;
+					node.right = newNode;
+//					return newNode;
+					return getBalance(newNode);
 				}else {
 					node = node.right;
 				}
 			}
 			if(key < node.key) {
 				if(node.left == null) {
-					RBTreeNode rbTreeNode = new RBTreeNode(key);
-					rbTreeNode.parent = node;
-					return rbTreeNode;
+					RBTreeNode newNode = new RBTreeNode(key);
+					newNode.parent = node;
+					newNode.color = RED;
+					node.left = newNode;
+//					return newNode;
+					return getBalance(newNode);
 				}else {
 					node = node.left;
 				}
 			}
 		}
-		return node;
+		return null;
+	}
+	
+	public RBTreeNode getBalance(RBTreeNode newNode) {
+		if(newNode.parent != null) {
+			if( newNode.parent.color == BLACK) {
+				return  newNode;
+			}else {
+				RBTreeNode parent = newNode.parent;
+				RBTreeNode grandpa = parent.parent;
+				if(grandpa != null) {
+					// uncle 是 右 节点
+					if(grandpa.left != null && grandpa.left == parent) {
+						if(grandpa.right != null && grandpa.right.color == RED) {
+							parent.color = BLACK;
+							grandpa.right.color = BLACK;
+							grandpa.color = RED;
+							return getBalance(grandpa);
+						}else {
+							//右旋
+							if(newNode == parent.left) {
+								parent.color = BLACK;
+								grandpa.color = RED;
+								return getLLbalance(grandpa);
+							}
+							// 左右旋
+							if( newNode == parent.right) {
+								newNode.color = BLACK;
+								grandpa.color = RED;
+								parent = getRRbalance(parent);
+								return getLLbalance(grandpa);
+							}
+						}
+					}else {  // uncle 是左孩子
+						if(grandpa.left != null && grandpa.left.color == RED) {
+							parent.color = BLACK;
+							grandpa.left.color = BLACK;
+							grandpa.color = RED;
+							return getBalance(grandpa);
+						}else {
+							//左旋
+							if( newNode == parent.right) {
+								parent.color = BLACK;
+								grandpa.color = RED;
+								return getRRbalance(grandpa);
+							}
+							// 右左旋
+							if( newNode == parent.left) {
+								newNode.color = BLACK;
+								grandpa.color = RED;
+								parent = getLLbalance(parent);
+								return getRRbalance(grandpa);
+							}
+						}
+					}
+				}
+				else {
+					root.color = BLACK;
+				}
+		  }
+		}else {
+			newNode.color = BLACK;
+			return newNode;
+		}
+		return null;
 	}
 	
 	/**
@@ -217,7 +292,54 @@ public class RedBlackTree {
 //			this.parent = parent;
 //		}
 	} 
+	/**
+	 * 前后中序遍历  1,2，3
+	 * @param node
+	 * @param list
+	 * @param flag
+	 * @return
+	 */
+	public void MiddleSearch(RBTreeNode node,int flag){
+		if(node == null){
+			return;
+        }
+		if(flag == 1 ) {
+//			list.add(node.key);  // 前序
+			System.out.println(node.key + "color:"+ (node.color == true?"Black":"Red"));
+			MiddleSearch(node.left,flag);
+			MiddleSearch(node.right,flag);
+		}
+		if(flag == 2 ) {
+			
+			MiddleSearch(node.left,flag);
+//			list.add(node.key);  // 中序
+			System.out.println(node.key + "color:"+ (node.color == true?"Black":"Red"));
+			MiddleSearch(node.right,flag);
+		}
+		if(flag == 3 ) {
+			MiddleSearch(node.left,flag);
+			MiddleSearch(node.right,flag);
+//			list.add(node.key);  // 后序
+			System.out.println(node.key + "color:"+ (node.color == true?"Black":"Red"));
+		}
+	}
 	
+	public static void main(String[] args) {
+		 RedBlackTree tree = new RedBlackTree();
+	        RBTreeNode insert = tree.insert(13);
+	        tree.insert(8);
+	        tree.insert(17);
+	        tree.insert(1);
+	        tree.insert(11);
+	        tree.insert(15);
+	        tree.insert(25);
+	        tree.insert(6);
+	        tree.insert(22);
+	        tree.insert(27);
+	        tree.insert(21);
+	        List<Integer> list = new ArrayList<Integer>();
+	        tree.MiddleSearch(insert, 2);
 	
+	}
 	
 }
