@@ -120,7 +120,7 @@ public class AvlTree {
 	 * @return
 	 */
 	public Node getLRbalance(Node oldNode) {
-		oldNode.left = getRRbalance(oldNode.left);
+		oldNode.left = getRRbalance(oldNode.left);// 左节点平衡后，覆盖
 		oldNode.height = Math.max(getHeight2(oldNode.left), getHeight2(oldNode.right))+1;
 		Node lLbalance = getLLbalance(oldNode);
 		return lLbalance;

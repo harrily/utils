@@ -40,7 +40,8 @@ public class RedBlackTree {
 					2、如果uncle为Black or null ,则应该参考  LL/RR进行处理。
 	 *  		
 	 *  
-	 * 
+	 * author: wangyingnan
+	 * date:2022-11-08
 	 */
 	
 	RBTreeNode root ;
@@ -94,8 +95,8 @@ public class RedBlackTree {
 			}else {
 				RBTreeNode parent = newNode.parent;
 				RBTreeNode grandpa = parent.parent;
-				if(grandpa != null) {
-					// uncle 是 右 节点
+//				if(grandpa != null) {  // 当前节点的 parent不为null， 且parent为RED。  所以grandPa肯定不会为null，故不需要判断。
+					// uncle 是 右孩子
 					if(grandpa.left != null && grandpa.left == parent) {
 						if(grandpa.right != null && grandpa.right.color == RED) {
 							parent.color = BLACK;
@@ -139,13 +140,13 @@ public class RedBlackTree {
 							}
 						}
 					}
-				}
-				else {
-					root.color = BLACK;
-				}
+//				}
+//				else {
+//					root.color = BLACK;
+//				}
 		  }
 		}else {
-			newNode.color = BLACK;
+			newNode.color = BLACK;//当前节点为根节点，重新赋颜色为 BLACK
 			return newNode;
 		}
 		return null;
@@ -336,10 +337,131 @@ public class RedBlackTree {
 	        tree.insert(6);
 	        tree.insert(22);
 	        tree.insert(27);
-	        tree.insert(21);
+	        /**
+	         * 	  -- 插入21前 
+	         * 	            13-B
+	         *         /            \
+	         *       8-R             17-R
+	         *     /     \          /     \       
+	         *   1-B     11-B     15-B   25-B 
+	         *      \				    /   \ 
+	         *     6-R                22-R  27-R
+	         * 
+	         * 	   -- 插入21之后
+	         * 	            13-B
+	         *         /            \
+	         *       8-B             17-B
+	         *     /     \          /     \       
+	         *   1-B     11-B     15-B    25-R 
+	         *      \				    /   \ 
+	         *     6-R                22-B  27-B
+	         *                        /
+	         *                      21-R
+	         */
+//	        tree.insert(21);   // ,递归  【parent = red, uncle = red】
+	        tree.insert(20);   // ,递归  【parent = red, uncle = red】
+	        /**
+	         *   -->   插入19之前
+	         *   
+	         *   	        13-B
+	         *         /            \
+	         *       8-B             17-B
+	         *     /     \          /     \       
+	         *   1-B     11-B     15-B    25-R 
+	         *      \				    /   \ 
+	         *     6-R                22-B  27-B
+	         *                        /
+	         *                      21-R
+	         *                      
+	         *   -->   插入19之后
+	         *   
+	         *   	        13-B
+	         *         /            \
+	         *       8-B             17-B
+	         *     /     \          /     \       
+	         *   1-B     11-B     15-B    25-R          
+	         *      \				    /   \ 
+	         *     6-R                22-B  27-B
+	         *                        /
+	         *                      21-R
+	         *                      /
+	         *                    19-R 	                              
+	         * 					
+	         * 
+				         * -- step1 :    ---> LL :   21-B,  22-R  ,右旋  【parent = red, uncle = black, LL型】
+				         *   	        13-B
+				         *         /            \
+				         *       8-B             17-B
+				         *     /     \          /     \       
+				         *   1-B     11-B     15-B    25-R          
+				         *      \				    /   \ 
+				         *     6-R                21-B  27-B
+				         *                        /  \
+				         *                      19-R  22-R
+				         	*          满足：
+	         *               
+	         *               
+	         */
+//	        tree.insert(19);   // 插入21后，此时插入19， 符合。右旋  【parent = red, uncle = black, LL型】
+	        /**
+	         * 
+	         * 	   -- 插入21之前
+	         * 	           13-B
+	         *         /            \
+	         *       8-B             17-B
+	         *     /     \          /     \       
+	         *   1-B     11-B     15-B    25-R 
+	         *      \				    /   \ 
+	         *     6-R                22-B  27-B
+	         *                        /
+	         *                      20-R
+	         *                      
+	         * 	   -- 插入21之后
+	         * 	           13-B
+	         *         /            \
+	         *       8-B             17-B
+	         *     /     \          /     \       
+	         *   1-B     11-B     15-B    25-R 
+	         *      \				    /   \ 
+	         *     6-R                22-B  27-B
+	         *                        /
+	         *                      20-R
+	         *                         	\
+	         *                          21-R
+				       
+				         *   ---> step1:  LR: 1-、  插入节点（newNode） 染为 Black , grandPa染为 Red 
+				         *   			      2-、  parent 左旋转，
+				         * 	            13-B
+				         *         /            \
+				         *       8-B             17-B
+				         *     /     \          /     \       
+				         *   1-B     11-B     15-B    25-R 
+				         *      \				    /   \ 
+				         *     6-R                22-R  27-B
+				         *                        /
+				         *                      21-B
+				         *                      /   
+				         *                    20-R   
+				         *                    
+				         *   ---> step2:  LR: 1-、 grandpa 右旋转
+				         *   			      
+				         * 	            13-B
+				         *         /            \
+				         *       8-B             17-B
+				         *     /     \          /     \       
+				         *   1-B     11-B     15-B    25-R 
+				         *      \				    /   \ 
+				         *     6-R                21-B   27-B
+				         *                        /   \
+				         *                      20-R  22-R
+				         *                      
+				         *       *          满足：
+	         *                          
+	         */
+	        tree.insert(21);  // 插入20后，此时插入21 ，符合， LR 【【parent = red, uncle = black, 】LR情况:   parent = grandpa.left , newNode = parent.right】
+//	        tree.insert(14); // 【parent = Black】  新节点设为红色即可。
 	        List<Integer> list = new ArrayList<Integer>();
 	        tree.MiddleSearch(insert, 2);
 	
 	}
-	
 }
