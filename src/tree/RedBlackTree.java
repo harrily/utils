@@ -175,6 +175,7 @@ public class RedBlackTree {
 				if(t.color == RED) {
 					RBTreeNode parent = t.parent;
 					t.parent = null;
+					t = null;
 					if(parent.left != null && parent.left == t) {
 						parent.left = null;
 					}else {
@@ -187,9 +188,11 @@ public class RedBlackTree {
 				}
 				// 3.有两个子节点时，与二叉搜索树一样，使用后继节点作为替换的删除节点，情形转至为1或2处理。
 			}else if(t.left != null && t.right != null) {
+				t.key = findMin(t).key;
+				t.right = remove(t.key,t.right);
 				
-				// 2.只有一个子节点时，删除节点t只能是黑色，其子节点为红色，否则无法满足红黑树的性质了。 此时用删除节点的子节点接到父节点，且将子节点颜色涂黑，保证黑色数量。
 			}else {
+				// 2.只有一个子节点时，删除节点t只能是黑色，其子节点为红色（且子节点无孩子），否则无法满足红黑树的性质了。 此时用删除节点的子节点接到父节点，且将子节点颜色涂黑，保证黑色数量。
 				RBTreeNode parent = t.parent;
 				RBTreeNode newNode;
 				if(t.left != null) {
@@ -204,13 +207,56 @@ public class RedBlackTree {
 				}
 				newNode.parent = parent;
 				newNode.color = BLACK;
+				t.parent = null;
+				t = null;
 				return newNode;
 			}
 		}
 		return null;
 	}
+			
+	/**			 GP
+	 * 		   /    \
+	 * 		 P       U
+	 * 		/  \
+	 *    D-b   S
+	 *    	   /  \
+	 *        SL   SR
+	 *        
+	 *  红黑树  平衡操作  -- 删除黑色节点之后的平衡操作
+	 *  	1、删除节点（D）为根节点， 不需要平衡
+	 *  	2、S(兄弟)为黑色
+	 *  		2.1、S子节点全黑
+	 *  			2.1.1、P(父节点)为红色
+	 *  					P与S颜色互换，平衡
+	 *  			
+	 * @param t
+	 * @return
+	 */
+	public RBTreeNode getRemoveBalance(RBTreeNode t) {
+		// 当前节点为根节点
+		if(t.parent == null) {
+			return t;
+		}
+		RBTreeNode parent = t.parent;
+		RBTreeNode grandPa = parent.parent;
+		
+		if(parent.left != null && parent.left == t) {
+			RBTreeNode Slibing = parent.right;
+		}
+		
+		
+		
+		return t;
+	}
 	
-	
+	public RBTreeNode findMin(RBTreeNode root){
+		if(root == null) { return null;}
+		while(root.left != null) {
+			root = root.left;
+		}
+		return root;
+	}
 	
 	/**
 	 * 
