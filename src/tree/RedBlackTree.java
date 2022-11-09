@@ -88,6 +88,7 @@ public class RedBlackTree {
 		return null;
 	}
 	
+	// 插入balance
 	public RBTreeNode getBalance(RBTreeNode newNode) {
 		if(newNode.parent != null) {
 			if( newNode.parent.color == BLACK) {
@@ -151,6 +152,65 @@ public class RedBlackTree {
 		}
 		return null;
 	}
+	
+	/**
+	 * 
+	 *  RB数删除操作：
+	     *  参考：https://www.jianshu.com/p/84416644c080
+	 * @param key
+	 * @return
+	 */
+	public RBTreeNode remove(int key,RBTreeNode t) {
+		if(t == null) {
+			return null;
+		}
+		if(key < t.key) {
+			t.left = remove(key, t.left);
+		}else if(key > t.key) {
+			t.right = remove(key, t.right);
+		}else {
+			// 1.无子节点时
+			if(t.left == null && t.right == null) {
+				//1.1 如果t为红色，直接删除即可，不会影响黑色节点的数量
+				if(t.color == RED) {
+					RBTreeNode parent = t.parent;
+					t.parent = null;
+					if(parent.left != null && parent.left == t) {
+						parent.left = null;
+					}else {
+						parent.right = null;
+					}
+					return parent;
+				}else {
+				//1.2 如果t为黑色，则需要进行删除平衡的操作了
+					// 删除平衡操作
+				}
+				// 3.有两个子节点时，与二叉搜索树一样，使用后继节点作为替换的删除节点，情形转至为1或2处理。
+			}else if(t.left != null && t.right != null) {
+				
+				// 2.只有一个子节点时，删除节点t只能是黑色，其子节点为红色，否则无法满足红黑树的性质了。 此时用删除节点的子节点接到父节点，且将子节点颜色涂黑，保证黑色数量。
+			}else {
+				RBTreeNode parent = t.parent;
+				RBTreeNode newNode;
+				if(t.left != null) {
+					newNode = t.left;
+				}else {
+					newNode= t.right;
+				}
+				if(parent.left !=null && parent.left == t) {
+					parent.left = newNode;
+				}else {
+					parent.right = newNode;
+				}
+				newNode.parent = parent;
+				newNode.color = BLACK;
+				return newNode;
+			}
+		}
+		return null;
+	}
+	
+	
 	
 	/**
 	 * 
@@ -460,7 +520,6 @@ public class RedBlackTree {
 	         */
 	        tree.insert(21);  // 插入20后，此时插入21 ，符合， LR 【【parent = red, uncle = black, 】LR情况:   parent = grandpa.left , newNode = parent.right】
 //	        tree.insert(14); // 【parent = Black】  新节点设为红色即可。
-	        List<Integer> list = new ArrayList<Integer>();
 	        tree.MiddleSearch(insert, 2);
 	
 	}

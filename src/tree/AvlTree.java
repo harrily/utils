@@ -263,7 +263,7 @@ public class AvlTree {
 			} else if (t.left != null && t.right != null)// 左右节点均不空
 			{
 				t.value = findMin(t.right).value;// 找到右侧最小值替代  待删除节点的值。 
-				t.right = remove(t.value, t.right);  // 更新当前节点右节点，删除 需要替换的值。（即右侧最小值节点，此节点必没有叶子节点，故可以直接删除）
+				t.right = remove(t.value, t.right);  // 更新当前节点右节点，改为删除 替换的值。继续remove判断。后续blance
 			} else // 左右单空或者左右都空
 			{
 				if (t.left == null && t.right == null) {
@@ -367,14 +367,14 @@ public class AvlTree {
 		 /**
 		  * 				      15
 		  * 				/            \
-		  * 			  8                23					   23	 	             23					        23
-		  * 			/   \           /      \		删除 71 		  \		              	\				 		  \		
-		  * 		  4      11		  19          71      --> 		  75	 balance     	51					       50 												
-		  * 		    \             /         /    \				/	      -->		   /   \					 /     \
-		  *              5          17        50	  75          50                  	 50  	75			     	49      75 
-		  *               \      		     /   \			    /	 \				    /	    			     		   /								
-		  * 			   6(new)			49   51            49     51              49        			    		 51
-		  */	
+		  * 			  8                23					   23	 	             23					        	23
+		  * 			/   \           /      \		删除 71 		  \		              	\				 			  \		
+		  * 		  4      11		  19          71      --> 		  75	 balance     	51					      	   50 												
+		  * 		    \             /         /    \				/	      -->		   /   \			我以为是：		 /     \
+		  *              5          17        50	  75          50                  	 50  	75			     	   49      75 
+		  *               \      		     /   \			    /	 \				    /	    			     		      /								
+		  * 			   6(new)			49   51            49     51              49        			    		    51
+		  */	 
 		// 递归插入
 		 Node insert1 = avlTree.insert1(15);
 		 avlTree.insert1(8);
@@ -393,12 +393,25 @@ public class AvlTree {
 		 avlTree.insert1(6);   //此时插入，需要balance （测试插入balance）
 		 
 		 avlTree.insert1(49);
-		 avlTree.insert1(51); 
-		 avlTree.remove(71, insert1);  //删除 71 ，75替换，不平衡了， 测试 （ 先把 75.left = 50 节点，左旋， 然后 75节点，右旋。）
+		 avlTree.insert1(51); // [15, 8, 5, 4, 6, 11, 23, 19, 17, 71, 50, 49, 51, 75]
+		 avlTree.remove(71, insert1);  //删除 71 ，75替换，不平衡了， 测试 （ 先把 75.left = 50 节点，左旋， 然后 75节点，右旋。） 【因为替换后75的左子树的左支不大于右支，故先左再右】
+		 avlTree.insert1(76); 
 		 
+		 /**
+		  * 				      15
+		  * 				/            \
+		  * 			  8                23					   23	 	             
+		  * 			/   \           /      \		删除 71 		  \		              	
+		  * 		  5      11		  19          51      --> 		  75	 balance     										
+		  * 		/   \             /         /    \				/	\      -->		 
+		  *        4     6          17        50	  75          50     76             
+		  *                       		     /   		\	     /	 				   							
+		  * 			       			    49          76     49                   
+		  */	 
+		 avlTree.remove(51, insert1);  // 此时删除51,则找51节点右支最小值75替换（此时75的右节点是76）。相当于删除75，继续删除判断，  之后balance
 		 List<Integer> list = new ArrayList<Integer>();
 		 List<Integer> list2 = new ArrayList<Integer>();
-		 System.out.println(avlTree.MiddleSearch(insert1, list, 3));
+		 System.out.println(avlTree.MiddleSearch(insert1, list, 1));
 //		 System.out.println(avlTree.MiddleSearch(balance, list2, 1));
 		 System.out.println(avlTree.getHeight(avlTree.node));
 	}
