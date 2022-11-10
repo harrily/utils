@@ -47,6 +47,8 @@ public class RedBlackTree {
 	RBTreeNode root ;
 	final boolean RED = false;
 	final boolean BLACK = true;
+	final String LEFT = "LEFT";
+	final String RIGHT = "RIGHT";
 	/**
 	 *   红黑树插入操作
 	 * @param key
@@ -171,7 +173,7 @@ public class RedBlackTree {
 		}else {
 			// 1.无子节点时
 			if(t.left == null && t.right == null) {
-				//1.1 如果t为红色，直接删除即可，不会影响黑色节点的数量
+				//1.1 【 如果t=红色，且为叶子节点 】。直接删除即可，不会影响黑色节点的数量
 				if(t.color == RED) {
 					RBTreeNode parent = t.parent;
 					t.parent = null;
@@ -182,17 +184,16 @@ public class RedBlackTree {
 						parent.right = null;
 					}
 					return parent;
-				}else {
-				//1.2 如果t为黑色，则需要进行删除平衡的操作了
-					// 删除平衡操作
+				}else {  
+				//1.2 【 如果t=黑色，且是叶子节点】。则需要进行删除平衡的操作了
+					// 删除平衡操作  
 				}
-				// 3.有两个子节点时，与二叉搜索树一样，使用后继节点作为替换的删除节点，情形转至为1或2处理。
+				// 3. 【t=黑色，2个节点】有两个子节点时，与二叉搜索树一样，使用后继节点作为替换的删除节点，情形转至为1或2处理。
 			}else if(t.left != null && t.right != null) {
 				t.key = findMin(t).key;
-				t.right = remove(t.key,t.right);
-				
+				t.right = remove(t.key,t.right);  // 递归找后继节点，继续递归删除后继节点。。
 			}else {
-				// 2.只有一个子节点时，删除节点t只能是黑色，其子节点为红色（且子节点无孩子），否则无法满足红黑树的性质了。 此时用删除节点的子节点接到父节点，且将子节点颜色涂黑，保证黑色数量。
+				// 2. 只有一个子节点时，【t=黑色，唯一的叶子节点为黑色】（删除节点t只能是黑色，其子节点为红色（且子节点无孩子），否则无法满足红黑树的性质了）。 此时用删除节点的子节点接到父节点，且将子节点颜色涂黑，保证黑色数量。
 				RBTreeNode parent = t.parent;
 				RBTreeNode newNode;
 				if(t.left != null) {
@@ -219,32 +220,107 @@ public class RedBlackTree {
 	 * 		   /    \
 	 * 		 P       U
 	 * 		/  \
-	 *    D-b   S
+	 *    Nil-b   S
 	 *    	   /  \
 	 *        SL   SR
 	 *        
-	 *  红黑树  平衡操作  -- 删除黑色节点之后的平衡操作
+	 *  红黑树  平衡操作  -- 删除黑色节点（且为叶子节点）之后的平衡操作
+	 *    Nil-b即删除  D节点后，  补上去的待平衡节点 Nil。
 	 *  	1、删除节点（D）为根节点， 不需要平衡
 	 *  	2、S(兄弟)为黑色
 	 *  		2.1、S子节点全黑
 	 *  			2.1.1、P(父节点)为红色
 	 *  					P与S颜色互换，平衡
+	 *  
+     *     --   参考资料： https://www.jianshu.com/p/84416644c080
 	 *  			
 	 * @param t
 	 * @return
 	 */
 	public RBTreeNode getRemoveBalance(RBTreeNode t) {
-		// 当前节点为根节点
+		// 1、当前节点为根节点
 		if(t.parent == null) {
 			return t;
 		}
 		RBTreeNode parent = t.parent;
+		RBTreeNode Slibing;  // 兄弟节点
+//		RBTreeNode Slibing_Left;  // 兄弟的左孩子
+//		RBTreeNode Slibing_right;  // 兄弟的右孩子
 		RBTreeNode grandPa = parent.parent;
-		
+		String slibling_flag ; // 兄弟节点 是左支 or 右支  。    left or right 
 		if(parent.left != null && parent.left == t) {
-			RBTreeNode Slibing = parent.right;
+			Slibing = parent.right; // 兄弟 = 右支
+			slibling_flag = RIGHT;
+		}else{
+			Slibing = parent.left; // 兄弟 = 左支
+			slibling_flag = LEFT;
 		}
-		
+		// 2 、兄弟节点=  黑色
+		if(Slibing.color == BLACK) {
+			// 2.1、兄弟节点的子节点全为黑色 (即S, SL,SR都为黑， 此时 SL,SR必为nil ,这样以P为节点的子树，才符合红黑树的特性。)
+			/**
+			 * 			P
+			 *        /   \
+	 		 *       D-b  S-b
+			 *      /     /  \
+			 *     nil   nil  nil
+			 */
+			if( Slibing.left == null && Slibing.right == null ) {
+				   // 2.1.1、 父节点为黑色
+				 if(parent.color == BLACK) {
+					  //此时将S涂红，父节点作为新的平衡节点N，递归上去处理。
+					 Slibing.color = RED;
+					 parent = getRemoveBalance(parent);
+				 }else { // 2.1.2  、父节点为红色
+					 Slibing.color = RED;
+					 parent.color = BLACK;
+					 return t;
+				 }
+			}else {
+				// 2.2 兄弟节点不全为黑
+				/** 	    P				 P
+				 *        /   \			   /  \
+		 		 *       nil   S-b       nil   S-b
+				 *            /   \            /  \
+	     		 *          SL-R   nil      nil    SR-R             
+				 */
+				// 2.2.1  单旋 
+				// 2.2.1.1    S=黑色 + 左支  ， SL = 红色   ， SR 可有可无（有则为红色）   【平衡思路 h(P->S->叶子)不变（因为SL涂黑补回来了），h(P->N->叶子)+1（因为多了个黑色P）。】 
+				if(slibling_flag == LEFT && Slibing.left != null && Slibing.left.color == RED) { 
+					boolean color = parent.color;  // S 和P颜色互换 [通常旋转后，新的P节点往往都会涂成原P的颜色：一是为了让GP-P不会颜色冲突；二是保持经过P的路径黑色数量不变。]
+					parent.color = Slibing.color;
+					Slibing.color = color;
+					Slibing.left.color = BLACK;
+					//以P为支点右旋；交换P和S颜色，SL涂黑；平衡结束。
+					parent = getLLbalance(parent); // P右旋
+					return t;
+				}
+				 // 2.2.1.2  S=黑色 + 右支支  ， SR = 红色 ，  SL可有可无 (有则为红色） 
+				if(slibling_flag == RIGHT && Slibing.right != null && Slibing.right.color == RED) {
+				    // 以P为支点左旋；交换P和S颜色（S涂为P原颜色，P涂黑），SR涂黑；平衡结束。
+					boolean color = parent.color;  // S 和P颜色互换 [通常旋转后，新的P节点往往都会涂成原P的颜色：一是为了让GP-P不会颜色冲突；二是保持经过P的路径黑色数量不变。]
+					parent.color = Slibing.color;
+					Slibing.color = color;
+					Slibing.right.color = BLACK;
+					parent = getRRbalance(parent); // P右旋
+					return t;
+				}
+				// 2.2.2  双旋转   S为左子，SL为黑 ， SR红；S为右子，SL红  ，SR=黑
+				// 2.2.2.1  S为左子，SL为黑 ， SR红；
+				if(slibling_flag == LEFT && Slibing.right != null && Slibing.right.color == RED  && Slibing.left == null) {
+					//以S为支点左旋，交换S和SR颜色（SR涂黑，S涂红） ，此时转至情形2.2.1-(1) S左-SL红 进行处理。
+					boolean color = Slibing.color;  
+					Slibing.color = Slibing.right.color;
+					Slibing.right.color = color;
+					Slibing = getRRbalance(Slibing);  // 左旋 ，，先旋转还是先变色？？ 先变色？？？
+					return  getLLbalance(Slibing.parent); // P右旋
+				}
+				// 2.2.2.2
+				
+			}
+		}else {
+			
+		}
 		
 		
 		return t;
