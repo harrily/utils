@@ -176,21 +176,23 @@ public class RedBlackTree {
 				//1.1 【 如果t=红色，且为叶子节点 】。直接删除即可，不会影响黑色节点的数量
 				if(t.color == RED) {
 					RBTreeNode parent = t.parent;
-					t.parent = null;
-					t = null;
 					if(parent.left != null && parent.left == t) {
 						parent.left = null;
 					}else {
 						parent.right = null;
 					}
-					return parent;
+					t.parent = null;
+					t = null;
+					return t;
 				}else {  
 				//1.2 【 如果t=黑色，且是叶子节点】。则需要进行删除平衡的操作了
 					// 删除平衡操作  
+					t = null ;
+					return getRemoveBalance(t);
 				}
 				// 3. 【t=黑色，2个节点】有两个子节点时，与二叉搜索树一样，使用后继节点作为替换的删除节点，情形转至为1或2处理。
 			}else if(t.left != null && t.right != null) {
-				t.key = findMin(t).key;
+				t.key = findMin(t).key; // 右支最小值替换当前节点
 				t.right = remove(t.key,t.right);  // 递归找后继节点，继续递归删除后继节点。。
 			}else {
 				// 2. 只有一个子节点时，【t=黑色，唯一的叶子节点为黑色】（删除节点t只能是黑色，其子节点为红色（且子节点无孩子），否则无法满足红黑树的性质了）。 此时用删除节点的子节点接到父节点，且将子节点颜色涂黑，保证黑色数量。
@@ -208,12 +210,12 @@ public class RedBlackTree {
 				}
 				newNode.parent = parent;
 				newNode.color = BLACK;
-				t.parent = null;
-				t = null;
-				return newNode;
+//				t.parent = null;
+				t = null; // 不置为null,好像不影响.
+				return newNode; // t为null， 要那新的节点newNode替换了（用parent不行，因为递归进来，是t，后面用newNode替换了t，故返回newNode）
 			}
 		}
-		return null;
+		return t;
 	}
 			
 	/**			 GP
@@ -231,6 +233,9 @@ public class RedBlackTree {
 	 *  		2.1、S子节点全黑
 	 *  			2.1.1、P(父节点)为红色
 	 *  					P与S颜色互换，平衡
+	 * 				2.1.2 P为黑色
+	 * 						此时将S涂红，父节点p作为新的平衡节点N，递归上去处理。
+	 * 		    2.2  兄弟S子节点不全为黑		
 	 *  
      *     --   参考资料： https://www.jianshu.com/p/84416644c080
 	 *  			
@@ -306,7 +311,7 @@ public class RedBlackTree {
 					return t;
 				}
 				// 2.2.2  双旋转   S为左子，SL为黑 ， SR红；S为右子，SL红  ，SR=黑
-				// 2.2.2.1  S为左子，SL为黑 ， SR红；
+				// 2.2.2.1  S为左子，SL为黑 ， SR红 （此时SL必为nil）
 				if(slibling_flag == LEFT && Slibing.right != null && Slibing.right.color == RED  && Slibing.left == null) {
 					//以S为支点左旋，交换S和SR颜色（SR涂黑，S涂红） ，此时转至情形2.2.1-(1) S左-SL红 进行处理。
 					boolean color = Slibing.color;  
@@ -315,17 +320,35 @@ public class RedBlackTree {
 					Slibing = getRRbalance(Slibing);  // 左旋 ，，先旋转还是先变色？？ 先变色？？？
 					return  getLLbalance(Slibing.parent); // P右旋
 				}
-				// 2.2.2.2
-				
+				// 2.2.2.2  S为右子，SL红  ，SR=黑 （此时SR必为nil）
+				if(slibling_flag == RIGHT && Slibing.left != null && Slibing.left.color == RED  && Slibing.right == null) {
+					//以S为支点右旋，交换S和SL颜色（SL涂黑，S涂红），此时转至2.2.1-(2) S右-SR红进行处理
+					boolean color = Slibing.color;  
+					Slibing.color = Slibing.left.color;
+					Slibing.left.color = color;
+					Slibing = getLLbalance(Slibing);  // 右旋 ，，先旋转还是先变色？？ 先变色？？？
+					return  getRRbalance(Slibing.parent); // P左旋
+				}
 			}
 		}else {
+			// 3、兄弟节点为红色
+			//3.1  交换P和S的颜色（或者直接S涂黑，P涂红） 
+			Slibing.color = BLACK;
+			parent.color = RED;
+			if(slibling_flag == LEFT) {
+				// S为左支，p右旋
+				 RBTreeNode lLbalance = getLLbalance(parent);
+			}else {
+				// S为右支，p左旋
+				 RBTreeNode rRbalance = getRRbalance(parent);
+			}
+			// 转为兄弟为黑色处理.//.
 			
 		}
-		
-		
 		return t;
 	}
 	
+	// 查找最小值
 	public RBTreeNode findMin(RBTreeNode root){
 		if(root == null) { return null;}
 		while(root.left != null) {
@@ -642,7 +665,11 @@ public class RedBlackTree {
 	         */
 	        tree.insert(21);  // 插入20后，此时插入21 ，符合， LR 【【parent = red, uncle = black, 】LR情况:   parent = grandpa.left , newNode = parent.right】
 //	        tree.insert(14); // 【parent = Black】  新节点设为红色即可。
-	        tree.MiddleSearch(insert, 2);
+//	        tree.remove(22, insert); // 测试1.1   情况【   删除节点为红色 ，没有子节点】
+//	        tree.remove(1, insert);  // 测试 2 情况  【删除节点为黑色， 一个子节点】
+	        tree.remove(15, insert);  // 测试1.2   [  删除节点为黑色 , 没有子节点]   
+	        tree.MiddleSearch(insert, 1);
+	        
 	
 	}
 }
