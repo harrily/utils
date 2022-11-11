@@ -397,7 +397,7 @@ public class AvlTree {
 		 avlTree.insert1(49);
 		 avlTree.insert1(51); // [15, 8, 5, 4, 6, 11, 23, 19, 17, 71, 50, 49, 51, 75]
 		 avlTree.remove(71, insert1);  //删除 71 ，75替换，不平衡了， 测试 （ 先把 75.left = 50 节点，左旋， 然后 75节点，右旋。） 【因为替换后75的左子树的左支不大于右支，故先左再右】
-		 avlTree.insert1(76); 
+//		 avlTree.insert1(76); 
 		 
 		 /**
 		  * 				      15
@@ -410,7 +410,7 @@ public class AvlTree {
 		  *                       		     /   		\	     /	 				   							
 		  * 			       			    49          76     49                   
 		  */	 
-		 avlTree.remove(51, insert1);  // 此时删除51,则找51节点右支最小值75替换（此时75的右节点是76）。相当于删除75，继续删除判断，  之后balance
+//		 avlTree.remove(51, insert1);  // 此时删除51,则找51节点右支最小值75替换（此时75的右节点是76）。相当于删除75，继续删除判断，  之后balance
 		 List<Integer> list = new ArrayList<Integer>();
 		 List<Integer> list2 = new ArrayList<Integer>();
 		 System.out.println(avlTree.MiddleSearch(insert1, list, 1));
