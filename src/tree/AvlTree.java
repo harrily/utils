@@ -3,6 +3,8 @@ package tree;
 import java.util.ArrayList;
 import java.util.List;
 
+import tree.RedBlackTree.RBTreeNode;
+
 public class AvlTree {
 
     class Node

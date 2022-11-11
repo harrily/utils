@@ -170,6 +170,8 @@ public class RedBlackTree {
 			t.left = remove(key, t.left);
 		}else if(key > t.key) {
 			t.right = remove(key, t.right);
+//			System.out.println("===。"+t.right.key);
+//			remove(key, t.right);
 		}else {
 			// 1.无子节点时
 			if(t.left == null && t.right == null) {
@@ -187,8 +189,10 @@ public class RedBlackTree {
 				}else {  
 				//1.2 【 如果t=黑色，且是叶子节点】。则需要进行删除平衡的操作了
 					// 删除平衡操作  
-					t = null ;
-					return getRemoveBalance(t);
+//					t = null ;
+					t = getRemoveBalance(t);
+					t = null;
+					return t;
 				}
 				// 3. 【t=黑色，2个节点】有两个子节点时，与二叉搜索树一样，使用后继节点作为替换的删除节点，情形转至为1或2处理。
 			}else if(t.left != null && t.right != null) {
@@ -251,7 +255,7 @@ public class RedBlackTree {
 		RBTreeNode Slibing;  // 兄弟节点
 //		RBTreeNode Slibing_Left;  // 兄弟的左孩子
 //		RBTreeNode Slibing_right;  // 兄弟的右孩子
-		RBTreeNode grandPa = parent.parent;
+//		RBTreeNode grandPa = parent.parent;
 		String slibling_flag ; // 兄弟节点 是左支 or 右支  。    left or right 
 		if(parent.left != null && parent.left == t) {
 			Slibing = parent.right; // 兄弟 = 右支
@@ -307,7 +311,7 @@ public class RedBlackTree {
 					parent.color = Slibing.color;
 					Slibing.color = color;
 					Slibing.right.color = BLACK;
-					parent = getRRbalance(parent); // P右旋
+					parent = getRRbalance(parent); // P左旋
 					return t;
 				}
 				// 2.2.2  双旋转   S为左子，SL为黑 ， SR红；S为右子，SL红  ，SR=黑
@@ -337,13 +341,13 @@ public class RedBlackTree {
 			parent.color = RED;
 			if(slibling_flag == LEFT) {
 				// S为左支，p右旋
-				 RBTreeNode lLbalance = getLLbalance(parent);
+				parent = getLLbalance(parent);
 			}else {
 				// S为右支，p左旋
-				 RBTreeNode rRbalance = getRRbalance(parent);
+				parent = getRRbalance(parent);
 			}
 			// 转为兄弟为黑色处理.//.
-			
+			  return getRemoveBalance(t);
 		}
 		return t;
 	}
@@ -667,7 +671,8 @@ public class RedBlackTree {
 //	        tree.insert(14); // 【parent = Black】  新节点设为红色即可。
 //	        tree.remove(22, insert); // 测试1.1   情况【   删除节点为红色 ，没有子节点】
 //	        tree.remove(1, insert);  // 测试 2 情况  【删除节点为黑色， 一个子节点】
-	        tree.remove(15, insert);  // 测试1.2   [  删除节点为黑色 , 没有子节点]   
+	        tree.remove(15, insert);  // 测试1.2   [  删除节点为黑色 , 没有子节点]  
+//	        tree.remove(17, insert); 
 	        tree.MiddleSearch(insert, 1);
 	        
 	
