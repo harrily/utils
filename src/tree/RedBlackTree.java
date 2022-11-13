@@ -158,21 +158,65 @@ public class RedBlackTree {
 	/**
 	 * 
 	 *  RB数删除操作：
+	 *  		非递归，先找到节点，删除，然后balance 
+	 *  			问题：
+	 *  				1、递归修改的是当前节点的左右支， 后续回溯时，把它赋值给原来的左右节点。 
+	 *  				2、但是红黑树， 平衡操作， 可能会修改待删除结点的grandpa节点的左右节点， 回溯到grandpa节点时， 此时递归会直接拿之前grandPa的左右支的key， 
+	 *  		来找新的key， 替换old的key， 但是此时grandpa的左右之已经通过balance变了， 却还是使用之前的key值的balance后的节点来替换， 错乱了。 
+	 *  			3、目前认为是，递归删除只适合修改待删除节点的父节点的左右节点更新，  上升到grandPa的更新，不适合
+	 *  				可以参考avl树的remove验证。 
+	 *  		本例子种， 如果使用递归找节点，上溯删除节点的话， 比如删除15-B节点。
+	 *  
+	 *  删除15 
+ * 	            13-B
+ *         /            \
+ *       8-B             17-B                         25-B                           25-B
+ *     /     \          /     \           -->         /    \          -->           /     \
+ *   1-B     11-B     15-B    25-R 			        17-R    27-B                  21-R   27-B
+ *      \				    /   \                   /   \                        /     \
+ *     6-R                21-B   27-B             15-B   21-B                  17-B    22-B
+ *                        /   \                          /    \                 /  \
+ *                      20-R  22-R                     20-R  22-R             15-B  20-R
+ *                      
+ *               递归 2层， 先到17-B , 然后左支 15-B ， 然后balance的时候， 把17-B整个树，全换了， 13-B的右支变为25-B了。
+ *               1、递归回溯时，   15-B删除，为null，回溯到17-B时， 赋值17-B的左支为null，满足
+ *               2、但是回溯到 13-B时， 最开始递归的时候记录的节点值时17 ， 此时balance后的17-B ，  变为只有右支20-R,此时，回溯会把新的17-B赋值给13-B的右支， 虽然balance没问题，
+ *               	此时就会发现，递归无法满足节点grandPa(13-B)的左支更新【虽然balance已经完成操作了】
+ *        
 	     *  参考：https://www.jianshu.com/p/84416644c080
 	 * @param key
 	 * @return
 	 */
-	public RBTreeNode remove(int key,RBTreeNode t) {
+	
+	public RBTreeNode search(int key,RBTreeNode t) {
 		if(t == null) {
 			return null;
 		}
-		if(key < t.key) {
-			t.left = remove(key, t.left);
-		}else if(key > t.key) {
-			t.right = remove(key, t.right);
-//			System.out.println("===。"+t.right.key);
-//			remove(key, t.right);
-		}else {
+		while( t != null ) {
+			if(key < t.key) {
+				t = t.left;
+			}else if(key > t.key) {
+				t= t.right;
+			}else {
+			    return t;
+			}
+		}
+		return null;
+	}
+	
+	public RBTreeNode remove(int key,RBTreeNode t) {
+		t = search(key, t);
+		if(t == null) {
+			return null;
+		}
+//		if(key < t.key) {
+//			t.left = remove(key, t.left);
+//		}else if(key > t.key) {
+//			System.out.println("===:"+t.right.key);
+//			t.right = remove(key, t.right);
+////			System.out.println("===。"+t.right.key);
+////			remove(key, t.right);
+//		}else {
 			// 1.无子节点时
 			if(t.left == null && t.right == null) {
 				//1.1 【 如果t=红色，且为叶子节点 】。直接删除即可，不会影响黑色节点的数量
@@ -191,13 +235,21 @@ public class RedBlackTree {
 					// 删除平衡操作  
 //					t = null ;
 					t = getRemoveBalance(t);
+					// 删除15节点， 父节点的左支/右支15节点置为null
+					if(t.parent.left != null && t.parent.left == t) {
+						t.parent.left = null;
+					}else {
+						t.parent.right = null;
+					}
+					// 15节点置为null， 其实不修改也不影响？
+					t.parent = null;
 					t = null;
 					return t;
 				}
 				// 3. 【t=黑色，2个节点】有两个子节点时，与二叉搜索树一样，使用后继节点作为替换的删除节点，情形转至为1或2处理。
 			}else if(t.left != null && t.right != null) {
-				t.key = findMin(t).key; // 右支最小值替换当前节点
-				t.right = remove(t.key,t.right);  // 递归找后继节点，继续递归删除后继节点。。
+				t.key = findMin(t.right).key; // 右支最小值替换当前节点
+				remove(t.key,t.right);  // 找后继节点，删除后继节点。平衡。
 			}else {
 				// 2. 只有一个子节点时，【t=黑色，唯一的叶子节点为黑色】（删除节点t只能是黑色，其子节点为红色（且子节点无孩子），否则无法满足红黑树的性质了）。 此时用删除节点的子节点接到父节点，且将子节点颜色涂黑，保证黑色数量。
 				RBTreeNode parent = t.parent;
@@ -218,7 +270,7 @@ public class RedBlackTree {
 				t = null; // 不置为null,好像不影响.
 				return newNode; // t为null， 要那新的节点newNode替换了（用parent不行，因为递归进来，是t，后面用newNode替换了t，故返回newNode）
 			}
-		}
+//		}
 		return t;
 	}
 			
@@ -259,7 +311,7 @@ public class RedBlackTree {
 		String slibling_flag ; // 兄弟节点 是左支 or 右支  。    left or right 
 		if(parent.left != null && parent.left == t) {
 			Slibing = parent.right; // 兄弟 = 右支
-			slibling_flag = RIGHT;
+			slibling_flag = RIGHT;  
 		}else{
 			Slibing = parent.left; // 兄弟 = 左支
 			slibling_flag = LEFT;
@@ -671,8 +723,9 @@ public class RedBlackTree {
 //	        tree.insert(14); // 【parent = Black】  新节点设为红色即可。
 //	        tree.remove(22, insert); // 测试1.1   情况【   删除节点为红色 ，没有子节点】
 //	        tree.remove(1, insert);  // 测试 2 情况  【删除节点为黑色， 一个子节点】
-	        tree.remove(15, insert);  // 测试1.2   [  删除节点为黑色 , 没有子节点]  
-//	        tree.remove(17, insert); 
+//	        tree.remove(15, insert);  // 测试1.2   [  删除节点为黑色 , 没有子节点]  
+//	        tree.remove(17, insert);  // 测试删除两个子节点， 删除后继节点，  且后记节点属于1.1情况
+	        tree.remove(25, insert); // 测试删除两个子节点， 删除后继节点 ，后继节点是黑色无子节点，  数据2.2（兄黑，不全黑，兄右两个R）
 	        tree.MiddleSearch(insert, 1);
 	        
 	

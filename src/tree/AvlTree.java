@@ -234,7 +234,7 @@ public class AvlTree {
          */
       //    记录当前节点的高度 (后续balance的时候，只需要更新newRoot和oldRoot的高度)
         t.height=Math.max(getHeight2(t.left),getHeight2(t.right))+1;
-        System.out.println("t高度:"+t.height+ " t is value : "+t.value);
+//        System.out.println("t高度:"+t.height+ " t is value : "+t.value);
         return Balance(t);
 //        return t;
     }
@@ -259,9 +259,12 @@ public class AvlTree {
 				return null;
 			}
 			if (x < t.value) {
+				System.out.println("left : "+t.left.value);
 				t.left = remove(x, t.left);
 			} else if (x > t.value) {
+				System.out.println("right 前 : "+t.right.value);
 				t.right = remove(x, t.right);
+				System.out.println("right 后: "+t.right.value);
 			} else if (t.left != null && t.right != null)// 左右节点均不空
 			{
 				t.value = findMin(t.right).value;// 找到右侧最小值替代  待删除节点的值。 
