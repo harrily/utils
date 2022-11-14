@@ -889,7 +889,7 @@ public class RedBlackTree {
 	        
 	        /**
 	         * 
-			         * 删除15                         															删除后继节点，变色，旋转。
+			         * 删除13                         															删除后继节点，变色，旋转。
 		 * 	            13-B(d)                              15-B(后继节点值替换)           15-B 
 		 *         /            \                                \                               \
 		 *       8-B             17-B                          25-B                           25-B
@@ -914,6 +914,37 @@ public class RedBlackTree {
 	//		    tree.insert(8);
 	//		    tree.insert(14);
 	//	        tree.remove(13, insert);
+	        
+	        /**
+	         * 
+	         * 
+	         * 测试RB树，为什么需要nil节点，
+	         * 	1、如果不这样的话，红黑树可能会退化成链。
+	         *    强调 NIL 节点为了保证任意一个节点至少有两个分叉
+	         *  2、可以满足定义5，从任一结点到其每个叶子的所有路径都包含相同数目的黑色结点
+	         *  
+	         *  
+	    没有nil退化成1条链表              不能是这种两个岔的（此时3-B节点不平衡， 如果有nil ， 从3出发， 有4个路径， 2个路径是3个黑色， 2个路径是2个黑色，不平衡。 
+							 如果不加入nil为黑色节点，这个树就平衡了，就退化链表）
+	   1-B                      3-B                                 5-B  【 带nil节点，按照顺序 546372819插入(会旋转变色)】     【如果不带nil，插入546372819 】
+	    \                    /       \                           /           \                                                   5-B
+		2-R               2-B        4-B                       3-R 		      7-R	 		                                   /      \
+	       \	          /  \       /  \                      /  \          /  \                                             4-R     6-R     
+		  3-B           1-R   nil   nil  5-R                  2-B  4-B      6-B  8-B                                         /           \
+		     \                                                /                    \                                        3-B          7-B
+		     4-R                                             1-R                  9-R                                       /               \
+			    \ 																										   2-R     			8-R
+		       5-B        
+		         RBTreeNode insert = tree.insert(5);
+				 tree.insert(4);
+				 tree.insert(6);
+				 tree.insert(3);
+				 tree.insert(7);
+				 tree.insert(2);
+				 tree.insert(8);
+				 tree.insert(1);
+				 tree.insert(9);
+	         */
 	        tree.MiddleSearch(tree.root, 1);
 	        
 	
