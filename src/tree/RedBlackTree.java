@@ -203,8 +203,12 @@ public class RedBlackTree {
 		}
 		return null;
 	}
-	
 	public RBTreeNode remove(int key,RBTreeNode t) {
+		t = root;  // 从根节点出发
+		return remove2(key, t);
+	}
+	
+	public RBTreeNode remove2(int key,RBTreeNode t) {
 		t = search(key, t);
 		if(t == null) {
 			return null;
@@ -230,10 +234,15 @@ public class RedBlackTree {
 					t.parent = null;
 					t = null;
 					return t;
-				}else {  
+				}else {
 				//1.2 【 如果t=黑色，且是叶子节点】。则需要进行删除平衡的操作了
 					// 删除平衡操作  
 //					t = null ;
+					if(t.parent == null) {
+						// t为根节点 ，且没有子节点  ,直接删除不需要平衡
+						root = null;
+						return root ;
+					}
 					t = getRemoveBalance(t);
 					// 删除15节点， 父节点的左支/右支15节点置为null
 					if(t.parent.left != null && t.parent.left == t) {
@@ -249,7 +258,7 @@ public class RedBlackTree {
 				// 3. 【t=黑色，2个节点】有两个子节点时，与二叉搜索树一样，使用后继节点作为替换的删除节点，情形转至为1或2处理。
 			}else if(t.left != null && t.right != null) {
 				t.key = findMin(t.right).key; // 右支最小值替换当前节点
-				remove(t.key,t.right);  // 找后继节点，删除后继节点。平衡。
+				remove2(t.key,t.right);  // 找后继节点，删除后继节点。平衡。
 			}else {
 				// 2. 只有一个子节点时，【t=黑色，唯一的叶子节点为黑色】（删除节点t只能是黑色，其子节点为红色（且子节点无孩子），否则无法满足红黑树的性质了）。 此时用删除节点的子节点接到父节点，且将子节点颜色涂黑，保证黑色数量。
 				RBTreeNode parent = t.parent;
@@ -259,10 +268,18 @@ public class RedBlackTree {
 				}else {
 					newNode= t.right;
 				}
-				if(parent.left !=null && parent.left == t) {
-					parent.left = newNode;
+				if(parent != null) {
+					if(parent.left !=null && parent.left == t) {
+						parent.left = newNode;
+					}else {
+						parent.right = newNode;
+					}
 				}else {
-					parent.right = newNode;
+					// 删除节点是根节点，且只有一个节点
+					newNode.parent = null;
+					newNode.color = BLACK;
+					root = newNode;
+					return root;
 				}
 				newNode.parent = parent;
 				newNode.color = BLACK;
@@ -374,7 +391,13 @@ public class RedBlackTree {
 					Slibing.color = Slibing.right.color;
 					Slibing.right.color = color;
 					Slibing = getRRbalance(Slibing);  // 左旋 ，，先旋转还是先变色？？ 先变色？？？
-					return  getLLbalance(Slibing.parent); // P右旋
+					//以 P右旋，P和S颜色互换，SL涂黑色，
+					color = Slibing.parent.color;
+					Slibing.parent.color = Slibing.color;
+					Slibing.color = color;
+					Slibing.left.color = BLACK;
+					Slibing.parent = getLLbalance(Slibing.parent);
+					return t ; // P右旋
 				}
 				// 2.2.2.2  S为右子，SL红  ，SR=黑 （此时SR必为nil）
 				if(slibling_flag == RIGHT && Slibing.left != null && Slibing.left.color == RED  && Slibing.right == null) {
@@ -383,7 +406,13 @@ public class RedBlackTree {
 					Slibing.color = Slibing.left.color;
 					Slibing.left.color = color;
 					Slibing = getLLbalance(Slibing);  // 右旋 ，，先旋转还是先变色？？ 先变色？？？
-					return  getRRbalance(Slibing.parent); // P左旋
+					//以 P左旋，P和S颜色互换，SR涂黑色，
+					color = Slibing.parent.color;
+					Slibing.parent.color = Slibing.color;
+					Slibing.color = color;
+					Slibing.right.color = BLACK;
+					Slibing.parent = getRRbalance(Slibing.parent);
+					return  t; // P左旋
 				}
 			}
 		}else {
@@ -441,6 +470,10 @@ public class RedBlackTree {
 	    	}else {
 	    		parent.right = newNode;
 	    	}
+	    }else {
+	    	// 更新根节点
+	    	root = newNode;
+	    	newNode.parent = null;
 	    }
 	    // 更新oldNode的父节点
 	    oldNode.parent = newNode;
@@ -470,6 +503,7 @@ public class RedBlackTree {
 
 		
 	}
+	
 	/**
 	 * 右旋
 	 * 
@@ -496,6 +530,10 @@ public class RedBlackTree {
 	    	}else {
 	    		parent.right = newNode;
 	    	}
+	    }else {
+	    	// 更新根节点
+	    	root = newNode;
+	    	newNode.parent = null;
 	    }
 	    oldNode.parent = newNode;
 		return newNode;
@@ -722,11 +760,161 @@ public class RedBlackTree {
 	        tree.insert(21);  // 插入20后，此时插入21 ，符合， LR 【【parent = red, uncle = black, 】LR情况:   parent = grandpa.left , newNode = parent.right】
 //	        tree.insert(14); // 【parent = Black】  新节点设为红色即可。
 //	        tree.remove(22, insert); // 测试1.1   情况【   删除节点为红色 ，没有子节点】
-//	        tree.remove(1, insert);  // 测试 2 情况  【删除节点为黑色， 一个子节点】
-//	        tree.remove(15, insert);  // 测试1.2   [  删除节点为黑色 , 没有子节点]  
+//	        tree.remove(1, insert);  // 测试 2 情况  【删除节点为黑色， 一个子节点】    
+	        /**
+	         * 
+		         * 删除15 
+	 * 	            13-B
+	 *         /            \
+	 *       8-B             17-B                         25-B                           25-B
+	 *     /     \          /     \           -->         /    \          -->           /     \
+	 *   1-B     11-B     15-B    25-R 			        17-R    27-B                  21-R   27-B
+	 *      \				    /   \                   /   \                        /     \
+	 *     6-R                21-B   27-B             15-B   21-B                  17-B    22-B
+	 *                        /   \                          /    \                 /  \
+	 *                      20-R  22-R                     20-R  22-R             15-B  20-R
+	         */
+//	        tree.remove(15, insert);  //  测试1.2   [  删除节点为黑色 , 没有子节点]   -->， 3.2  兄红（25-R） ， 转 兄黑(21-B) , --> 2.2  兄弟节点不全黑。  【兄在右，  SR红（SL为黑且为nil或红）】 2.2.1  。
+	        
+	        /**
+	         * 
+			         * 删除17   									找后继，替换，删除后继
+		 * 	            13-B						  13-B
+		 *         /            \                            \
+		 *       8-B             17-B(d)                    20-B(后继替换)                         
+		 *     /     \          /     \           -->         /    \         
+		 *   1-B     11-B     15-B    25-R 			        15-B    25-R                 
+		 *      \				    /   \                 		  /   \                      
+		 *     6-R                21-B   27-B           		 21-B  27-B                  
+		 *                        /   \                              \              
+		 *                      20-R  22-R                           22-R          
+		 *                      
+	      */
 //	        tree.remove(17, insert);  // 测试删除两个子节点， 删除后继节点，  且后记节点属于1.1情况
-	        tree.remove(25, insert); // 测试删除两个子节点， 删除后继节点 ，后继节点是黑色无子节点，  数据2.2（兄黑，不全黑，兄右两个R）
-	        tree.MiddleSearch(insert, 1);
+	        
+	        /**
+	         * 
+		 删除25  										后继节点替换25-R					 删除后继节点 27-B （兄左， SL为红（SR为红））  【P右旋，p和s交换颜色，SL涂黑。】
+		 * 	            13-B						     13-B							13-B
+		 *         /            \                            \							    \					
+		 *       8-B             17-B                          17-B                          17-B
+		 *     /     \          /     \           -->         /    \             -->         /    \
+		 *   1-B     11-B     15-B    25-R(d)			     15-B  27-R                  15-B     21-R
+		 *      \				    /   \                 		   /   \                           /   \ 
+		 *     6-R                21-B   27-B           		 21-B  27-B                     20-B   27-B   
+		 *                        /   \                          /   \                                 /   \
+		 *                      20-R  22-R                     20-R  22-R                            22-R  27-B(d) 
+			         */
+//	        tree.remove(25, insert); // 测试删除两个子节点， 删除后继节点 ，后继节点是黑色无子节点，  数据2.2.1（兄黑，不全黑，兄右两个R） 2.2.1 【（兄左， SL为红（SR为红或者SR为黑且为nil？））】
+	       
+	        
+	        /**
+	         * 
+				         *  删除 11  ，【2.2.2.1】[兄左，兄黑，SL为黑（且肯定为nil），SR必须为红（不存在SR为黑，如果为黑，此时应该属于2.1的情况，兄全黑）,]
+												
+															  S左旋[6-B]，S和SR互换颜色 ，转至2.2.1.1           P右旋（8-B），P和S颜色互换，SL涂黑色，
+			  * 	        13-B						     	      13-B							      13-B		
+			 *         /            \                                /						   		     /				
+			 *       8-B             17-B                         8-B                                  6-B
+			 *     /     \          /     \           -->         /    \             	-->           /   \
+			 *   1-B     11-B(d)   15-B    25-R			        6-B  11-B(d)                       1-B    8-B
+			 *      \				    /   \                 	 /  	                                     \
+			 *     6-R                21-B   27-B              1-R 	                                         11-B(d)
+			 *                        /   \                         
+			 *                      20-R  22-R                   
+	         * 
+	         */
+//	        tree.remove(11, insert);  // 测试 2.2.2.1 [兄左，兄黑，SL为黑（且肯定为nil），SR必须为红（不存在SR为黑，如果为黑，此时应该属于2.1的情况，兄全黑）]      --> 同理2.2.2.2  [兄右，兄黑，SR为黑（且肯定为nil），SL必为红（不存在SL为黑，如果为黑，此时应该属于2.1的情况，兄全黑）]
+	        
+	       /**
+	        * 
+				 删除节点1  ----，测试 2.2.2.2（前提 删除6，新增10，  构造2,2,2,2的情况）
+														   S右旋[11-B] ,S和SL互换颜色 ，转至2.2.1.2       //以 P左旋，P和S颜色互换，SR涂黑色，
+			
+			  * 	        13-B						     	      13-B							      13-B		
+			 *         /            \                                /						   		     /				
+			 *       8-B             17-B                         8-B                                  10-B
+			 *     /     \          /     \           -->         /    \             	  -->           /   \
+			 *   1-B(d)  11-B    15-B    25-R			       1-B(d)   10-B                         8-B    11-B
+			 *           / 		   		 /   \                 	  		    \	                      /        
+			 *         10-R             21-B   27-B                         11-R 	                1-B(b)                     
+			 *                        /   \                         
+			 *                      20-R  22-R          
+	        * 
+	        */
+	        	// 测试 2.2.2.2 
+//		        tree.remove(6, insert);
+//		        tree.insert(10);
+//		        tree.remove(1, insert);
+	        
+	      
+	        /**
+	         * 		- 构造2.1.1  (兄全黑  ， 父 红 )	
+	         *        tree.remove(20, insert);
+	         *        tree.remove(22, insert);
+	         *        tree.remove(21, insert);
+																	S和P颜色互换	
+			  * 	        13-B						     	      13-B							     
+			 *         /            \                               	  \							   		 				
+			 *       8-B             17-B                                 17-B                            
+			 *     /     \          /     \           -->         		 /    \             	  
+			 *   1-B     11-B    15-B    25-R			              15-B    25-B                     
+			 *      \       		   /    \                 	  		      /    \	                    
+			 *      6-R              21-B(d) 27-B                         21-B(d)  27-R                               
+			 *                                                
+			 */
+//	        	tree.remove(20, insert);
+//	        	tree.remove(22, insert);	
+//	        	tree.remove(21, insert);	
+	        
+	        
+	    /**
+	    	测试 2.1.2 (兄全黑  ， 父黑)	
+    	 *        tree.remove(6, insert);
+    	 *        tree.remove(1, insert);
+    										    //此时将S涂红，父节点作为新的平衡节点N，递归上去处理。     处理8-B的平衡 ，转为 2.2.1.2 【兄右，兄黑，SR红】
+	    																										【以p左旋 ，p和s互换颜色，SR涂黑】
+	     * 	            13-B						             13-B													   17-B 
+	     *         /            \                             /          \										      /            \
+	     *       8-B             17-B                        8-B          17-B                                      13-B          25-B
+	     *     /     \          /     \           -->       /    \           ..    -->   						   /    \          /   \    
+	     *   1-B(d)  11-B    15-B    25-R 			      1-B(d)  11-R                                          8-B     15-B     21-B   27-B 
+	     *      				      /   \                 		                                           /   \            /   \ 
+	     *                         21-B   27-B           		               						       1-B(d)  11-R       20-R  22-R
+	     *                        /   \                                      
+	     *                      20-R  22-R         
+	     */
+//	   	         tree.remove(6, insert);
+//		         tree.remove(1, insert);
+	        
+	        /**
+	         * 
+			         * 删除15                         															删除后继节点，变色，旋转。
+		 * 	            13-B(d)                              15-B(后继节点值替换)           15-B 
+		 *         /            \                                \                               \
+		 *       8-B             17-B                          25-B                           25-B
+		 *     /     \          /     \           -->         /    \          -->           /     \
+		 *   1-B     11-B     15-B    25-R 			        17-R    27-B                  21-R   27-B
+		 *      \				    /   \                   /   \                        /     \
+		 *     6-R                21-B   27-B           15-B(d) 21-B                   17-B    22-B
+		 *                        /   \                          /    \                   \
+		 *                      20-R  22-R                     20-R  22-R                 20-R
+		 *                      
+		 *       *          满足：
+		 */ 
+//	        tree.remove(13, insert);  //删除根节点。两个孩子。
+		 
+			 /**
+			  * 
+			  *    -- 测试 删除根节点 
+			  *    		1、root没有孩子
+			  *         2、root1个 ， 2 个 孩子的情况
+	//		  */
+	//		    RBTreeNode insert = tree.insert(13);
+	//		    tree.insert(8);
+	//		    tree.insert(14);
+	//	        tree.remove(13, insert);
+	        tree.MiddleSearch(tree.root, 1);
 	        
 	
 	}
