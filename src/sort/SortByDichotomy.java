@@ -38,7 +38,7 @@ public class SortByDichotomy {
 		
 		//递归
 		public static int binarySearch(int[] a,int low,int high,int goal){
-			while(low <= high){
+			while(low <= high){   // 不用while就可以，判断退出递归条件即可
 				int mid = (high - low)/2 + low;
 				if(a[mid] == goal){
 					return mid;
@@ -164,7 +164,7 @@ public class SortByDichotomy {
 //			System.out.println(twoSerarch(a,3));
 //			System.out.println(twoSerarchByRecusion(a, 3, 0, a.length-1));
 			System.out.println(binarySearchTest20221012(a,0,a.length - 1,5));
-			System.out.println(binarySearchTest20221012_fe(a,0,a.length - 1,5));
+//			System.out.println(binarySearchTest20221012_fe(a,0,a.length - 1,5));
 			// 归并自测
 			int[] gui = {1,11,32,41,7,6,17,8,62};
 //			recusion(gui,0,gui.length-1);
