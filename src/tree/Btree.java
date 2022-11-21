@@ -838,13 +838,13 @@ class Node {
 	           * 1,2  6,10
 	           */
 	          btree.insert(keyAndValue1);
-//	          btree.insert(keyAndValue7);
-//	          btree.insert(keyAndValue10);
-//	          btree.insert(keyAndValue17);
-//	          btree.insert(keyAndValue2);
-//	          btree.insert(keyAndValue14);
-//	          btree.insert(keyAndValue16);
-//	          btree.insert(keyAndValue11);
+	          btree.insert(keyAndValue7);
+	          btree.insert(keyAndValue10);
+	          btree.insert(keyAndValue17);
+	          btree.insert(keyAndValue2);
+	          btree.insert(keyAndValue14);
+	          btree.insert(keyAndValue16);
+	          btree.insert(keyAndValue11);
 //	          btree.insert(keyAndValue12);
 //	          btree.insert(keyAndValue3);
 //	          btree.insert(keyAndValue8);
