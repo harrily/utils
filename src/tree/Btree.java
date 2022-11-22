@@ -68,9 +68,9 @@ public class Btree {
     //判断是否需要拆分节点
     private void splidNode(Node node, KeyAndValue addkeyAndValue) {
         List<KeyAndValue> keyAndValues = node.getKeyAndValue();
-
+        // 当前节点node的size不满足m-1的阈值，  上溢操作。
         if (keyAndValues.size() == rank - 1) {
-            //先插入待添加的节点
+            //先插入待添加的节点  ,后续拆分，
             keyAndValues.add(addkeyAndValue);
             Collections.sort(keyAndValues);
             //取出当前节点的键值对集合
@@ -78,7 +78,7 @@ public class Btree {
             int mid = keyAndValues.size() / 2;
             //取出  当前 (原来？) 的key-value集合中间位置的键
             int midKey = keyAndValues.get(mid).getKey();
-            //构造一个新的键值对，不是叶子节点的节点不存储value的信息
+            //构造一个新的键值对，不是叶子节点的节点不存储value的信息 ， 【用与上溢的parent作为key，故不需姚value值】
             KeyAndValue midKeyAndValue = new KeyAndValue(midKey, "");
             //将中间位置左边的键值对封装成集合对象
             List<KeyAndValue> leftKeyAndValues = new ArrayList<>();
@@ -91,7 +91,7 @@ public class Btree {
             int k;
             if (node.isLeaf()) {
                 k = mid;
-            } else {
+            } else {  
                 k = mid + 1;
             }
             for (int i = k; i < rank; i++) {
@@ -176,20 +176,28 @@ public class Btree {
                 Node parentNode = node.getParantNode();
                 //将原来的孩子节点（除了被拆分的节点）和新的孩子节点（左孩子和右孩子）合并之后与父节点关联
                 childNodes.addAll(parentNode.getNodes());
+                for(KeyAndValue kv  : node.getKeyAndValue()) {
+                	   System.out.println(kv.key);
+                }
+                System.out.println("===========");
                 //移除正在被拆分的节点
                 childNodes.remove(node);
                 //将子节点与父节点关联
                 parentNode.setNodes(childNodes);
                 rightNode.setParantNode(parentNode);
                 leftNode.setParantNode(parentNode);
-                if (parentNode.getParantNode() == null) {
-                    root = parentNode;
-                }
+                /**
+                	是否可以注释？  
+                */
+//                if (parentNode.getParantNode() == null) {
+//                    root = parentNode;
+//                }
                 //当前节点有父节点,递归调用拆分的方法,将父节点拆分
                 splidNode(parentNode, midKeyAndValue);
             }
             
         } else {
+        	// 插入是从head开始，即叶子节点开始， 当前node未满足m-1的数量阈值时，直接插入key，value值。
             keyAndValues.add(addkeyAndValue);
             //排序
             Collections.sort(keyAndValues);
@@ -824,6 +832,9 @@ class Node {
 	          KeyAndValue keyAndValue18 = btree.new KeyAndValue(19,"12345");
 	          KeyAndValue keyAndValue19 = btree.new KeyAndValue(20,"12345");
 	          KeyAndValue keyAndValue20 = btree.new KeyAndValue(21,"12345");
+	          
+	          KeyAndValue keyAndValue21 = btree.new KeyAndValue(22,"123456");
+	          KeyAndValue keyAndValue22 = btree.new KeyAndValue(23,"123456");
 	  
 	          btree.insert(keyAndValue);
 	          btree.insert(keyAndValue5);
@@ -832,7 +843,7 @@ class Node {
 	           */
 	          btree.insert(keyAndValue9);
 	          /*
-	           * 第一次上溢    插入2 排序，  1,2,6,10  
+	           	* 第一次上溢    插入2 排序，  1,2,6,10  
 	           * 		选择  新list的 mid 下标  （4  /2 ） = 2  ，取出6元素作为【parent】  
 	           * 	6 
 	           * 1,2  6,10
@@ -845,18 +856,46 @@ class Node {
 	          btree.insert(keyAndValue14);
 	          btree.insert(keyAndValue16);
 	          btree.insert(keyAndValue11);
-//	          btree.insert(keyAndValue12);
-//	          btree.insert(keyAndValue3);
-//	          btree.insert(keyAndValue8);
-//	          btree.insert(keyAndValue18);
-//	          btree.insert(keyAndValue15);
-//	          btree.insert(keyAndValue4);
-//	          btree.insert(keyAndValue19);
-//	          btree.insert(keyAndValue6);
-//	          btree.insert(keyAndValue20);
-//	  
+	          
+	          btree.insert(keyAndValue12);
+	          btree.insert(keyAndValue3);
+	          btree.insert(keyAndValue8);
+	          btree.insert(keyAndValue18);
+	          btree.insert(keyAndValue15);
+	          btree.insert(keyAndValue4);
+	          btree.insert(keyAndValue19);
+	          btree.insert(keyAndValue6);
+	          btree.insert(keyAndValue20);
+	  
+	          btree.insert(keyAndValue21);
+	          /**
+	           		 插入 key=23 之前
+								        8,12
+						   3,6           |10                 15,18,20|
+					1,2 |3,4,5| 6,7|  8,9|10,11  |12,13|15,16,17|18,19|20,21,22|
+					
+					
+					插入 key=23之后
+						1、20，21,22， 变为 |20,21,22，23| 分裂 22上溢
+						2、22上溢， 15,18,20 变为  15,18,20，22 ,  内存节点分裂， 20上溢 （剔除20，因为不是叶子了此时）
+						3、20上溢 ，  8,12  变为  8,12,20  
+					
+					   			     8,            12               ,20
+						   3,6 |          |10                  15,18           |    22
+					1,2 |3,4,5| 6,7|  8,9|10,11       |12,13|15,16,17|18,19    |20,21  |22,23
+					
+						
+	           */
+	          btree.insert(keyAndValue22);
 	  
 	          btree.printBtree(btree.getRoot());
+	          
+	          for(KeyAndValue kv  :  btree.getRoot().getKeyAndValue()) {
+           	     System.out.println(kv.key);
+	          }
+              System.out.println("===========");
+	         
+	          System.out.println( btree.search(23, btree.getRoot(), "INT"));
 	  
 //	          btree.delete(1);
 //	          btree.printBtree(btree.getRoot());
