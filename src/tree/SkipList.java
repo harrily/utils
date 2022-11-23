@@ -98,9 +98,11 @@ public class SkipList<T> {
 	 * @param key
 	 * @return
 	 */
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public boolean insert(SkipNode node) {
 		int key = node.key;
 		// 判断是否存在，key存在更新value值
+		@SuppressWarnings("rawtypes")
 		SkipNode search = search(node.key);
 		if(search != null) {
 			search.value = node.value;
@@ -114,21 +116,12 @@ public class SkipList<T> {
 			    if(key > team.right.key){
 					team = team.right;  // 节点还在右侧，继续
 				}else  {
-					/*
-					   * 此时不能复制， 要压栈之后，遍历栈从下往上赋值
-					 */
-//					SkipNode right = team.right;
-//					team.right = node;// 右侧不存在，赋值。
-//					node.right = right;
+					/*** 此时不能复制， 要压栈之后，遍历栈从下往上赋值 */
 					stack.add(team);   // 栈 赋值 向下的节点
 					team = team.down;  //继续向下检索
 				}
 			}else {  
-				/*
-				   * 此时不能复制， 要压栈之后，遍历栈从下往上赋值
-				 */
-				 // 右侧为null,赋值
-//				team.right = new SkipNode<T>(key, null);
+				/*** 此时不能复制， 要压栈之后，遍历栈从下往上赋值 */
 				stack.add(team);  // 栈赋值 向下的节点
 				team = team.down;
 			}
@@ -139,50 +132,54 @@ public class SkipList<T> {
 		// 出栈，从底层往上循环每一层， 插入key值。
 		while(!stack.isEmpty()) {
 			team = stack.pop();
-//			if(team.right != null) {
-//				team.right.down = downNode;
-//				downNode = team.right;
-//			}
-//			else {
-//				SkipNode<T> upNode = new SkipNode<T>(key, null);
-//				team.right = upNode;	
-//				team.right.down = downNode;
-//				downNode = upNode;
-//			}
-			
+			//创建新节点 ，不能直接使用 【因为有可能上溢建node的索引，如果不新建节点，则栈溢出。死循环】
+			SkipNode upNode = new SkipNode(node.key, node.value);
+			// 插入点后有值，则更新 team的右节点， 以及新节点upNode的右节点。 以及更新向下的索引（供上一层使用）
 			if(team.right != null) {
-				if(team.right.right != null) {
-					// 插入节点， 更新左节点的右节点，  插入节点的右节点
-//					SkipNode right = team.right;
-//					team.right = node;
-//					node.right = right;
-					node.right =team.right;
-					team.right = node;
-					// 更新downNode
-					team.right.down = downNode;
-					downNode = team.right;
-				}else {
-					// 更新downNode
-					team.right.down = downNode;
-					downNode = team.right;
-				}
+				upNode.right =team.right;
+				team.right = upNode;
+				// 更新downNode
+				team.right.down = downNode;
+				downNode = team.right;
+		/**				
+					if(team.right.right != null) {
+							upNode.right =team.right;
+							team.right = upNode;
+							// 更新downNode
+							team.right.down = downNode;
+							downNode = team.right;
+						}else {
+							// 更新downNode
+							team.right.down = downNode;
+							downNode = team.right;
+						}
+		 */
+			// 插入点后无值，则只需更新team的右节点即可。 
 			}else {
-				// 右侧为null,更新右节点，  
-				//创建新节点（因为如果向上重新建立索引，需要新建节点，key与插入值一致，保证上面的索引和插入的一致， ），   不能直接使用Node，因为Node循环的时候已经是下层的节点了，需要新建，
-				SkipNode upNode = new SkipNode(node.key, node.value);
+				// 右侧为null,更新右节点，    以及更新向下的索引（供上一层使用）
 				team.right = upNode;	
 				// 更新downNode ，供下次使用。
 				team.right.down = downNode;
 				downNode = upNode;
+//				System.out.println(node.key + "==="+ node.value);
 			}
-			
 			  //考虑是否需要向上
 	        if(level>MAX_LEVEL)//已经到达最高级的节点啦
 	            break;
 	        double num=random.nextDouble();//[0-1]随机数
-	        if(num>0.5)//运气不好结束
+	        /**
+	         *  1、运气不好结束 ,跳出整个while循环，即不需要继续循环构建插入值的索引。
+	         *  2、运气好, 向上构建一次索引， 继续while循环，  运气好一直更新，不好则退出while循环，能构建几层是几层。
+	         */
+	        if(num>0.5)
 	            break;
 	        level++;
+	        /** 
+	         * 	如果当前高度大于当前的最大高度， 此时向上新增headNode节点。
+	         * 1、如果运气属实好， 已经连续向上构建多次索引， 高度已经达到highLevel ， 
+			             此时如果继续向上构建索引， 则需要head也向上新建索引，维护newhead的下索引为oldHead，newHead作为新的HeadNode。 
+				将newHead入栈，继续循环出栈（循环更新newHead的右节点。）
+	         */
 	        if(level>highLevel)//比当前最大高度要高但是依然在允许范围内 需要改变head节点
 	        {
 	            highLevel=level;
@@ -196,7 +193,11 @@ public class SkipList<T> {
 		return true;
 	}
 	
-	// demo add
+	
+	/**
+	 *  demo add
+	 **/
+	@SuppressWarnings("unchecked")
 	public void add(SkipNode node)
     {
     
@@ -247,7 +248,7 @@ public class SkipList<T> {
             if(level>MAX_LEVEL)//已经到达最高级的节点啦
                 break;
             double num=random.nextDouble();//[0-1]随机数
-            if(num>0.5)//运气不好结束
+            if(num>0.5)//运气不好结束 ,跳出整个while循环，即不需要继续循环构建插入值的索引。
                 break;
             level++;
             if(level>highLevel)//比当前最大高度要高但是依然在允许范围内 需要改变head节点
@@ -301,12 +302,27 @@ public class SkipList<T> {
 	    }
 	    public static void main(String[] args) {
 	        SkipList<Integer> list=new SkipList<Integer>();
+	        /**
 	        for(int i=1;i<20;i++)
 	        {
 //	            list.add(new SkipNode(i, 555));
 	        	list.insert(new SkipNode(i, 555));
+//	        	System.out.println("levelhigh:"+list.highLevel);
 	        }
+	        */
+	        
+	         /** 
+	          *测试插入值在两值之间
+	          *
+	            head->  1->  
+				head->  1->  3->  
+				head->  1->  3->  5->  
+	        **/
+	        list.insert(new SkipNode(1, 555));
+	        list.insert(new SkipNode(5, 555));
+	        list.insert(new SkipNode(3, 555));
 	        list.printList();
+	        //测试删除 
 	        list.delete(4);
 	        list.delete(8);
 	        list.printList();
