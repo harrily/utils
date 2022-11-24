@@ -10,7 +10,7 @@ import java.util.Queue;
  * @author wang.ying.nan
  *
  */
-public class inorderTraversal {
+public class InorderTraversal {
 	class TreeNode {
 	    int val;
 	    TreeNode left;
@@ -101,7 +101,7 @@ public class inorderTraversal {
 	     * @param args
 	     */
 	 public static void main(String[] args) {
-	  	 	inorderTraversal i1 = new inorderTraversal();
+	  	 	InorderTraversal i1 = new InorderTraversal();
 	  	 	TreeNode treeNode1 = i1.new TreeNode(3,null,null);
 	  		TreeNode treeNode2 = i1.new TreeNode(4,null,null);
 	    	TreeNode root = i1.new TreeNode(1,treeNode1,treeNode2);
