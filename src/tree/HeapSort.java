@@ -6,12 +6,58 @@ import java.util.List;
 /**
  * 
  * 堆排序
- * 
+ * 堆排序是不稳定的排序，空间复杂度为O(1),平均的时间复杂度为O(nlogn),最坏情况下也稳定在O(nlogn)
+ *  	第一次堆排序：
+			logn*n/2  = (logn) * n
+					K=n/2 次
+					2的K次方= n  -->  K = logn
+		剩余元素堆排序：	
+		logn* (n-1) =  (logn) * n
+				K=n-1次
+				2的K次方= n  -->  K = logn
+		想加：
+		logn*n+ logn*n   =  (2logn) * n  = (logn) * n
+		
 1、 将待排序序列构造成一个大顶堆
 2、此时，整个序列的最大值就是堆顶的根节点。
 3、将其与末尾元素进行交换，此时末尾就为最大值。
 4、然后将剩余n-1个元素重新构造成一个堆，这样会得到n个元素的次小值。如此反复执行，便能得到一个有序序列了。
+
+备注： 每次必须要构建最大堆， 即每个有孩子的节点保证都是最大值，
+ 	  1、初识构建最大堆的时候， 起始点是从 size /2 -1 (开始)上溯比较，  【即从第一个非叶子节点开始】
+	  2、n-1次的数据构建最大堆的时候，
+	   		1-、此时每次都是从root（节点索引是i=0）开始（因为root后面的堆已经是最大堆了） ， 往下Node进行。
+	   		2-、往下Node索引是根据root（此时是最小值）交换的下标开始。   及 i *2 +1 
+	   				比如：  root和孩子交换。  则下次循环的k = i *2 +1 ,或者 k++
+	   			2.1、往下循环，需要判断当前索引的孩子节点是否超过length长度。
+	  3、 数组中都和tmp比较,连续交换位置,方式
+	  		int tmp = arr[i];
+	  		 for (int k=i*2+1;k<length;k=k*2+1){
+	            if (arr[k]>temp){
+	                //交换位置  -- 中间大于tmp的数，依次上移。找到新位置
+	                arr[i]=arr[k];
+	                i=k;  // 更新下次的位置信息
+	            }else{
+	                break;
+	            }
+	        }
+	        // 最终最小的数的位置。（中间循环完毕，找到最小值的位置，交换）
+	         arr[i]=temp;
+	         return times;
+	  			 
+	  		示例：      3             8       8       8       8
+	  		   8    6        8       5       5       5
+	  		 5   2		   5	   5       4       4
+	   	   4   11	     4       4       4       3
+	   	   
+	   	     	 -、此时除了11元素外，其他元素再构造最大堆。   从i=0 开始,tmp =3 
+	   	     	 -、比较3的孩子和3比较，先把 arr[0] =  arr[1]  。        
+	  	         -、找原来8的孩子与tmp比较，此时arr[1] = arr[3].
+	  	         -、找原来5的孩子与tmp比较，此时arr[3] = arr[5].
+	  	         -、最后把tmp赋值给arr[5]
+	  	         
  * 参考资料：https://blog.csdn.net/weixin_51609435/article/details/122982075
+ * https://blog.csdn.net/cativen/article/details/124810686
  * @author wang.ying.nan
  *
  */
@@ -106,7 +152,7 @@ public class HeapSort {
 	        此时，整个序列的最大值就是堆顶的根节点。*/
 	        /*adjustHeap( arr,1,arr.length);
 	        adjustHeap( arr,0,arr.length);*/
-	        for (int i = arr.length/2-1; i >=0; i--) {
+	        for (int i = arr.length/2-1; i >=0; i--) {  
 	            times = adjustHeap( arr,i,arr.length,times);
 	        }
 	        int temp=0;
@@ -117,7 +163,9 @@ public class HeapSort {
 	            temp=arr[j];
 	            arr[j]=arr[0];
 	            arr[0]=temp;
-	            times = adjustHeap(arr,0,j,times);
+	            int n_times = 0;
+	            n_times = adjustHeap(arr,0,j,n_times);
+	            System.out.println("--------:"+n_times + "////:"+j);
 	        }
 	        System.out.println("tttimes:"+times);
 	    }
@@ -132,7 +180,7 @@ public class HeapSort {
 	                k++;
 	            }
 	            if (arr[k]>temp){
-	                //交换位置
+	                //交换位置  -- 中间大于tmp的数，依次上移。找到新位置
 	                arr[i]=arr[k];
 	                i=k;
 	            }else{
@@ -140,31 +188,32 @@ public class HeapSort {
 	            }
 	            times++;
 	        }
+	        // 最终最小的数的位置。
 	         arr[i]=temp;
 	         return times;
 	    }
 	    
 	    
 	public static void main(String[] args) {
-		int [] arr = new int[] {4,6,8,5,9,11};
+//		int [] arr = new int[] {4,6,8,5,9};
 //	    heapSort(arr); 
 //	    System.out.println(Arrays.toString(arr)); 
-	    System.out.println( Arrays.toString(new HeapSort().sort(arr)));
+//	    System.out.println( Arrays.toString(new HeapSort().sort(arr)));
 		/**
-		 * 
-		 int [] arr = new int[10000];
-		 int i = 10000;
-		 for(int j = 0 ;j<10000; j++) {
+		 * */
+		 int [] arr = new int[10];
+		 int i = 10;
+		 for(int j = 0 ;j<10; j++) {
 			 arr[j] = i;
 			 i-- ;
-		 }
+		 } 
 // 		demo   10000数据，循环  tttimes:106697
-//	    heapSort(arr); 
-//	    System.out.println(Arrays.toString(arr));   
+	    heapSort(arr); 
+	    System.out.println(Arrays.toString(arr));   
 		
 		// 自实现 10000数据，循环   times +==25000000
 //	    System.out.println( Arrays.toString(new HeapSort().sort(arr)));
-		 */
+		
 		
 		
 //		int [] arr = new int[] {4,6,3,5,9,7,123,45,124,2322,35,23,2,-1};

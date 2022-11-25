@@ -216,9 +216,9 @@ size = 整个size
 
 自写代码测试： 
 	
-      4 
-  6       8	
-5   9	11
+      4                    6
+  6       8	            5
+5   9	11   12       4
 
 		  8 
 	  9       4	
@@ -239,4 +239,20 @@ size = 整个size
 	  4 
   5       6	
 8   9	11
+
+第一次堆排序：
+	logn*n/2  = (logn) * n
+			K=n/2 次
+			2的K次方= n  -->  K = logn
+剩余元素堆排序：	
+logn* (n-1) =  (logn) * n
+		K=n-1次
+		2的K次方= n  -->  K = logn
+想加：
+logn*n+ logn*n   =  (2logn) * n  = (logn) * n
+
+n / 2的k次方 = 1 
+k = O(logn)。
+
+2的k次方 = n
 
