@@ -24,6 +24,7 @@ public class Coins {
 		//1 定义一个状态，方法,凑够n分的最少硬币个数
 		//dp(n):凑够n分的最少硬币个数
 		static int coinChange(int n){
+			System.out.println("----:"+n);
 		//递归基
 		if(n <1){ return Integer.MAX_VALUE;}
 		//2 确定初始状态
@@ -35,6 +36,34 @@ public class Coins {
 		* 如果第一次选择了20分；coinChange(n)=coinChange(n-20)+1
 		* 如果第一次选择了25分；coinChange(n)=coinChange(n-25)+1
 		* 以上四种情况选择哪一种呢？应该选择的是硬币个数最少的这种
+		* 
+		* 输入41执行顺序
+		* 				先执行  coinChange(n - 1)   ，  41 ~ 26  ， n=26 ，return 1  
+			*        				执行 coinChange(n - 5) ，n=25-5=20 开始执行 ，return 1 
+			*        					执行  coinChange(n - 1)   ，  20， n=19，18，17，return 1  
+			*        						执行 coinChange(n - 5) ，n=25-5=20 开始执行 ，return 1 
+			*        						
+			*        
+			*        						执行 coinChange(n - 5)  ， 21-5=16 
+			*        						执行  coinChange(n - 1)   ，16~  6 ， n=6，return 1  
+			*        								1、执行 coinChange(n - 5)  ， 6-5=1   
+				*        								执行  coinChange(n - 1)   ，1-1=0  n=0，return Integer.MAX_VALUE
+					*        									执行 coinChange(n - 5)  ，n=0-5=-5 return Integer.MAX_VALUE
+		*      												执行min1 = Integer.MAX_VALUE
+				*     										coinChange(n - 20) , n=-5-20 , return Integer.MAX_VALUE
+					*     									coinChange(n - 25) n=-5-20 , return Integer.MAX_VALUE
+					*    									 执行min2 = Integer.MAX_VALUE
+					*    									return Math.min(min1, min2) + 1 = Integer.MAX_VALUE +1；
+				*    							1- 执行min1 = 1 
+		*     			
+			*     			此时执行n=27  ，coinChange(n - 5)  ，
+			*     					n=27-5 =22开始 ，coinChange(n - 1)  , n=21 ， return 1  
+			*     					coinChange(n - 5) ， n= 21-5 =16 开始， 11,6   ， return 1  
+			*     					min1 = 1 
+			*     					coinChange(n - 20) , n=6 , return Integer.MAX_VALUE
+			*     					coinChange(n - 20) n=6 , return Integer.MAX_VALUE
+			*     					计算 min2 = Integer.MAX_VALUE
+	*      							return Math.min(min1, min2) + 1 = 2 ；
 		*/
 		final int min1 = Math.min(coinChange(n - 1), coinChange(n - 5));
 		final int min2 = Math.min(coinChange(n - 20), coinChange(n - 25));
