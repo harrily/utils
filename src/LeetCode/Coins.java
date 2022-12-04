@@ -78,13 +78,31 @@ public class Coins {
 		return Math.min(min1, min2) + 1;
 	}
 	
-		
-		
+		//test
+		static int test(int n){
+			flag++;
+	//			System.out.println("----:"+n);
+			//递归基
+			if(n <1){ return Integer.MAX_VALUE;}
+			//2 确定初始状态
+			if(n==1||n==5||n==20|n==25){ return 1;}
+			int test1 = test(n - 1);
+			int test2 = test(n - 5);
+			int test3 = test(n - 20);
+			int test4 = test(n - 25);
+			System.out.println(n+"===="+test1+":"+test2+":"+test3+":"+test4);
+			final int min1 = Math.min(test1, test2);
+			final int min2 = Math.min(test3, test4);
+			return Math.min(min1, min2) + 1;
+	}
 		/**
+		 * 优化1 ： 记录使用数组保存计算过的子问题的解，避免重复计算！！
 		* 定义找零钱方法
+		*  
 		*/
 		static int coins(int n){
 			//过滤不合理的值
+			
 			if(n <1){ return -1;}
 			//定义一个数组保存子问题的解，dp(n)...dp(2),dp(1)
 			int[] dp=new int[n+1]; //数组索引从0开始，只是为了与dp(n)位置对应,数组初始化值都是0
@@ -113,16 +131,10 @@ public class Coins {
 	
 	public static void main(String[] args) {
 //		System.out.println(coinChange(41));
-		System.out.println(coins(26));
+		System.out.println(test(41));
+//		System.out.println(coins(26));
 		System.out.println(flag);
 	}
 
 }
 
-/**
-0,0  1,0   2,0  3,0  4,0
-0,1  1,1   2,1  3,1  4,1
-0,2  1,2   2,2  3,2  4,2
-0,3  1,3   2,3  3,3  4,3
-0,4  1,4   2,4  3,4  4,4
-**/
