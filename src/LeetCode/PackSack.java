@@ -23,7 +23,9 @@ public class PackSack {
 			for(int j = 0 ; j < value.length ; j++) {
 				
 			}
+			
 		}
+		
 		
 	}
 	
