@@ -1,7 +1,11 @@
 package LeetCode;
 
 import java.util.HashMap;
-
+/**
+ * 2022-11-30
+ * @author wang.ying.nan
+ *
+ */
 public class StringDoubleIndex {
 	/**
 	 * 
