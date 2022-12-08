@@ -107,12 +107,33 @@ public class LongSequence {
 		}
 		
 			// 一维数组实现。
+			/**
+			 * 一维数组和二维比较：解析
+			 *   原本二维数组记录数据 方式  dp[i][j]
+			 *   		dp[1][1] dp[1][2] dp[1][3] 
+			 * 			dp[2][1] dp[2][2] dp[2][3] 
+			 * 			dp[3][1] dp[3][2] dp[3][3] 
+			 * 			dp[4][1] dp[4][2] dp[4][3] 
+			 * 返回 dp[4][3]的值。
+			 * 		替换为一维数组时，相当于 dp[i][j]的值，不管i怎么变，dp[j]都会覆盖之前dp[i][j]的值。
+			 *   例如：dp[1][1]， dp[2][1] 在一维数组中， dp[1] 肯定前面两者的最大值。相当于覆盖。 
+			 *   		示例 ： 当i=1,  j = 1  此时元素相等
+			 *   		二维数组  ，dp[i][j] = dp[i - 1][j - 1] + 1   = 1 
+			 *   		一维数组， dp[j] = leftTop + 1 = 1  
+			 * 		只需要关注j的值即可，返回
+			 * 				当i=1,  j = 2  此时元素不相等
+			 * 			二维数组  ，dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1])  
+			 * 					其中dp[i - 1][j]=0  ，dp[i][j - 1]=1  ，最大值为1
+			 *   		一维数组， dp[j] = Math.max(dp[j], dp[j - 1]);  
+			 *   				dp[j]=1,dp[j-1]=1    ，最大值为1
+			 *   		通过示例可以验证 《dp[j]都会覆盖之前dp[i][j]的值》
+			 *   		既然求最大值，故满足
+			 */			
 			static int getOneArray(int[] arr1, int[] arr2) {
 				//过滤掉不合理的值
 				if (arr1 == null || arr2 == null || arr1.length == 0 || arr2.length == 0) {
 					return 0;
 				}
-				//准备二维一个数组记录下子问题的解，使用递推方式自下而上计算
 				int[] dp = new int[arr1.length + 1];
 				for (int i = 1; i <= arr1.length; i++) {
 					int tmp=0;
@@ -124,28 +145,6 @@ public class LongSequence {
 						tmp=dp[j];
 						//判断是否相等
 						if (arr1[i - 1] == arr2[j - 1]) {
-							/**
-							 * 一维数组和二维比较：解析
-							 *   原本二维数组记录数据 方式  dp[i][j]
-							 *   		dp[1][1] dp[1][2] dp[1][3] 
-							 * 			dp[2][1] dp[2][2] dp[2][3] 
-							 * 			dp[3][1] dp[3][2] dp[3][3] 
-							 * 			dp[4][1] dp[4][2] dp[4][3] 
-							 * 返回 dp[4][3]的值。
-							 * 		替换为一维数组时，相当于 dp[i][j]的值，不管i怎么变，dp[j]都会覆盖之前dp[i][j]的值。
-							 *   例如：dp[1][1]， dp[2][1] 在一维数组中， dp[1] 肯定前面两者的最大值。相当于覆盖。 
-							 *   		示例 ： 当i=1,  j = 1  此时元素相等
-							 *   		二维数组  ，dp[i][j] = dp[i - 1][j - 1] + 1   = 1 
-							 *   		一维数组， dp[j] = leftTop + 1 = 1  
-							 * 		只需要关注j的值即可，返回
-							 * 				当i=1,  j = 2  此时元素不相等
-							 * 			二维数组  ，dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1])  
-							 * 					其中dp[i - 1][j]=0  ，dp[i][j - 1]=1  ，最大值为1
-							 *   		一维数组， dp[j] = Math.max(dp[j], dp[j - 1]);  
-							 *   				dp[j]=1,dp[j-1]=1    ，最大值为1
-							 *   		通过示例可以验证 《dp[j]都会覆盖之前dp[i][j]的值》
-							 *   		既然求最大值，故满足
-							 */			
 							// 二维数组=dp[i][j] = dp[i - 1][j - 1] + 1;
 							// 替换为1维数组时 ，每次使用dp[j-1] + 1 替换即可 ， 此时 leftTop = dp[j-1]
 							dp[j] = leftTop + 1;
@@ -166,17 +165,50 @@ public class LongSequence {
 	
 //			System.out.println((i - 1)+","+j + "]++[" +i+","+ (j-1));
 			
+			
+			/**
+			 * 	
+			 * 	不能正序， 因为内层循环正序，  字符串比较顺序反了。
+			 * 
+			 * @param arr1
+			 * @param arr2
+			 * @return
+			
+			static int getOneArrayByZhengxu(int[] arr1, int[] arr2) {
+				//过滤掉不合理的值
+				if (arr1 == null || arr2 == null || arr1.length == 0 || arr2.length == 0) {
+					return 0;
+				}
+				int[] dp = new int[arr1.length + 1];
+				for (int i = 1; i <= arr1.length; i++) {
+					int tmp=0;
+					for (int j = arr2.length; j >= 1; j--) {
+						int leftTop=tmp;// i =1 ,2 ,3 。。 时， 第一次的leftTop都固定从0开始
+						tmp=dp[j];
+						if (arr1[i - 1] == arr2[j - 1]) {
+							dp[j] = leftTop + 1;
+						} else {
+							dp[j] = Math.max(dp[j], dp[j + 1]);  
+						}
+					}
+					
+				}
+				return dp[1];
+			}
+	 */
 	
 	public static void main(String[] args) {
-//		int[] s1 = {1, 1,3, 5,10, 9,11};
-//		int[] s2 = {1, 4,1,9,10,11};
+		int[] arr1 = {1, 1,3, 5,10, 9,11};
+		int[] arr2 = {1, 4,1,9,10,11};
+//		int[] ar = {11,10,9,1,4,1};
 //		int longSeq = getLongSeq(s1, s2);
 //		System.out.println(longSeq);
 		
-		int[] arr1 = {1, 1, 9, 5};
-		int[] arr2 = {1,5, 9};
+//		int[] arr1 = {1, 1, 9, 5};
+//		int[] arr2 = {1,5, 9};
 //		System.out.println(getLCS(arr1, arr2));
 		System.out.println(getOneArray(arr1, arr2));
+//		System.out.println(getOneArrayByZhengxu(arr1, arr2));
 	}
 	
 	/**
