@@ -6,6 +6,7 @@ import java.util.List;
 
 /**
  * 	DFS 深度优先搜索算法
+ * @since 2022-12-08
  * @author wang.ying.nan
  * 
  * 参考资料：https://blog.csdn.net/weixin_33246767/article/details/114227715
@@ -41,6 +42,12 @@ public class Dfs {
 		}
 		return null;
 	}
+	
+	
+	/**
+	 * @category for + recurison
+	 * @author wangyingnan s
+	 */
 	static int count1 = 1;
 	static int nums = 3;
 	static int[] array = new int[3];
