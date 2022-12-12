@@ -108,15 +108,19 @@ public class ReverseLink {
             		tmp = head;
 	            }
                 Stack<Integer> stack = new Stack<Integer>();
-	            while(tmp.next != null) {
+	            while(tmp != null) {
 	            	if(node1 == null) {
 	            		stack.add(tmp.val);
+	            		if(tmp == rightNode ) {
+		            		break;
+		            	}
 		            }else {
 		            	stack.add(tmp.next.val);
+		            	if(tmp.next == rightNode ) {
+		            		break;
+		            	}
 		            }
-	            	if(tmp == rightNode ) {
-	            		break;
-	            	}
+	            	
 	            	tmp = tmp.next;
 	            }
 	            ListNode tmp2 = node1 ;
@@ -132,16 +136,19 @@ public class ReverseLink {
 	            	if(stack.isEmpty()) {
 	            		tmp2.next = rightNode.next;
 	            	}
-	            
 	            }
-	        head = node1;
+	            while(node1!=null) {
+		    		System.out.print(node1.val);
+		    		node1 = node1.next;
+		    	}
+	            System.out.println();
 			return head;
 	    }
 	    
 	    public static void main(String[] args) {
 	    	int[] arr1 = {1,2,3,4};
 	    	ListNode insert = insert(arr1);
-	    	ListNode reverseBetween2 = reverseBetween2( 2, 3);
+	    	ListNode reverseBetween2 = reverseBetween2(1,2);
 	    	while(reverseBetween2!=null) {
 	    		System.out.println(reverseBetween2.val);
 	    		reverseBetween2 = reverseBetween2.next;
