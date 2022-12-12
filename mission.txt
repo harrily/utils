@@ -4508,6 +4508,7 @@ FBL1N是事务码（由多个表构成），数据量很大。
 				【校验同步是否正常  /root/shell/hive/distcp/detail_distcp.sh  
 					执行 ： nohup sh detail_distcp.sh  >> detail_distcp.log 2>&1 &
 					】
+				sh /root/shell/hive/purchase_bi_shell/step_shell/generate_dimension_update.sh $l_date $old_date >> /root/shell/hive/purchase_bi_shell/step_shellgenerate_dimension_update.log 2>&1 &&
 			6、nohup sh generate_dimension_update.sh  2021-01-27 2020-12-27 >> generate_dimension_update.log 2>&1 &
 		-- nohup sh generate_dimension_update.sh  2021-02-24 2021-01-27 >> generate_dimension_update.log 2>&1 &
 		-- nohup sh generate_dimension_update.sh  2021-04-27 2021-04-21  >> generate_dimension_update.log 2>&1 &
@@ -4539,9 +4540,18 @@ FBL1N是事务码（由多个表构成），数据量很大。
 				-- nohup sh generate_no_price_and_update.sh    2021-05-18 2021-04-27  >> generate_no_price_and_update.log 2>&1 &
 				-- nohup sh generate_no_price_and_update.sh    2021-11-12 2021-05-18  >> generate_no_price_and_update.log 2>&1 &
 			
+			
 	8、dimenson以及额外增量更新表 ，同步到正式 ： /root/shell/hive/purchase_bi_shell/distcp/zhengshi/ceshi_to_zhengshi_dimenson.sh
 			nohup sh /root/shell/hive/purchase_bi_shell/distcp/zhengshi/ceshi_to_zhengshi_dimenson.sh 2021-06-21 >> /root/shell/hive/purchase_bi_shell/distcp/zhengshi/ceshi_to_zhengshi_dimenson.log 2>&1 &
 	
+				echo "--开始同步 《供应商对账数据至正式》 脚本"
+				nohup sh  /root/shell/hive/purchase_bi_shell/distcp/pro/test_to_pro_supplier_recon.sh.sh  $l_date >> /root/shell/hive/purchase_bi_shell/distcp/zhengshi/test_to_pro_supplier_recon.sh.log 2>&1 &&
+				echo "-- 《供应商对账数据至正式》  脚本执行完毕"	
+				
+				echo "--开始同步 《CD数据至正式》 脚本"
+				nohup sh  /root/shell/hive/purchase_bi_shell/distcp/pro/test_to_pro_dimenson.sh  $l_date >> /root/shell/hive/purchase_bi_shell/distcp/zhengshi/test_to_pro_dimenson.log 2>&1 &&
+				echo "-- 《供应商CD数据数据至正式》  脚本执行完毕"	
+				
 	【:%s/10.0.24.113/10.0.24.114/g】
 	:%s/10.0.24.114/10.0.24.113/g
 	9、供应商对账数据 ，
@@ -4552,6 +4562,24 @@ FBL1N是事务码（由多个表构成），数据量很大。
 				nohup sh generate_muju_recon_update.sh 2021-11-12 2021-07-21 >> generate_muju_recon_update.log 2>&1 &
 						备注：模具的代码，要去掉FATP的数据， 18,19,20   -- 已添加
 					-- 2021-07-21
+				/**
+						echo "--开始更新 《供应商对账-非模具数据》 脚本"
+						nohup sh /root/shell/hive/purchase_bi_shell/step_shell/generate_no_muju_recon.sh $l_date $old_date >> /root/shell/hive/purchase_bi_shell/generate_no_muju_recon.log 2>&1 &&
+						echo "-- 《供应商对账-非模具数据》 脚本执行完毕"	
+						
+						echo "--开始更新 《供应商对账-非模具数据-数据更新》 脚本"
+						nohup sh /root/shell/hive/purchase_bi_shell/step_shell/generate_no_muju_recon_update.sh $l_date $old_date >> /root/shell/hive/purchase_bi_shell/generate_no_muju_recon_update.log 2>&1 &&
+						echo "-- 《供应商对账-非模具数据-数据更新》 脚本执行完毕"
+						
+						echo "--开始更新 《供应商对账-模具数据》 脚本"
+						nohup sh /root/shell/hive/purchase_bi_shell/step_shell/generate_muju_recon.sh $l_date $old_date >> /root/shell/hive/purchase_bi_shell/generate_muju_recon.log 2>&1 &&
+						echo "-- 《供应商对账-模具数据》 脚本执行完毕"	
+						
+						echo "--开始更新 《供应商对账-模具数据-数据更新》 脚本"
+						nohupsh /root/shell/hive/purchase_bi_shell/step_shell/generate_muju_recon_update.sh $l_date $old_date >> /root/shell/hive/purchase_bi_shell/generate_muju_recon_update.log 2>&1 &&
+						echo "-- 《供应商对账-模具数据-数据更新》 脚本执行完毕"
+				**/
+				
 	10、供应商对账数据 ->同步数据至正式
 				nohup sh /root/shell/hive/purchase_bi_shell/distcp/zhengshi/ceshi_supplier_recon.sh 2021-07-21 >> /root/shell/hive/purchase_bi_shell/distcp/zhengshi/ceshi_supplier_recon.log 2>&1 &
 			-、正式环境-数据加载

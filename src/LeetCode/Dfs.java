@@ -111,7 +111,7 @@ public class Dfs {
 				result[i-1] = 1; // 标记当前数已经全排
 				array[step-1] = i; //  for循环定义循环赋值，step代表更新第几层数据，step=1，只更新第一层数据，同理类推。
 				getByDfs2(step+1);  // 进入下一层for循环赋值。  
-				result[i-1] = 0;
+				result[i-1] = 0;  // 当前递归/for循环 --   执行完毕，替换result[i-1]的值 ，
 			}
 		}
 	}
@@ -122,8 +122,8 @@ public class Dfs {
 	 * 				getByDfs2(3); 
 	 * 					i=3，step=3,	[1,2,3] ,result[2] == 1 ,
 	 * 						getByDfs2(4);打印 return ; 
-	 * 						result[3-1]= result[2] = 0;
-	 * 			result[2-1]= result[1]= 0;
+	 * 						result[3-1]= result[2] = 0;  |||  递归执行完毕，，替换result[i-1]的值 ，
+	 * 			result[2-1]= result[1]= 0;  |||||  for循环执行完毕，  ，替换result[i-1]的值 ，
 	 * 			i=3 ,step=2,[1,3,3] ,result[2] == 1 ,
 	 * 				getByDfs2(3);   
 	 * 					i=2， step=3,	[1,3,2] ,result[1] == 1 ,
