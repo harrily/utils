@@ -148,7 +148,7 @@ public class ReverseLink {
 	    public static void main(String[] args) {
 	    	int[] arr1 = {1,2,3,4};
 	    	ListNode insert = insert(arr1);
-	    	ListNode reverseBetween2 = reverseBetween2(1,2);
+	    	ListNode reverseBetween2 = reverseBetween2(3,4);
 	    	while(reverseBetween2!=null) {
 	    		System.out.println(reverseBetween2.val);
 	    		reverseBetween2 = reverseBetween2.next;
