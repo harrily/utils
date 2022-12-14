@@ -112,7 +112,7 @@ public class Dfs {
 				array[step-1] = i; //  for循环定义循环赋值，step代表更新第几层数据，step=1，只更新第一层数据，同理类推。
 				getByDfs2(step+1);  // 进入下一层for循环赋值。  
 				result[i-1] = 0;  // 当前递归/for循环 --   执行完毕，替换result[i-1]的值 ，
-			}
+			} 
 		}
 	}
 	/**
