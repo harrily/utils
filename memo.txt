@@ -7359,3 +7359,101 @@ git config --global user.name "harrily"
 
 
 
+124、 NM报错：
+Memory usage of ProcessTree 60304 for container-id container_e855_1670339656476_13734_01_000001: 
+	389.4 MB of 4.5 GB physical memory used; 2.4 GB of 9.4 GB virtual memory used
+		physical memory = 4.5G
+		virtual memory = 4.5 * 2.1 = 9.45 G 
+
+解决： 
+	-、NM的内存资源配置，主要是通过下面两个参数进行的（这两个值是Yarn平台特性，应在yarn-sit.xml中配置） ： 
+		yarn.nodemanager.resource.memory-mb= 78336m =76.5 G
+		yarn.nodemanager.vmem-pmem-ratio 默认2.1 
+			说明：
+		第一个参数：该结点向操作系统申请的内存总量，RM中的两个值不能超过此值。此数值可以用于计算container最大数目，即：用此值除以RM中的最小容器内存。
+		第二个：虚拟内存率，是占task所用内存的百分比，默认值为2.1倍。如报错虚拟内存溢出，则提高该值。 
+			注意：第一个参数默认大小是8G，即使计算机内存不足8G也会按着8G内存来使用，所有计算机内存小于8GB应该调低这个值。
+		默认情况下，yarn.nodemanager.vmem-pmem-ratio被设置为2.1，
+			这意味着，每个map或者task任务只能使用2.1倍（”mapreduce.reduce.memory.mb”) or (“mapreduce.map.memory.mb”) 大小的虚拟内存，如果使用的量超出则会被nm杀掉。 
+		
+	-、AM内存配置相关参数，此处以MapReduce为例进行说明（这两个值是AM特性，应在mapred-site.xml中配置）
+		mapreduce.map.memory.mb=4608m = 4.5 G
+		mapreduce.reduce.memory.mb=9216m = 9 G
+			说明：单个Map/Reduce task 申请的内存大小，其值应该在RM中的最大和最小container值之间。如果没有配置则通过如下简单公式获得： 
+				max(MIN_CONTAINER_SIZE, (Total Available RAM) / containers)) 
+				一般reduce内存大小应该是map的2倍。注：这两个值可以在应用启动时通过参数改变，可以动态调整；
+	
+		-、AM JVM设置
+			AM中其它与内存相关的参数，还有JVM相关的参数，这些参数可以通过，如下选项配置： 
+			mapreduce.map.java.opts 默认 
+			mapreduce.reduce.java.opts 默认 
+				说明：这两个参主要是为需要运行JVM程序（java、scala等）准备的，通过这两个设置可以向JVM中传递参数的，与内存有关的是，
+				-Xmx，-Xms等选项。此数值大小，应该在AM中的map.mb和reduce.mb之间。
+			
+	-、RM的内存资源配置，主要是通过下面的两个参数进行的
+		yarn.scheduler.minimum-allocation-mb=4068m = 4.5G 
+		yarn.scheduler.maximum-allocation-mb=78336m = 76.5G
+			说明：单个容器可申请的最小与最大内存，应用在运行申请内存时不能超过最大值，应用申请小于最小值则会分配最小值，
+			从这个角度看，最小值有点像操作系统中的页。最小值还有另外一种用途，用来计算一个节点的最大container数目
+				注：这两个值一经设定不能动态改变(此处所说的动态改变是指需要重启集群生效)。
+	
+	-、总结
+			AM为Map/Reduce task向RM申请资源，RM按照mini和max、资源增量的值为task分配一个固定大小的container供task使用。RM可以分配下去的资源总量受到NM配置的值限制。
+
+	-、hadoop2.x
+		在hadoop2及以上版本中
+			map和reduce task 是运行在container中的。
+				mapreduce.{map|reduce}.memory.mb 被yarn用来设置container的内存大小。
+				如果container的内存超限，会被yarn杀死。
+				在container中，为了执行map和reduce task，yarn会在contaner中启动一个jvm来执行task任务。
+				mapreduce.{map|reduce}.java.opts用来设置container启动的jvm相关参数，通过设置Xmx来设置map 或者reduce task的最大堆内存。 
+			理论上，{map|reduce}.java.opts设置的最大堆内存要比{map|reduce}.memory.mb小。一般设置为一般设置为0.75倍的memory.mb即可；因为在yarn container这种模式下，JVM进程跑在container中，需要为java code等非JVM的内存使用预留些空间。 
+			运行中的设置方法例如：xml中也可设置 
+				hadoop jar -Dmapreduce.reduce.memory.mb=4096 -Dmapreduce.map.java.opts=-Xmx3276
+				
+	-、常见报错解决：
+		报错1:Current usage: 1.1gb of 2.0gb physical memory used; 4.6gb of 4.2gb virtual memory used. Killing container.【即虚拟内存溢出】；
+			方法一：提高yarn.nodemanager.vmem-pmem-ratio = 5或者更高；【推荐】**
+			方法二：yarn.nodemanager.vmem-check-enabled =false ；关闭虚拟内存检查；不推荐
+			方法三：提高物理内存分配，相应的虚拟内存自然就多了，但是这样不是最优
+			
+		报错2：Current usage: 2.1gb of 2.0gb physical memory used; 3.6gb of 4.2gb virtual memory used. Killing container.【即物理内存溢出】；
+			方法一：mapreduce.map.memory.mb = 3GB以上，然后测试这个map/reduce task需要使用多少内存才够用，提高这个值直到不报错为止。
+			方法二：提高yarn.scheduler.minimum-allocation-mb = 3GB以上，同理【不推荐】
+			
+	-、内存分配增量/规整因子/incrementMemory
+		应用程序申请的资源如果不是该因子的整数倍，则将被修改为最小的整数倍对应的值，公式为ceil(a/b)*b，其中a是应用程序申请的资源，b为规整化因子。
+			(对于规整化因子，不同调度器不同，具体如下： FIFO和Capacity Scheduler，规整化因子等于最小可申请资源量，不可单独配置)
+		Fair Scheduler：规整化因子通过参数yarn.scheduler.increment-allocation-mb和yarn.scheduler.increment-allocation-vcores设置，默认是1024和1。 
+		yarn.scheduler.increment-allocation-mb=
+		yarn.scheduler.increment-allocation-vcores
+			示例：	
+				应用程序申请到资源量可能大于资源申请的资源量，
+					比如YARN的最小可申请资源内存量为1024，规整因子是1024，如果一个应用程序申请1500内存，则会得到2048内存，如果规整因子是 512，则得到1536内存。
+					ceil(1500/1024) * 1024 = 2048
+					ceil(1500/512) * 512 = 1536
+参考资料：
+https://blog.csdn.net/JacksonKing/article/details/100534260
+
+	1、container怎么计算多少个？
+	2、yean-env.sh 和yarn-site.xml 中， heapsize和memory有什么联系？
+	3、yarn分配因子参数设置，hadoop2.6在哪里？
+	
+125、nginx配置ssl
+1、如果是使用yum 安装等方式，找不到源码包，需要下载当前安装相同版本的源码包：
+
+wget http://nginx.org/download/nginx-1.13.7.tar.gz		
+
+2、切换到源码包
+执行：./configure --prefix=/usr/local/nginx --with-http_stub_status_module --with-http_ssl_module
+或者./configure --with-http_ssl_module
+
+3、编译完成后 : make (这里不要进行make install，否则就是覆盖安装)
+
+4、备份原来nginx配置文件
+cp /usr/local/nginx/sbin/nginx /usr/local/nginx/sbin/nginx.bak
+
+5、保证nginx是关闭状态
+nginx -s stop
+6、复制刚编译生成的配置覆盖原有的配置
+cp ./objs/nginx /usr/local/nginx/sbin/
