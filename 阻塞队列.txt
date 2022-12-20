@@ -1,0 +1,25 @@
+参考资料：
+https://blog.csdn.net/qq_37050329/article/details/116295082
+
+
+1、LinkedBlockingQueue
+-、LinkedBlockingQueue是一个基于已链接节点的，范围任意的blocking queue
+-、此队列按FIFO（先进先出）排序元素
+-、新元素插入到队列的尾部，并且队列获取操作会获得位于队列头部的元素
+-、链接队列的吞吐量通常要高于基于数组的对列（ArrayBlockingQueue）,但是在大多数并发应用程序中，其可预知的性能要低
+-、可选的容量范围构造方法参数作为防止队列过度扩展的一种方法，如果未指定容量，则等于Integer.MAX_VALUE，除非插入节点会使队列超出容量，否则每次插入后会动态地创建链接节点
+
+
+
+
+
+
+多线程: http://www.bjpowernode.com/javathread/1196.html
+锁：	ReentrantLock
+newCondition
+	关键字synchronized与wait()/notify()这两个方法一起使用可以实现等待/通知模式， Lock锁的newContition()方法返回Condition对象，Condition类也可以实现等待/通知模式。
+	用notify()通知时，JVM会随机唤醒某个等待的线程， 使用Condition类可以进行选择性通知， Condition比较常用的两个方法：
+	● await()会使当前线程等待,同时会释放锁,当其他线程调用signal()时,线程会重新获得锁并继续执行。
+	● signal()用于唤醒一个等待的线程。
+	注意：在调用Condition的await()/signal()方法前，也需要线程持有相关的Lock锁，调用await()后线程会释放这个锁，在singal()调用后会从当前Condition对象的等待队列中，唤醒 一个线程，唤醒的线程尝试获得锁， 一旦获得锁成功就继续执行。
+		
