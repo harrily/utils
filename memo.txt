@@ -7484,4 +7484,129 @@ B ,2022-11-16 ,2022-11-16 , 9999-99-99
 A ,2022-12-17 ,2022-12-17 , 9999-99-99   新增
 A ,2022-11-15，2022-11-15 , 2022-12-17 , 修改历史
 	
-	
+
+
+127、数据量理解
+
+问题：
+	redis 怎么保证数据不丢失,
+	Hbase,
+	spark  数据散列
+	spark : 数据倾斜，spark task 和什么有关
+
+select count(1) from  hr.ods_hr_zhrcn_if_emp where day = '2022-12-14'  
+-- 58387 条  26102305 byte = 25M  50 个字段	平均一个字段10~15 byte
+
+10W 条  50M
+
+订单数： 5~10W左右
+数据量：1000W        500M
+商品： 100W
+
+车辆信息： 8W条疾苦：  50M
+60箱，  20个 ，   20辆车
+
+
+
+
+车辆信息 
+	1、货车（厢式/板车）车型：xxx 实际载重量：25吨/60立方米
+lg_orders(订单表),
+lg_items(商品表)，
+lg_item_cats(商品分类表),
+lg_enterports(仓库表)	
+lg_orders_enterports(订单仓库关联表),
+lg_orders_detail(订单详情表),
+
+揽件表（lg_collect_package）
+客户表（lg_customer）
+物流系统码表（lg_codes）
+快递单据表（lg_express_bill）
+客户地址表（lg_customer_address）
+公司表（lg_company）
+公司网点关联表（lg_company_dot_map）
+运单表（lg_waybill）
+线路表（lg_route）
+运输工具表（lg_transport_tool）
+转运记录表（lg_transport_record）
+包裹表（lg_pkg）
+运单路线明细表（lg_waybill_line）
+
+
+
+DWD:
+	ods-->dwd
+	lg_ods.lg_orders:订单表;
+	lg_ods.lg_order_items:订单明细表
+	lg_order_entrepot:订单仓库关联表
+	订单表是周期性事实表；为保留订单状态，使用拉链表进行处理；
+	订单明细表是普通的事实表:不涉及到状态变化和保留； 如果有数据清洗、数据转换的业务需求，使用
+	每日增量同步到dwd层即。
+	订单仓库关联表是普通的事实表:不涉及到状态变化和保留； 如果有数据清洗、数据转换的业务需求，
+	使用每日增量同步到dwd层即可.
+	如果没有数据清洗、数据转换的业务需求，保留在ODS，不做任何变化
+
+
+DIM表:
+仓库表，商品表，商品分类表都是作为维度表存在，使用拉链表进行处理；
+
+
+指标：
+1、快递单主题 
+	快递单量的统计主要是从多个不同的维度计算快递单量，从而监测公司快递业务运营情况。
+		最大快递单数 各类客户最大快递单数
+			各渠道最大快递单数
+			各网点最大快递单数
+			各终端最大快递单数
+		最小快递单数 各类客户最小快递单数
+			各渠道最小快递单数
+			各网点最小快递单数
+		各终端最小快递单数
+
+2、运单主题
+	运单统计根据区域、公司、网点、线路、运输工具等维度进行统计，可以对各个维度运单数量进行排行，如对网点运单进行统计可以反映该网点的运营情况
+		最大运单数 最大区域运单数
+			各分公司最大运单数
+			各网点最大运单数
+			各线路最大运单数
+			各运输工具最大运单数
+			各类客户最大运单数
+		最小运单数 各区域最小运单数
+			各分公司最小运单数
+			各网点最小运单数
+			各线路最小运单数
+			各运输工具最小运单数
+			各类客户最小运单数
+
+
+-、dwd,dws,dim层表底层均以parquet格式，因为底层使用spark引擎，spark程序对parquet格式的
+数据处理效率更好。
+-、与维表不同，订单事实表的记录数非常多 订单有生命周期；
+订单的状态不可能永远处于变化之中（订单的生命周期一般在15天左 右）
+订单是一个拉链表，而且是分区表 ；分区的目的：订单一旦终止，不会重复计算 ；分区的条
+件：订单创建日期；保证相同笔订单存储在同一个分区
+
+
+仓储预测： 
+	根据算法部门的要求，仓储预测模型需要提供4个数据集
+sales_train.csv;items.csv;item_categories.csv;entreports.csv
+
+	sales_train
+历史销售数据，有日期字段，月份,仓库，商品，价格和日销售量  （统计出的是每个仓库每个商品的日销量数据）
+	items.csv
+表示的是商品信息，有商品名称，仓库id,商品分类id
+	entrepots.csv
+仓库数据集，仓库id,仓库名称
+	item_category
+来源商品分类表，其中有商品分类id以及分类的名称
+
+
+kafka:
+	●注意：下面的参数是不能被设置的，否则kafka会抛出异常：
+		group.id:kafka的source会在每次query的时候自定创建唯一的group id
+		auto.offset.reset :为了避免每次手动设置startingoffsets的值，structured streaming在内部消费
+		时会自动管理offset。这样就能保证订阅动态的topic时不会丢失数据。startingOffsets在流处理
+		时，只会作用于第一次启动时，之后的处理都会自动的读取保存的offset。
+		key.deserializer，value.deserializer，key.serializer，value.serializer 序列化与反序列化，都是
+		ByteArraySerializer
+		enable.auto.commit:Kafka源不支持提交任何偏移量
