@@ -28,12 +28,20 @@ public class BubbleSort {
 			int[] num12 = new int [] {14,2,5,19,25};
 			int[] num1= new int[] { 6 ,12 ,23, 7, 9, 3, 4, 5, 10 ,8,100,22};
 //			int[] num1= new int[] { 3,1 ,2, 4};
-//			sortBubble(num1);
-			sortByMaopao(num1);
+			sortBubble(num1);
+//			sortByMaopao(num1);
 //			sortBySelect(num1);
 //			sortByInsert(num1);
 		}
 		
+		/**
+		 *    冒泡排序1 
+			1-、左右元素对比，交换
+			2-、将最大/小数，慢慢移动至最左侧/最右侧。
+			3-、外层循环控制循环次数,内层循环控制左右数对比
+		    4-、内层for循环，循环次数每次-i（因为外层没循环一次，就有最大/最小的数被找到，内层循环因此每次循环次数 要 -i）
+		 * @param num1
+		 */
 		// 理念 ： 每次是内存数组，左右两个数循环对比，找出最大/最小的数， 放在最后一位。  
 		public static void sortBubble(int[] num1) {
 			for(int i = 0 ; i< num1.length -1; i ++) {
