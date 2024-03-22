@@ -1,0 +1,1407 @@
+------------------------------------------------------------------------------------------------------------------------------
+
+拉链表理解：
+适用于
+
+数据量比较大，而且会不断增长（典型：订单表）
+表中的部分字段会被update,如用户的地址，产品的描述信息，订单的状态等等;
+需要查看某一个时间点或者时间段的历史快照信息，比如，查看某一个订单在历史某一个时间点的状态，
+比如，查看某一个用户在过去某一段时间内，更新过几次等等;
+变化的比例和频率不是很大，比如，总共有1000万的会员，每天新增和发生变化的有10万左右;
+如果对这边表每天都保留一份全量，那么每次全量中会保存很多不变的信息，对存储是极大的浪费;
+————————————————
+版权声明：本文为CSDN博主「小涛手记」的原创文章，遵循CC 4.0 BY-SA版权协议，转载请附上原文出处链接及本声明。
+原文链接：https://blog.csdn.net/weixin_47699191/article/details/116810508
+
+
+
+https://blog.csdn.net/weixin_47699191/article/details/116810508
+
+在拉链表中，每一条数据都有一个生效日期(effective_date)和失效日期(expire_date)。假设在一个用户表中，在2019年11月8日新增了两个用户，如下表所示，则这两条记录的生效时间为当天，由于到2019年11月8日为止,这两条就还没有被修改过，所以失效时间为一个给定的比较大的值，比如：3000-12-31  
+
+member_id	phoneno	create_time	update_time
+10001	13300000001	2019-11-08	3000-12-31
+10002	13500000002	2019-11-08	3000-12-31
+
+
+第二天(2019-11-09)，用户10001被删除了，用户10002的电话号码被修改成13600000002.为了保留历史状态，用户10001的失效时间被修改为2019-11-09，用户10002则变成了两条记录，如下表所示： 
+
+member_id	phoneno	create_time	update_time
+10001	13300000001	2019-11-08	2019-11-09
+10002	13500000002	2019-11-08	2019-11-09
+10002	13600000002	2019-11-09	3000-12-31
+
+
+第三天(2019-11-10),又新增了用户10003，则用户表数据如小表所示： 
+
+member_id	phoneno	create_time	update_time
+10001	13300000001	2019-11-08	2019-11-09
+10002	13500000002	2019-11-08	2019-11-09
+10002	13600000002	2019-11-09	3000-12-31
+10003	13300000006	2019-11-10	3000-12-31
+
+
+如果要查询最新的数据，那么只要查询失效时间为3000-12-31的数据即可，如果要查11月8号的历史数据，则筛选生效时间<= 2019-11-08并且失效时间>2019-11-08的数据即可。如果查询11月9号的数据，那么筛选条件则是生效时间<=2019-11-09并且失效时间>2019-11-09s
+	
+	
+	
+------------------------------------------------------------------------------
+
+备注：实际装车过程中，由于大部分商品都是日常百货用品，所以往往会先达到容积的限制但是载重可
+能还有很大余量。所以在解决实际问题时我们只需考虑如何尽可能满足空间。
+一级仓库与二级仓库之间的货物调配每天都会进行，二级仓库每天会向一级仓库发送很多补货订单，
+一个二级仓库的补货订单信息示例如下
+
+备注：一级仓库在每天五点之后会收集汇总每个二级仓库的补货信息，然后相同品类商品打包汇总之后
+生成如上运单信息，然后调配车辆进行运输。
+对于这个场景中我们需要合理组合货物，保证尽量充分利用每辆车的空间来减少发车数量，降低企业的
+成本支出！！
+总结：基于上面的分析，发现该问题是一个求最优解的问题。所以选择使用动态规划算法实现！！
+	
+
+	volumeArr=
+[1.18041,8.92088,4.58139,5.29266,1.23892,3.93005,7.53638,6.92084,3.89288,4.67208
+,0.37816,0.7633..]
+含义：前i件物品在不超过最大容积j的时的最大体积
+
+
+
+1.1、Hive数据倾斜
+	一、通用Hive倾斜 【参考资料：https://mp.weixin.qq.com/s/EzwcPMhqklHK7rMEc-3iyw】
+		1、如何确定是数据倾斜？
+			1-、通过reduce tasks for job 查看reduce执行时间长的	job
+				-、如果执行时间差不多，可能是reduce设置过少导致的。
+				-、重启task执行很快，可能节点有问题，反之，存在数据倾斜
+			2-、通过job的counter判断（对比其他job）
+		2、定位sql代码
+			-、通过 jobname 确定 stage：
+			-、确定 SQL 执行代码 ，那个stage出现卡顿
+		3、解决数据倾斜
+			1-、关联字段为null，导致分到同一个reduce [1、去null，2、null给随机值]	
+			2-、过滤掉脏数据
+			3-、数据预处理
+			4-、增加 reduce 个数
+			5-、转换为 mapjoin
+	二、大表join数据倾斜优化  【参考资料：https://blog.csdn.net/panfelix/article/details/107913560】
+		1、间接mapjoin[限制行和限制列]
+		2、null生成随机数  或者 Hive 已对此进行了优化，只需要设置参数skewinfo和skewjoin参数，不修改SQL代码，
+			例如，由于table_B的值“0” 和“1”引起了倾斜，值需要做如下设置：
+		3、倾斜字段key， 再根据其他字段取模， B表扩大10倍，  key的倾斜度缩小10倍。
+			【照seller_id分发会倾斜，那么再人工增加一列进行分发，这样之前倾斜的值的倾斜程度会减少到原来的1/10，
+				可以通过配置numbers表改放大倍数来降低倾斜程度，】
+		4、大key单独处理，再union回去
+			终极解决方案是动态一分为二，即对倾斜的键值和不倾斜的键值分开处理，不倾斜的正常join即可，
+			倾斜的把他们找出来做mapjoin，最后union all其结果即可。
+		5、增加并行度
+		6、group by 代替count distinct
+		
+1.2 Spark数据倾斜处理
+	1、利用Hive来处理数据倾斜，保证Spark速度
+	2、过滤倾斜Key（前提是倾斜Key是少部分数据，且不影响计算）
+	3、提高shuffle并行度（比如： reduceByKey(1000) 
+	4、局部聚合+全局聚合（适用于聚合类算子/groupBy，先打标签，部分聚合，去掉标签，全局聚合）
+	5、小表join大表。利用MapJoin（适用RDDJoin，另外一个RDD/表的数据量较小 。 把数据量小的BroadCast出去，进行map操作。）
+	6、大表join大表，少数key数据量大，两一个RDD均匀。
+		-、Sample算子，计算出RDD_A中数据量最多的几个key_A。
+		-、拆分Rdd_A出A_Key_A和剩余的A_Key_B，A_Key_A打上N以内的随机数作为前缀，A_Key_B拆分出做单独RDD。
+		-、RDD_B同样过滤出B_Key_A，将这些数据，膨胀N倍数，按顺序添加0~N的前缀。 另一部分B_Key_B拆分出做单独RDD。
+		-、A_Key_A 和 B_key_A 做join， A_Key_B和 B_key_B做join。
+		-、最后union两者数据
+	7、大表join大表，存在大量的Key数据量大。参考6，倾斜的RDD直接打前缀，另一个RDD扩容，打均匀前缀。
+	
+2、调整NameNode参数，磁盘 （数据块变大） 【100W Block ，增加1各G】
+3、Hbase数据balance
+4、Hadoop HA机制：
+	为了使active namenode和standby namenode能够保持命名空间的数据一致，
+	他们会与一组独立的日志节点JournalNode交互（org.apache.hadoop.hdfs.qjournal.server.JournalNode），
+	当遇到需要更新editlog的时候，active namenode会同时向这些JournalNode写日志，记录更改的内容，
+	而stanby节点会定期的从这些JournalNode来更新日志，同步自己的命名空间，来保持和active namenode数据的一致性.[period，默认3600秒]
+	ZKFailoverController作为主备namenode的控制器，负责对namenode进行监控和主备切换，（目前这个切换是依赖于zookeeper的，当然目前也支持手工切换主备namenode。）
+
+HDFS metadata主要存储两种类型的文件：
+	1、fsimage
+		记录某一永久性检查点（Checkpoint）时整个HDFS的元信息
+	2、edits
+		所有对HDFS的写操作都会记录在此文件中
+	3、Checkpoint介绍
+		StandbyNamenode 。HDFS会定期（dfs.namenode.checkpoint.period，默认3600秒）的对最近的fsimage和一批新edits文件进行Checkpoint（也可以手工命令方式），
+		Checkpoint发生后会将前一次Checkpoint后的所有edits文件合并到新的fsimage中，HDFS会保存最近两次checkpoint的fsimage。Namenode启动时会把最新的fsimage加载到内存中
+链接：https://www.jianshu.com/p/b80b00374f52
+
+5、NameNode 如果数据块损坏怎么处理？
+	1、来源于其他集群，copy回来即可
+	2、内部生成的，重新构造。  hive需要重新生成表
+	3、手动修复损坏的块【hdfs debug】
+		hdfs命令帮助是没有debug的，但是确实有hdfs debug这个组合命令，切记。
+		hdfs debug recoverLease -path hdfs文件位置 -retries 10
+		自动修复
+			当数据块损坏后，DN节点执⾏行行directoryscan操作之前，都不会发现损坏；
+			也就是directoryscan操作是间隔6h
+			dfs.datanode.directoryscan.interval : 21600
+			在DN向NN进入blockreport前，都会恢复数据块;
+			也就是blockreport操作是间隔6h
+			dfs.blockreport.intervalMsec : 21600000
+			当NN收到blockreport才会进入恢复操作。
+		注意：手动修复方式，但是前提要手动删除损坏的block块。
+		切记，是删除损坏block文件和meta文件，而不是删除hdfs文件。
+		当然还可以先把文件get下载，然后hdfs删除，再对应上传。
+		切记删除不要执行: hdfs fsck / -delete 这是删除损坏的文件， 那么数据不就丢了嘛；除非无所谓丢数据，或者有信心从其他地方可以补数据到hdfs！。
+	参考资料：https://www.iteye.com/blog/wx1569571209-2499440
+	
+	-、可以用户命令 ，确定块损坏的位置 ，找到原数据，  删除上传？
+		hdfs fsck / | egrep -v '^\.+$' | grep -v eplica
+		hdfs fsck /path/to/corrupt/file -locations -blocks -files
+	https://www.saoniuhuo.com/question/detail-1949096.html
+	
+	4、删除block后恢复演示。
+		单纯的模拟了其中一个数据块损坏的情况，数据块损坏后，在该节点执行directoryscan之前（dfs.datanode.directoryscan.interval决定），
+		都不会发现损坏，在向namenode报告数据块信息之前（dfs.blockreport.intervalMsec决定），都不会恢复数据块，当namenode收到块信息后才会采取恢复措施
+	
+	参考资料：https://www.cnblogs.com/prayer21/p/4819789.html
+6、误删 journalNode元数据目录 
+	方案：
+	情况一：只有部分journalnode报这个错，原因是这些journalnode的journal数据不同步
+	解决：将无错的journalnode下的journal文件夹拷贝覆盖之
+	情况二：由非HA转为HA
+	情况三：你的所有journalnode都报这个错，并且journal文件夹为空
+	解决：情况二和情况三一样，都是需要初始化 journalnode。那么，将所有journalnode守护进程启动后，在其中一台namenode下，执行 hdfs namenode -initializeSharedEdits
+	参考资料：http://www.mamicode.com/info-detail-2319099.html
+		
+7、hadoop元数据 ， hive怎么维护？
+	Hive: Atlas + Ranger
+
+-8、Spark Shuffle阶段
+	1、HashShuffle   
+		-、Spark 1.1 之前默认机制
+			-、Shuffle 写过程：
+				1-、上一个Stage结束，为下一个Stage可以执行Shuffle算子，对Task处理的数据按 key的Hash算法 进行“划分”。
+				2-、为下游Stage创建指定的磁盘文件（下一个Reduce Task - Stage有多少Task，当前Map Task - Stage 的每个Task就需要创建多少份磁盘文件。）
+				3-、数据会先写入Buffer，内存写满后，溢出到磁盘。
+			-、Shuffle 读过程：
+				1-、每个Reduce Task通过网络，拉取属于自己的Task，进行Key的聚合/连接操作。
+				2-、每个Shuffle read Task 都有自己的buffer，每次拉取buffer大小数据，内存中进行聚合。
+			备注：比如Map Task 有4个，  Reduce Task 有3个，  则共产生 4 * 3 = 12 个磁盘文件。
+			
+		-、Spark0.8.1 HashShuffle引入Consolidate机制（文件合并）。
+			-、使用：spark.shuffie.consolidateFiles=true 配置生效。
+			-、原理：将 Mapper 端生成的中间文件进行合并的处理机制
+			具体优化内容：
+				-、每个 shuffleFileGroup 会对应一批磁盘文件，磁盘文件的数量与下游stage 的 task 数量是相同的
+				-、针对Executor上， 多个task可以复用buffer和磁盘文件
+			备注：比如Map Task 有4个，  Reduce Task 有3个，  则共产生 2 * 3 = 6 个磁盘文件。[2个Task磁盘复用]
+		
+		-、HashShuffle优缺点：
+			优点：
+				1、省略不必要的Sort开销
+				2、避免Sort的内存开销
+			缺点：
+				1、生成文件过多，系统压力大
+				2、小文件带来的磁盘io开销。
+				3、大量小文件产生的buffer开销，给内存产生压力。
+				
+	2、SortShuffle  
+		1-、历史迭代：
+			-、1.1 引入， 
+			-、1.2替代Hash变为默认Shuffle  
+			-、1.4 引入Tungsten-sort Shuffle  
+			-、1.6 删除Consolidate 
+			-、2.0 支持sort ，Tungsten-sort,不支持HashShuffle
+		2-、运行机制
+			1. 普通运行机制；
+				1-、Task数据写入<<内存结构>> （Map or Array）  
+					 [ 如果是 reduceByKey 这种聚合类的 shuffle 算子，那么会选用 Map 数据结构，一边通过 Map 进行聚合，一边写入内存；
+					  如果是join 这种普通的 shuffle 算子，那么会选用 Array 数据结构，直接写入内存。]
+				2-、如果达到<<临界阈值>>的话，那么就会尝试将内存数据结构中的数据溢写到磁盘，然后清空内存数据结构
+				3-、在<<溢写>>到磁盘文件之前，会先根据 key 对内存数据结构中已有的数据进行<<排序>>
+				4-、<<分批次>>写入（默认的 batch 数量是 10000 条），先写入BufferedOutputStream ，当<<内存缓冲>>满溢之后再一次写入<<磁盘>>文件中。
+				5-、<<merge>> 过程，所有的临时磁盘文件（多次磁盘溢写）都进行合并 ，以及单独写一份<<索引文件>>（标记startoffset 与 end offset。）
+			备注：文件数大幅度缩小， num = MapTask 数量
+			2. bypass 运行机制：
+				触发：
+					1-、当 shuffle read task 的数量小于等于spark.shuffle.sort.bypassMergeThreshold 参数的值时（默认为 200）
+					2-、不是聚合类的 shuffle 算子。
+				过程：
+					1-、每个 task 会为每个下游 task 都创建一个临时磁盘文件
+					2-、将数据按key 进行 hash 然后根据 key 的 hash 值，将 key 写入对应的磁盘文件之中 【同样是写Bufer，溢写磁盘】
+					3-、同样会将所有临时磁盘文件都合并成一个磁盘文件，并创建一个单独的索引文件
+				优点：shuffle write过程中，不需要进行数据的排序操作
+					
+				
+			3. Tungsten Sort 运行机制，开启此运行机制需设置配置项spark.shuffle.manager=tungsten-sort。开启此项配置也不能保证就一定
+				触发：
+					1. Shuffle 依赖中不带聚合操作或没有对输出进行排序的要求。
+					2. Shuffle 的序列化器支持序列化值的重定位（当前仅支持KryoSerializer Spark SQL 框架自定义的序列化器）。
+					3. Shuffle 过程中的输出分区个数少于 16777216 个
+			
+	3、基于 Sort 的 Shuffle 机制的优缺点
+		优点：
+			1. 小文件的数量大量减少，Mapper 端的内存占用变少；
+			2. Spark 不仅可以处理小规模的数据，即使处理大规模的数据，也不会很容易达到性能瓶颈。
+		缺点：
+ 			1. 可能大量反序列化操作 
+				【如果 Mapper 中 Task 的数量过大，依旧会产生很多小文件，此时在Shuffle 传数据的过程中到 Reducer 端，
+					Reducer 会需要同时大量地记录进行反序列化，导致大量内存消耗和 GC 负担巨大，造成系统缓慢，甚至崩溃；】
+ 			2. 强制了在 Mapper 端必须要排序，即使数据本身并不需要排序；
+			3. 它要基于记录本身进行排序，这就是 Sort-Based Shuffle 最致命的性能消耗
+
+	
+8、MapTask工作原理阶段：
+		1、input->split文件（block个数=mapTash个数）
+		2、Record对象按行（k,v）[k=每行首字符偏移量 ，v=当前行文本]读取给到map（自己写的map逻辑）
+		3、map处理完给到OutPutCollect,对k进行分区。（hashPartitioner）
+		4、写入buffer（每个 map task 都有一个内存缓冲区（环形缓冲区）），
+		5、超过0.8比例，溢写到磁盘(对序列化的缓存k做sort排序)
+		6、MapTask结束，合并溢写文件（带索引），供reduce使用。
+
+	ReduceTask 工作原理：
+		1、copy （启动copy线程，http请求mapTask,拉取属于自己的文件）
+		2、merge（copy同时，启动isMemmory和onDisk，meger内存到磁盘和磁盘到磁盘文件。）
+		3、sort （合并的数据进行sort排序，整体有序）
+		4、reduce （对排序后的键值[相同]对调用 reduce 方法，写入hdfs）
+	
+	Shuffle阶段：
+		1、collect阶段。分区，写入buffer 【对应map，3，4】  
+		2、spill溢写阶段。sort（sort key,如果有combiner,分区号和key排序），溢写至磁盘 【对应map，5】
+		3、MapTask的merge阶段。数据合并，保证一个MapTask一个文件【对应map，6】
+		4、【对应reduceTask，1，2，4】
+
+9、YARN  申请资源过程 
+	-、Client向YARN提交应用程序（指定AM程序，启动AM，用户程序等）.
+	-、RM分配一个初始Container（NM中），RM要求NM再Container中启动AM, 。
+	-、AM向RM申请注册(后，拆分任务，各任务申请资源，监控知道结束)
+	-、AM采用轮询的方式向 RM申请资源。 		
+	-、RM分配资源给AM(以Container返回)。
+	-、AM与NM通信，要求NM启动任务。
+	-、NM设置环境，设置脚本，启动任务（Task）
+	-、各个Task向AM汇报状态和进度，以便失败重启。
+	-、应用程序完成，AM向RM注销关闭。
+	
+	ApplicationMaster是怎么启动的：
+·		Client提交任务，保存任务状态，申请资源：
+			-、client提交任务给RM，（ CRMService 负责处理）
+			-、CRMService通知RMAppManager创建 RMApp 来维护任务状态
+			-、RMApp创建RMAppAttemp初始化，通知RScheduler申请资源
+		分配资源
+			-、RS分配资源，创建RMContainer（RM上）维护Container状态。
+			-、通知RMAppAttemp已经分配到资源
+		要求NM启动AM
+			-、 RMAppAttempt 通知 AMLauncher（RM上） 在资源上启动 AM。
+			-、在NM上启动AM
+			-、AM向AMSerivre（RM上）注册。
+		
+	Container怎么启动
+		1、申请资源
+		2、分配资源
+			AM   ->(请求资源，发送心跳)->  AMS  -> (更新进度)->  RMAAttept  ->(更新时间)->  AMLivesMoniter ->(报告资源需求)->  RScheduler  ====>分配资源 
+			NM	 ->(汇报Container情况)-> RTrackerService  ->(有资源通知)->  RScheduler 
+										 RTrackerService  ->(更新状态)->    RMNodes
+										 
+	Yarn的三种资源调度模式：
+		1、FIFO Scheduler
+			队列模式，先到先得资源，以此类推。	
+			缺点:不适合共享集群，大应用占用所有资源，则其他任务会阻塞。
+		2、Capacity Scheduler （Apache 默认）
+			有专门的队列来处理小任务（会预占用一部分资源）
+			缺点：导致大任务执行时间落后于FIFO模式。
+		3、Fair Scheduler（CDH默认）
+			动态调整任务资源，例如：大任务先执行，分配所有，后续有小任务，动态分配一半资源给小任务.
+			缺点：第二个任务会有延迟（需要第一个释放Container），第二个执行完，释放资源，供第一个任务使用。
+			
+10、hadoop 3.x  纠错码算法”： 优化存储
+Reed-Solomon (RS) 是一种纠错码算法, 纠错码是说对原始数据通过计算得到检验数据, 根据这些冗余的校验数据, 可以保证原始数据的可恢复性.
+
+极大距离可分法(Maximun Distance Seperable codes, MDS) 是一种很常见的纠错码: 将原始数据分成等长的 n 份, 并根据这 n 份数据生成 m 个冗余的校验数据, 这样, 这 m+n 块数据中任意 m 块数据损失, 也可以通过剩下的 n 块数据计算得到. RS 是经典的 MDS 算法.			
+	
+11、网络
+	TCP为什么要三次握手
+	1、防止重复连接。
+		比如：比如在网络状况比较复杂或者网络状况比较差的情况下，发送方可能会连续发送多次建立连接的请求。如果 TCP 握手的次数只有两次，
+			那么接收方只能选择接受请求或者拒绝接受请求，但它并不清楚这次的请求是正常的请求，还是由于网络环境问题而导致的过期请求，如果是过期请求的话就会造成错误的连接
+	2、保证数据不重复发送，有效的解决数据包接收时顺序颠倒。（同步初始化序列化）
+		示例：
+		●首先客户端发送一个携带了初始序列号的 SYN 报文给服务器端；
+		●服务端接收到消息之后会回复一个 ACK 的应答报文，表示客户端的 SYN 报文已被服务端成功接收了；
+		●而客户端收到消息之后也会发送一个 ACK 给服务端，服务器端拿到这个消息之后，我们就可以得到一个可靠的初始化序列号了。
+		
+	参考资料：https://blog.csdn.net/u011168837/article/details/110848170
+	
+	
+12、补充知识点：
+	1、TheadLocal
+		-、简介：线程变量，意思是ThreadLocal中填充的变量属于当前线程，该变量对其他线程而言是隔离的，也就是说该变量是当前线程独有的变量
+		-、设计模式1.8:
+			1、每个Thread线程内部都有一个ThreadLocalMap
+			2、Map中保存ThreadLocal对象（key）和线程的变量副本（value）
+			3、Thread内部的Map由ThreadLoacl维护，负责向map获取和设置线程的变量值。
+			4、对于不同的线程，每次获取的变量副本都是自己线程的，形成了副本隔离。
+		-、与Synchronized区别：
+			TheadLocal：
+				1、线程间的数据隔离 2、提供变量的副本，每个线程访问的并不是同一个对象
+			Synchronized：
+				1、线程间的数据共享 2、利用锁的机制，使变量或代码块在某一时该只能被一个线程访问
+		-、Set方法：【通过ThreadLocalMap保存key(threadlocal), value】
+				//1、获取当前线程
+				Thread t = Thread.currentThread();
+				//2、获取线程中的属性 threadLocalMap ,如果threadLocalMap 不为空，
+				//则直接更新要保存的变量值，否则创建threadLocalMap，并赋值
+				ThreadLocalMap map = getMap(t);
+				if (map != null)
+					map.set(this, value);
+				else
+					// 初始化thradLocalMap 并赋值
+					createMap(t, value);
+
+			-、 ThreadLocalMap --> ThreadLocalMap是ThreadLocal的内部静态类
+				构成：1 用Entry来保存数据 ，
+					  2 继承的弱引用。
+					  3 在Entry内部使用ThreadLocal作为key，使用我们设置的value作为value。
+				生成方法：
+					//这个是threadlocal 的内部方法
+					void createMap(Thread t, T firstValue) {
+						t.threadLocals = new ThreadLocalMap(this, firstValue);
+					}
+		-、get方法：
+				//1、获取当前线程
+				//2、获取当前线程的ThreadLocalMap
+				//3、如果map数据不为空，
+				//3.1、获取threalLocalMap中存储的值
+				//4 如果是数据为null，则初始化，初始化的结果，TheralLocalMap中存放key值为threadLocal，值为null
+		-、Remove方法：直接将ThrealLocal 对应的值从当前相差Thread中的ThreadLocalMap中删除
+			why:  --导致内存泄露
+				1、出现 key 为 null 的 value 
+					 -、ThreadLocalMap 中使用的 key 为 ThreadLocal 的弱引用 【如果这个对象只存在弱引用，那么在下一次垃圾回收的时候必然会被清理掉。】
+				     -、如果 ThreadLocal 没有被外部强引用的情况下，在垃圾回收的时候会被清理掉  .ThreadLocal 的 key 也会被清理掉 ，
+						但是，value 是强引用，不会被清理，【这样一来就会出现 key 为 null 的 value】
+				2、 ThreadLocal其实是与线程绑定的一个变量 ，如果没有将ThreadLocal内的变量删除（remove）或替换，它的生命周期将会与线程共存
+					【持续的时间不可预测，另外线程池复用，内部的复杂集合/对象，可能会持续膨胀。】
+		-、应用场景：
+			1、每个线程需要有自己单独的实例  （seeion获取）
+			2、实例需要在多个方法中共享，但不希望被多线程共享。 （通过方法间引用传递的形式实现。ThreadLocal 使得代码耦合度更低，且实现更优雅。）
+				场景1：（例如在拦截器中获取的用户信息）
+					每个线程内需要保存类似于全局变量的信息，可以让不同方法直接使用，避免参数传递的麻烦却不想被多线程共享（因为不同线程获取到的用户信息不一样）。
+				场景2：用 ThreadLocal 保存一些业务内容（用户权限信息、从用户系统获取到的用户名、用户ID 等），这些信息在同一个线程内相同，但是不同的线程使用的业务内容是不相同的。
+			3、Spring使用ThreadLocal解决线程安全问题
+				将一些非线程安全的变量以ThreadLocal存放，在同一次请求响应的调用线程中，所有对象所访问的同一ThreadLocal变量都是当前线程所绑定的。	
+					就是因为Spring对一些Bean（如RequestContextHolder、TransactionSynchronizationManager、LocaleContextHolder等）中非线程安全的“状态性对象”采用ThreadLocal进行封装，
+						让它们也成为线程安全的“状态性对象”，因此有状态的Bean就能够以singleton的方式在多线程中正常工作了。 
+		-、为什么不将key设置为强引用？
+			1、key 如果是强引用
+				如果key设计成强引用且没有手动remove()，那么key会和value一样伴随线程的整个生命周期。无法完全避免内存泄漏
+			2、那么为什么 key 要用弱引用
+				1、在 ThreadLocalMap 中的set/getEntry 方法中，会对 key 为 null（也即是 ThreadLocal 为 null ）进行判断，如果为 null 的话，那么会把 value 置为 null 。
+				2、就算忘记调用 remove 方法，弱引用比强引用可以多一层保障：弱引用的 ThreadLocal 会被回收．
+					对应value在下一次 ThreadLocaI 调用 get()/set()/remove() 中的任一方法的时候会被清除，从而避免内存泄漏．
+		-、如何正确的使用ThreadLocal？
+			1、将ThreadLocal变量定义成private static的，这样的话ThreadLocal的生命周期就更长，由于一直存在ThreadLocal的强引用，所以ThreadLocal也就不会被回收，
+				也就能保证任何时候都能根据ThreadLocal的弱引用访问到Entry的value值，然后remove它，防止内存泄露
+			2、每次使用完ThreadLocal，都调用它的remove()方法，清除数据。
+		原文链接：https://blog.csdn.net/u010445301/article/details/111322569
+		
+	2、Hbase 
+	2-1、phonenix二级索引原理。  [https://blog.csdn.net/epitomizelu/article/details/117458660 ,	https://blog.csdn.net/lijingjingchn/article/details/83186058]
+		背景：Hbase只提供rowkey和rowkey范围查询（这是为什么hbase可以做实时的原因）。要根据rowkey以外的字段进行查询，是没有办法走索引.
+		原理：写入时针对某个字段和rowkey进行绑定，查询时先根据这个字段查询到rowkey，然后根据rowkey查询数据，二级索引也可以理解为查询数据时多次使用索引的情况。
+		具体实现：phoenix索引表在Hbase中也是以表的形式存在，且该表的Row_key就是创建索引时的所有索引字段的拼接。
+			当为多列建立索引时，rowkey实际上是这些column的组合，并且是按照它们的先后顺序的组合。
+		查询限制：在查询时，可以同时将这3个索引列作为条件，且顺序不限。但是，第一列必须是col1 。
+		Hbase Bulkload：
+			使用Hbase提供的bulkload方式批量导入数据时，不能同步更新索引表.
+			原因：这是因为当以bulkload的方式来将数据导入到data table时，会绕开HBase的常规写入路径（client –> buffer –> memstore –> HLog –> StoreFile –> HFile），直接生成最终的HFiles。
+				正常通过接口直接写数据进Phoenix表，相应的索引表也是会更新的,但是直接写数据到底层hbase表，这时候对应的索引表是不会更新，从而影响正常的用户访问。
+		Phoenix BulkLoad： 
+			使用Phoenix Bulkload方式（csvBulkload），该表对应的索引表也会同步更新。
+			优点：
+				支持同步更新索引表。
+			缺点：
+				不支持java、Spark API，只能在命令行中使用，且需指定hadoop配置文件。
+		分类：
+			1 全局索引 -- 1 写少读多  2 select 后不能有非索引字段 
+			2 本地索引 -- 1 写多读少  2 加盐无法使用本地索引 3 本地索引和数据在同一服务器 4 多个字段查询建议使用本地index
+			3 覆盖索引 -- include(结合1，2)
+			4 函数索引 -- 对函数创建的索引
+			5 组合索引 -- 函数索引和全局索引的组合 
+	3、zookeeper怎么保证选举？
+		【分布式锁】，zookeeper特殊的数据结构和watcher机制，让他也能高效的实现分布式锁的功能，参考Curactor这款框架，分布式锁开箱即用。
+		【元数据管理】，Kafka就是使用zookeeper存储核心元数据。
+		【分布式协调】，zookeeper的watcher机制可以让分布式系统中的各个节点监听某个数据的变化，并且zookeeper可以把数据变化反向推送给订阅了的节点，例如kafka里面的各个broker和controller之间的协调。
+		【Master选举】，HDFS就是用了zookeeper来保证Namenode的 HA高可用，可以保证只有一台成为主。
+		
+		-、zookeeper的内存数据结构： 树形结构，每个节点我们叫做znode
+		-、znode有3类：
+			1 临时节点，
+			2 持久节点，
+			3 顺序节点
+		
+		-、架构特性:
+			1 集群部署，首先部署上肯定是集群部署，单机肯不靠谱的。
+			2 高可用，必须要保证高可用，一旦集群中的某台机器宕机，不能导致数据丢失
+			3 原子性，既然zookeeper走的 CP，那么一定要保证每次数据写入，集群中所有机器必须要要么全部成功，要么就全部写入失败。
+			4 数据一致性，同(3)理,数据一致性也要保证，无论我客户端连接那一台机器，我get某个数据一定是一致的
+			5 顺序性，zookeeper的写入，实现了有序的写入，这也夯实了自己数据一致性的特性。
+			6 实时感知，zookeeper的watcher机制无疑是一个强大的功能，一旦某个数据发生变化，感知要实时，不然就失去意义了。
+			7 高性能，无论是做什么样的功能，超高的读写性能才是根本，zookeeper的数据是存储在内存中的，这本身就带来了超高的性能。并且同时也能带来超高的并发能
+		
+		-、zk角色；
+			1 leader，集群启动，一定会选择一个节点作为主节点。一个集群中只有一个主节点，并且只有主节点接收并处理写请求。
+			2 follower，从节点，首先从节点是不能处理写请求的，就算某个客户端连接到从节点提交写请求，最终也是转发到主节点leader处理。从节点只负责读请求。
+				当leader宕机的时候，并且当前集群中宕机的数量不超过一半，那么集群会重新发起选举，从follower中选举出新的leader。
+			3 Observer，顾名思义，观察者，一般我们接触zookeeper貌似都不怎么用到它，也注意不到他，如果你希望你的读并发能力能抗更多的请求，你可以选择挂载Observer。它只提供数据读取的服务
+		
+		-、长连接；当客户端和zookeeper建立起连接，是基于TCP的长连接，一个会话session，通过心跳机制，感知是否断开，如果断开，只要在sessionTimeout时间内重新连接，就能保持住长连接。
+		
+		-、watcher机制：当客户端监听一个节点，当节点发生变化的时候反向通知客户端，如此便可以实现对订阅数据变化的感知，并做出响应的处理。基于TCP，天然可以实现这样的功能。
+				
+		-、ZAB（zookeeper Atomic Broadcast）：zookeeper原子广播协议[参照一致性协议paxos实现.]
+		
+		-、ZAB协议是怎么起到保证一致性的作用?
+			1- ZK的主备模型：只有leader负责写入数据 ，follower只负责从follower同步数据已经对外提供读取数据 。 
+			2- 当leader收到一条写入请求
+					（事务请求-> 转换成事务Proposal（提议，提案)【1 包含唯一Zxid  2 leader为每一个Follower都维护了一个先进先出的队（顺序写）】
+					-> 发送给所有的Follower节点 ->follower返回ack -> leader commit）
+			3- 广播事务Proposal之后leader就要等待所有的Follower服务器的返回[ack请求]【只要有超过半数的Follower节点正确的返回了ACK，就认为本次提案是successful的】
+				【2pc,2截断提交协议】
+		-、Zxid的组成：
+			1 递增的事务id（Zxid）[标识事务]
+			2 Zxid是64位的数字，
+				- 高32位是任期编号(epoch)[new epoch值=old epoch值+1]
+				- 低32位是事务计数器[用于递增计数，每接收到一条写入请求，这个值+1。新 leader选举后这个值重置为0]
+			优点：  
+				这样设计的好处在于老的leader挂了以后重启，它不会被选举为 leader，因此此时它的 zxid 肯定小于当前新的 leader。
+			当老的 leader 作为follower 接入新的leader 后，新的leader会让它将所有的拥有旧的 epoch号并且未被COMMIT的 proposal 清除掉。
+		
+		-、数据不一致了，ZAB协议的策略：
+			场景1 ：
+					当一个客户端发过来的事务写请求，刚刚被leader写到本地，还没来得及发起Proposal就宕机了，这时候会数据不一致么？ 【P1】
+				如何保证：
+					ZAB必须将恢复后，重新注册的老leader机器所在的日志中删除掉 。
+					
+			场景2：
+				如果一个事务Proposal写入是成功的，并且广播给所有的Follower机器，也受到了过半机器的ACK，此时leader节点挂了，并且此时可能leader已经本地commit了，那么新的leader选举出来之后，
+			这台老的leader重新启动了之后，数据会不一致么？ 【P2】
+				如何保证：
+					所有提案被COMMIT之前必须有超过半数的 follower ACK，即必须有超过半数节点的服务器的事务日志上有该提案的 proposal，
+				因此，只要有合法数量的节点正常工作，就必然有一个节点保 存了所有被 COMMIT 消息的 proposal 状态。而这个节点肯定会拥有最大的Zxid。即数据不会不一致。
+
+		zk工作模式；崩溃恢复模式和消息广播模式
+		
+		链接：https://blog.csdn.net/ice24for/article/details/129349276
+	3.1 、zk的分布式锁：
+			- 是可重入呢-- 只需要保障同一个线程进入加锁的代码，可以重复加锁成功即可。
+			- 如何实现？
+				1-、每一个节点下面创建临时顺序节点 （新的子节点后面，会加上一个次序编号，而这个生成的次序编号，是上一个生成的次序编号加一）
+				2-、ZooKeeper节点的递增有序性，可以确保锁的公平
+				3-、ZooKeeper的节点监听机制，可以保障占有锁的传递有序而且高效
+				4-、ZooKeeper的节点监听机制，能避免羊群效应【临时顺序节点】
+						所谓羊群效应就是一个节点挂掉，所有节点都去监听，然后做出反应，这样会给服务器带来巨大压力、
+						所以有了临时顺序节点，当一个节点挂掉，只有它后面的那一个节点才做出反应。
+			（1）优点：ZooKeeper分布式锁（如InterProcessMutex），能有效的解决分布式问题，不可重入问题，使用起来也较为简单。
+			（2）缺点：ZooKeeper实现的分布式锁，性能并不太高。为啥呢？
+					因为每次在创建锁和释放锁的过程中，都要动态创建、销毁瞬时节点来实现锁功能。
+					大家知道，ZK中创建和删除节点只能通过Leader服务器来执行，然后Leader服务器还需要将数据同不到所有的Follower机器上，这样频繁的网络通信，性能的短板是非常突出的。
+					
+	4、 kafka.  High WaterMark。
+		4.1、CAP理论  [https://blog.csdn.net/u011213044/article/details/110243940 , https://blog.csdn.net/qq_28107929/article/details/106104277]
+			1、 Consistency (一致性):即更新操作成功并返回客户端后，所有节点在同一时间的数据完全一致，这就是分布式的一致性
+				Availability (可用性):即服务一直可用，而且是正常响应时间
+				Partition Tolerance (分区容错性):即分布式系统在遇到某节点或网络分区故障的时候，仍然能够对外提供满足一致性或可用性的服务。
+			2、三者，只能保证2个同时满足
+			3、	CA:如果不要求P（不允许分区），则C（强一致性）和A（可用性）是可以保证的。
+					但放弃P的同时也就意味着放弃了系统的扩展性，也就是分布式节点受限，没办法部署子节点，这是违背分布式系统设计的初衷的
+				CP：如果不要求A（可用），相当于每个请求都需要在服务器之间保持强一致，而P（分区）会导致同步时间无限延长(也就是等待数据同步完才能正常访问服务)，
+					一旦发生网络故障或者消息丢失等情况，就要牺牲用户的体验，等待所有数据全部一致了之后再让用户访问系统。
+					示例：最典型的就是分布式数据库，如Redis、HBase等。
+				AP：要高可用并允许分区，则需放弃一致性。一旦分区发生，节点之间可能会失去联系，为了高可用，每个节点只能用本地数据提供服务，而这样会导致全局数据的不一致性。
+					示例：就如某米的抢购手机场景，可能前几秒你浏览商品的时候页面提示是有库存的，当你选择完商品准备下单的时候，系统提示你下单失败，商品已售完。
+		4.2 kafka的CAS应用
+			-、CAS应用：kafka 满足的是 CAP 定律当中的 CA，其中 Partition tolerance 通过的是一定的机制尽量的保证分区容错性。
+			-、如何保证？
+				-、C：x读写的操作都是与 leader 分区进行通信，保证一致性。（数据写入不同分区->分区有多个副本）。
+				-、A：分区副本机制，保证数据可用性（leader宕机，选举副本follower作为leader作为对外服务）。
+				-、Partition tolerance: 是分区副本和leader的数据存在差别的问题如何解决？
+						：通过 Partition tolerance，使用 ISR （in-sync replicas）同步策略。
+						【 ISR 确定那些副本可用】,将leader分区里面的数据同步到副本分区里面去，决定一个副本分区是否可用的条件有两个：
+							 replica.lag.time.max.ms=10000 副本分区与主分区心跳时间延迟
+					  		 replica.lag.max.messages=4000 副本分区与主分区消息同步最大差
+		4.3、kakfa HW（高水位），ISR解析：
+			-、leader副本：响应clients端读写请求的副本
+			-、follower副本：被动地备份leader副本中的数据，不能响应clients端读写请求。
+			-、 ISR 副本：包含了leader副本和所有与leader副本保持同步的follower副本—
+				（设置ISR主要是为了broker宕掉之后，重新选举partition的leader从 ISR 列表中选择）
+				【leader写入数据后并不会commit，只有ISR列表中的所有folower同步之后才会commit，把滞后的follower移除ISR主要是避免写消息延迟。】
+			-、LEO：即日志末端位移(log end offset)，记录了该副本底层日志(log)中下一条消息的位移值。注意是下一条消息！也就是说，如果LEO=10，那么表示该副本保存了10条消息，位移值范围是[0, 9]。
+				（针对的是一个副本，也就是每个副本都有LEO，并且不一样。其中所有副本中最小的LEO就是水位）
+			-、HW：即上面提到的水位值。对于同一个副本对象而言，其HW值不会大于LEO值。小于等于HW值的所有消息都被认为是“已备份”/已提交的（replicated）
+				（一个全局(所有副本最小offset)的offset，针对的是一个分区 ）
+				作用：1 用来表示哪些消息可以被消费者消费
+					  2 帮助kafka完成副本的同步
+					  
+			备注：每个Kafka副本对象都有两个重要的属性：LEO和HW。注意是所有的副本，而不只是leader副本。	
+		
+		4.4 kafka日志截断
+			-、为什么要日志截断：
+				为了保证副本之间数据的一致性，kafka会进行日志截断操作。
+				示例：场景broker1是p1的leader，broker2是p1的follower：其中消息1、2、3这个消息都被成功写入并被broker2复制成功，此时生产者发送消息4过来，
+				broker1刚写入到日志文件来没有等到broker2同步完就宕机了，随后broker2重新被选举为p1的leader。
+				当broker1重启成为p1的follower时，消息4在broker1上存在但是在broker2上不存在这样就导致副本的数据不一致。
+				所以kafka就在拉取日志的时候会先做截断日志的处理来保证副本的数据一致。
+			-、截断方式：
+				一：对分区进行是否有epoch进行分组为partitionsWithEpochs、partitionsWithoutEpochs
+				二：对有epoch的分区进行处理：
+					1：向远程的leader partition拉取endoffset
+					2：根据leader的endOffset和本地的endOffset进行对比，取出最小的endOffset
+					3: 对本地的日志文件进行截断操作（截断到步骤2比较出的min的endOffset），这些包括了日志文件，offsetIndex文件，timeIndex文件，txnIndex文件等文件做相应的截断
+				三：对无epoch的分区进行处理，如果本地没有该分区的状态记录的话，则不做任何处理，否则对未提交的日志做全部截断操作（即截断到highWatermark）
+			原文链接：https://blog.csdn.net/jwcjlu/article/details/118873001
+		4.5 水位(或水印) 和 leader epoch 详解。 （资料：https://www.shuzhiduo.com/A/QV5ZX8aZzy/）
+			0-、为什么会有epoch？：
+				0.11之前副本备份机制主要依赖水位(或水印)的概念 。而0.11采用了leader epoch来标识备份进度
+			1-、follower副本LEO何时更新？
+				背景：follower副本不停地向leader副本所在的broker发送FETCH请求 。一旦获取消息就会写入日志进行备份。
+				两套follower副本LEO：
+					1-、一套LEO保存在follower副本所在broker的副本管理机中 【用处：帮助follower副本更新其HW值】
+						-、何时更新？
+							:当follower发送FETCH请求后，leader将数据返回给follower，此时follower开始向底层log写数据，从而自动地更新LEO值（LEO+=1）
+					2-、一套LEO保存在leader副本所在broker的副本管理机中 【用处：帮助leader副本更新其HW使用】
+						-、何时更新？
+							：一旦leader接收到follower发送的FETCH请求，它首先会从自己的log中读取相应的数据，但是在给follower返回数据之前它先去更新follower的LEO。
+			2-、follower副本何时更新HW？
+				：follower更新HW发生在其更新LEO之后 ，具体算法就是： follower HW = MIN(follower LEO,leader HW)。
+			3-、leader副本何时更新LEO？
+				 leader接受到消息，和follow类似。
+			4-、leader副本何时更新HW值？【leader的HW值就是分区HW值】
+				1-、副本成为leader副本时
+				2-、broker出现崩溃导致副本被踢出ISR时
+				3-、producer向leader副本写入消息时
+				4-、leader处理follower FETCH请求时
+				
+				具体怎么更新？
+					1-、选择所有满足条件的副本（ ISR ）	
+					2-、比较它们的LEO ,选择 leader HW = MINMIN (leader LEO，follower Remote LEO)
+				
+				-、follower的fetch请求无数据，请求会暂存：
+					follower发送过来的FETCH请求因为无数据而暂时会被寄存到leader端的purgatory中.待500ms(replica.fetch.wait.max.ms参数)超时后会强制完成
+				
+		4.6-、保证Brock副本数据一致性（不丢失，不错乱）？->【副本机制 ，HW + leader epoch】（follower，leader宕机）
+				-、副本怎么保证数据不丢失/不错乱？
+					-、具体体现：副本HW，LEO，Remote LEO ，ISR。
+					-、	副本HW，LEO，Remote LEO具体怎么更新？示例
+						1、Kafka使用HW值来决定副本备份的进度
+						2、HW值的更新通常需要额外一轮FETCH RPC才能完成
+						但是这样会导致数据丢失数据不一致。故引入 leader epoch 。
+						3、引入 leader epoch 
+				
+					-、两轮fetch更新分区HW示例：
+						第一轮follower FETCH RPC ：
+							1、Leader接收到producer的topic消息 (假设第一次写)
+								-、写消息至log，自动更新LEO（+1）
+								-、尝试更新leader HW值 . （根据公式 leader HW = MIN (leader LEO，follower Remote LEO) = 0  ，故暂不用更新（第一次假设默认为0） ）
+							2、	follower发送FETCH请求时。
+									leader操作：
+										1-、Leader端读取底层log数据
+										2-、更新remote LEO = 0
+											【为什么是0？ 因为此时follower还没有写入这条消息。leader如何确认follower还未写入呢？这是通过follower发来的FETCH请求中的fetch offset（follower的leo信息）来确定的】
+										3-、尝试更新分区HW 
+											【此时leader LEO = 1，remote LEO = 0，故分区HW值 = leader HW = min(leader LEO, follower remote LEO) = 0】
+										4-、把数据和当前分区HW值（依然是0）发送给follower副本
+								follower副本接收到FETCH response后依次执行下列操作
+									follower操作：
+										1-、写入本地log（同时更新follower LEO，+1 = 1 ）
+										2-、更新follower HW—— follower HW = MIN(follower LEO,leader HW)，故follower HW = 0
+						第二轮follower FETCH RPC （更新 分区HW）：
+								leader操作：
+									1-、Leader端读取底层log数据
+									2-、更新remote LEO = 1
+										【为什么是1？ 因为这轮FETCH RPC携带的fetch offset是1，那么为什么这轮携带的就是1了呢，因为上一轮结束后follower LEO被更新为1了】
+									3-、尝试更新分区HW 
+										【此时leader LEO = 1，remote LEO = 1，故分区HW值 = leader HW = min(leader LEO, follower remote LEO) = 1】
+									4-、把数据和当前分区HW值（1）发送给follower副本
+								follower操作：
+									1-、写入本地log（当然没东西可写，故follower LEO也不会变化，依然是1	）
+									2-、更新follower HW—— MIN(follower LEO,leader HW)，故follower HW = 1
+						
+						至此：Okay，producer端发送消息后broker端完整的处理流程就讲完了。
+							此时消息已经成功地被复制到leader和follower的log中且分区HW是1，表明consumer能够消费offset = 0的这条消息。
+						
+					-、上述2轮fetch更新HW，会导致数据丢失，数据不一致示例：
+						-、数据丢失示例：
+							前提：是在min.insync.replicas=1 【Kafka ISR 列表中最小同步副本数】时，一旦消息被写入leader端log即被认为是“已提交”。
+							丢失原因：延迟一轮FETCH RPC更新HW值的设计使得follower HW值是异步延迟更新的，倘若在这个过程中leader发生变更，
+								那么成为新leader的follower的HW值就有可能是过期的，使得clients端认为是成功提交的消息被删除。
+							案例重现：
+								-、A和B。开始状态是A是leader 。B是follower
+								-、当producer发送两条消息给A后，A写入到底层log，此时Kafka会通知producer说这两条消息写入成功。
+								-、broker端，leader和follower底层的log虽都写入了2条消息且分区HW已经被更新到2，【但follower HW尚未被更新】
+								-、此时副本B所在的broker宕机 。
+				·					重启回来后B会自动把LEO调整到之前的HW值，故副本B会做日志截断(log truncation)，
+									将offset = 1的那条消息从log中删除，并调整LEO = 1，此时follower副本底层log中就只有一条消息，即offset = 0的消息【一个副本数据丢失】
+								-、B重启之后需要给A发FETCH请求，但若A所在broker机器在此时宕机,那么Kafka会令B成为新的leader
+								-、A重启回来后也会执行(日志截断,应该HW=2 ,此时向B同步，更新HW=1？)，将HW调整回1。这样，位移=1的消息就从两个副本的log中被删除，即永远地丢失了【数据彻底丢失】
+						-、	leader/follower数据离散不一致 示例：
+								-、A依然是leader，A的log写入了2条消息，但B的log只写入了1条消息。分区HW更新到2，但B的HW还是1，同时producer端的min.insync.replicas = 1。
+								-、这次我们让A和B所在机器同时挂掉，然后假设B先重启回来，因此成为leader，分区HW = 1。
+								-、假设此时producer发送了第3条消息(绿色框表示)给B，于是B的log中offset = 1的消息变成了绿色框表示的消息，同时分区HW更新到2
+									（A还没有回来，就B一个副本，故可以直接更新HW而不用理会A）
+								-、之后A重启回来，需要执行日志截断，但发现此时分区HW=2而A之前的HW值也是2，故不做任何调整。此后A和B将以这种状态继续正常工作。
+							此时 A中有历史的2条数据， B中有历史的1条+ 新的一条数据。
+					-、Kafka 0.11.0.0.版本 加入	leader epoch  解决数据丢失及不一致的问题。
+						-、leader epoch : （epoch，offset）。epoch表示leader的版本号，从0开始，当leader变更过1次时epoch就会+1，而offset则对应于该epoch版本的leader写入第一条消息的位移.
+						-、示例：(0, 0) (1, 120) 则表示第一个leader从位移0开始写入消息；共写了120条[0, 119]；而第二个leader版本号是1，从位移120处开始写入消息。
+						-、leader broker中会保存这样的一个缓存，并定期地写入到一个checkpoint文件中。
+						
+						-、原理： 都引入了新的状态来保存自己当leader时开始写入的第一条消息的offset以及leader版本。这样在恢复的时候完全使用这些信息而非水位来判断是否需要截断日志。
+						
+						-、如何解决数据丢失？
+							-、接上文，B重启后，B(follower）发送OffsetsForLeaderEpochRequest请求给到A(Leader)，A返回Leo=2。
+							-、此时B中[epoch=0,offset = 0]  ，没有offset > 2 的 epoch项，不需要截断，故不会丢失数据。
+						-、如何解决数据不一致？
+							-、接上文，B重启后成为leader，B(follower）接收到新的消息后，更新epoch[1,1], 
+							-、此时A重启，发送请求给B，返回B的epoch=1，A中没有offset > 1 的 epoch项，于是A截断日志。删除原来offset=1的数据，。
+							-、之后A发送fetch给到B获取new消息，于是A和B底层log一致。
+		
+		4.7、生产者怎么保证数据不丢失？   
+			1-、发送消息方式
+				1-、同步[等待10s/重试3次,如果 broker 没有给出 ack 响应,判断失败]，
+				2-、异步[提供回调，数据保存到buffer(2w),满足阈值分批发送（500/betch）] 
+					如果 broker 迟迟不给 ack ，而 buffer 又满了,开发者可以设置是否直接清空buffer 中的数据。）
+			2-、ACK机制 + 三种语义
+				-、ACK机制	
+					0： producer 不等待 broker（或者说是leader）的 ack，这一操作提供了一个最低的延迟， broker 一接收到还没有写入磁盘的数据就已经返回，当 broker 故障时有可能丢失数据；
+					1： producer 等待 broker 的 ack， partition 的 leader 落盘成功后返回 ack，如果在 follower同步成功之前 leader 故障，那么将会丢失数据；
+					-1（all） ： producer 等待 broker 的 ack， partition 的 leader 和 ISR 里的follower 全部落盘成功后才返回 ack。但是如果在 follower 同步完成后，
+					broker 发送 ack 之前， leader 发生故障，那么会造成数据重复。（假如ISR中没有follower，就变成了 ack=1 的情况）
+				-、三种语义：
+					1、At Most Once 语义： [最多发送一次]  【ACK = 0】
+						优点：保证不重复。  缺点：不能保证数据不丢失
+					2、At Least Once 语义： [至少发送一次]  【ACK = -1】
+						优点：保证不丢失。  缺点：不能保证数据不重复	
+					3、Exactly Once 语义：【kafka 0.11.0.0】
+						At Least Once + 幂等性  = Exactly Once
+						
+					幂等性：所谓的幂等性就是指 Producer 不论向 Server 发送多少次重复数据， Server 端都只会持久化一条。
+					启用幂等性:只需要将 Producer 的参数中 enable.idempotence 设置为 true 即可（此时 ack= -1）。 
+						Kafka的幂等性实现其实就是将原来下游需要做的去重放在了数据上游。
+					原理：开启幂等性的 Producer 在初始化的时候会被分配一个 PID，发往同一 Partition 的消息会附带 Sequence Number。
+						而Broker 端会对<PID, Partition, SeqNumber>做缓存，当具有相同主键的消息提交时， Broker 只会持久化一条。
+					缺陷：但是 PID 重启就会变化，同时不同的 Partition 也具有不同主键，
+						所以幂等性无法保证跨分区、跨会话的 Exactly Once。
+						（也就是说它只解决单次会话、单个分区里的消息重复问题）		
+						
+				参考资料：https://blog.csdn.net/qq_40322236/article/details/127222115
+		4.8、消费者消费数据不丢失？  [https://zhuanlan.zhihu.com/p/334639167]
+			在消费者消费数据的时候（poll），只要每个消费者记录好 offset 值即可（手动提交offset），就能保证数据不丢失。也就是需要我们自己维护偏移量(offset)，可保存在 Redis 中。
+			-、offset维护方式
+				1-、自动提交
+					enable.auto.commit：是否开启自动提交 offset 功能，消费者只在启动的时候去访问offset的值，如果将该值配置为false，就要手动提交offset，否则offset就不会更新。
+					auto.commit.interval.ms：自动提交 offset 的时间间隔
+				2-、手动提交
+					1-、commitSync（同步提交）
+					2-、commitAsync（异步提交）
+						相同点：都会将本次 poll 的一批数据最高的偏移量提交；
+						不同点：commitSync 阻塞当前线程，一直到提交成功，并且会自动失败重试（由不可控因素导致，也会出现提交失败）；
+							而 commitAsync 则没有失败重试机制，故有可能提交失败
+					无论是同步提交还是异步提交 offset，都有可能会造成数据的漏消费或者重复消费。
+						-、先提交 offset 后消费，有可能造成数据的漏消费；
+						-、而先消费后提交 offset，有可能会造成数据的重复消费。
+				3-、自定义存储offset
+					比较麻烦。比如需要考虑消费者reblance	
+		4.9 topic -> partition -> messages
+			1、如何设计合理的消费者模式？  消费者组？如何reblance？
+				kafka消费者分区分配策略主要有3种：
+					1-、Range [针对topic].
+						原理：会把topic的分区数和消费者数进行一个相除，如果有余数，那就说明多余的分区不够平均分了
+						缺点：此时排在前面的消费者会多分得1个分区，乍看其实挺合理，毕竟本来数量就不均衡。但是如果消费者订阅了多个topic，
+							并且每个topic平均算下来都多几个个分区，那么对于排在前面的消费者就会多消费很多分区。
+					2-、RoundRobin [轮询算法逐个将分区以此分配给每个消费者]
+						原理：这种策略的原理是将消费组内所有消费者以及消费者所订阅的所有topic的partition按照字典序排序 
+						缺点：topic分区不一致，消费组中某个消费者就负荷大
+					3-、Sticky[分区的分配要尽可能均匀]
+						优点：
+							  1 分区的分配要尽可能均匀、
+							  2 分区的分配尽可能与上次分配的保持相同
+					总结： Sticky > RoundRobin > Range
+						当然可以自定义分区。
+			2、数据分区策略？
+				1-、轮询(如果既没有指定分区号，也没有指定数据 key，那么就会使用轮询的方式将数据均匀的发送到不同的分区里面去)
+				2-、key hashCode(如果没有指定分区号，指定了数据 key，通过 key.hashCode % numPartitions 来计算数据究竟会保存在哪一个分区里面)
+				3-、所指定分区id (如果指定了分区号，那么就会将数据直接写入到对应的分区里面去)
+				4-、自定义数据分区策略？
+			3、为什么需要Topic？
+				区分不同的业务，每个消费者只需要订阅自己关注的Topic即可，
+			参考资料：https://zhuanlan.zhihu.com/p/418158376
+		5.0 、如何让 Kafka 的消息有序？ --> produce端 【可以自定义分区器，接4.9需要有序的数据放一个分区[是从业务上把需要有序的打到同1个 partition。]。】
+			Kafka 在 Topic 级别本身是无序的，只有 partition 上才有序，所以为了保证处理顺序，可以自定义分区器，将需顺序处理的数据发送到同一个 partition、
+			原理：Kafka在底层设计架构中引入的produceID和sequenceNum在broker阶段保证消息的不重和顺序性。这些对kafka的使用者是透明的。
+				所以produce需要考虑二件事: produce -> broker
+				1-、启动的时候向broker申请一个produceID；[消息幂等性]
+				2-、为发出的每条消息绑定一个sequenceNum；
+			二个约束:
+				1、它只能保证单分区上消息的顺序性：
+					Producer 能够保证某个主题的一个分区上消息的顺序性，它无法实现多个分区消息的顺序性。
+					因为 sequenceNum是以< Topic,Partition> 为单位组织进行的，如果一条消息被发送到了多个分区必然会分配到不同的 sequenceNum,导致消息无序问题仍旧无解；
+				2、它只能实现单会话上消息的顺序性，不能实现跨会话的消息的顺序性。
+					当重启 producer进程之后，这种消息的顺序性就丧失了，重启 producer后会分配一个新的 producerID；
+					不过，业务上的顺序，通常并不是要求全局有序，而是针对某个业务实体的消息需要保证顺序，但不同业务实体的顺序通常不需要保证顺序。
+			链接：https://www.zhihu.com/question/483747691/answer/2832948006
+		5.1、kafka如何保证百万级写入速度?
+			1、页缓存技术（page cache） + 磁盘顺序写（append）
+			2、零拷贝技术 （1不需要把os cache里的数据拷贝到应用缓存 2 对Socket缓存仅仅就是拷贝数据的描述符过去，然后数据就直接从os cache中发送到网卡上去了 ）
+		5.2、kafka的segement ？
+			 1个 partition 当中由多个 segment 文件组成 .
+			 segment组成：
+				1- .log 文件 （数据存储）
+				2- .index 文件（.log 文件的数据索引值）
+					索引文件中元数据指向对应数据文件中 message 的物理偏移地址。
+					示例：比如索引文件中 3,497 代表：数据文件中的第三个 message，它的偏移地址为497。
+			 索引优点：
+				segment index file 采取稀疏索引存储方式：
+					【减少索引文件大小，通过 mmap（内存映射）可以直接内存操作，稀疏索引为数据文件的每个对应 message 设置一个元数据指针，
+					它比稠密索引节省了更多的存储空间，但查找起来需要消耗更多的时间】
+		5.3、kafka消息队列应用场景？
+			1-、异步处理：多应用对消息队列中同一消息进行处理，应用间并发处理消息，相比串行处理，减少处理时间
+			2-、应用解耦
+			3-、削峰
+			4-、消息驱动的系统 （1 避免了直接调用下一个系统导致当前系统失败 2 每个子系统对于消息的处理方式可以更为灵活）
+			
+		参考连接：https://zhuanlan.zhihu.com/p/334639167	
+		5.4、为什么 Kafka 不支持读写分离？
+			背景：生产者写入消息、消费者读取消息的操作都是与 leader 副本进行交互的，从 而实现的是一种主写主读的生产消费模型
+			1 数据一致性问题 （主和从，数据同步需要时间，读写分离，会导致不一致。）
+			2 延时问题（对延时敏感的应用不适用）
+				示例： redis主从同步步骤：网络→主节点内存→网络→从节点内存 耗时一定时间
+						kakfa ：历 网络→主节点内存→主节点磁盘→网络→从节 点内存→ 从节点磁盘Kafka
+		5.5、 Kafka 单条日志传输大小？
+			单条最大值默认： 1M   实际使用调大参数。
+				replica.fetch.max.bytes: 1048576 broker 可复制的消息的最大字节数, 默认为 1M
+				message.max.bytes: 1000012 kafka 会接收单个消息 size 的最大限制， 默认为 1M 左右
+			注意：message.max.bytes 必须小于等于 replica.fetch.max.bytes，否则就会导致 replica 之间数据同步失败。
+		5.6 、kafka版本迭代优化记录：
+			1、 offset保存在Block  Topic 【Kafka 0.10.1.1之后】	
+				offset保存在zookeeper 【Kafka 0.8.1.0 之前】
+			2、备份机制 ： 1 依赖水位(或水印)的概念 【Kafka 0.11 之前】	  
+						    2 HW + 用了leader epoch来标识备份进度 【Kafka 0.11 之后】
+			3、版本迭代更新记录：
+				Kafka目前总共演进了7个大版本，分别是0.7、0.8、0.9、0.10、0.11、1.0和2.0。
+					每个大版本中又有很多小的Patch版本，像2.0大版本中，目前已经更新到2.8.0，期间历经了19个小版本
+	5、sparkStreaming 怎么保证数据一次消费。
+		方案1：
+			1、使用事务 
+				原理：实现Exactly Once语义的关键是保证处理消息和提交偏移量的原子性. （所以只要把这两个操作放到一个事务里, 不管是先处理消息和还是先提交偏移量都可以保证消息不丢失和不重复）
+				实现：比如手动维护消费消息的偏移量, 并把偏移量放到MySQL中, 然后数据的落盘也放到MySQL中, 而MySQL是支持事务的, 那么我们就可以保证着两个操作的原子性了.
+				缺点:
+					1 对存储层有依赖, 只能使用支持事务的存储层
+					2 事务性能不高
+					3 并且一个存储层容易存在单点故障压力过大, 如果做分布式又需要做分布式事务增加了复杂性
+			2、手动提交偏移量 + 幂等性
+				原理：先确保真正处理完数据后再提交偏移量, 但是可能提交偏移量失败, 导致重复消费了, 这时就要做数据的幂等性保存了, 即数据无论被保存多少次效果都是一样的, 不会存在重复数据.
+				实现：1 有些存储层本身支持幂等性操作的 （mysql,redis,ES）
+					  2 如果使用的存储层本身不支持幂等操作, 可能就需要自己手动实现保证幂等性了或者去重了.
+			
+				在drvier还是executor上使用事务?
+					如果在executor上使用事务, 则executor之间不能保证同时成功或失败, 需要另外考虑分布式事务, 这个一般不使用
+					我们采取在driver端开启事务, 所有的数据都通过driver写到mysql. 原因有2点:
+				1.实现方便, 不容易有bug 
+				2.数据量小(聚合后的数据), 单独一个driver写入是可以完成的			
+			
+			资料：https://blog.csdn.net/weixin_41347419/article/details/115741633
+				https://blog.csdn.net/weixin_38822045/article/details/125577810
+	5-1、SparkStreming 反压机制  [https://blog.csdn.net/justlpf/article/details/118893985] 
+			-、Spark 1.5.0推出的新特性
+			- 触发： 当批处理时间(Batch Processing Time) > 批次间隔(Batch Interval，即 BatchDuration)时 [导致 Executor OOM或任务奔溃]
+			- 解决：
+ 			   -、若是基于Direct的数据源(如Kafka Direct Stream)，则可以通过设置 spark.streaming.kafka.maxRatePerPartition 来控制最大输入速率
+			   -、 Spark 1.5.0反压机制解决
+					处理： 设置spark.streaming.backpressure.enabled为true [Spark Streaming会自动根据处理能力来调整输入速率，从而在流量高峰时仍能保证最大的吞吐和性能。]
+					//启用反压机制 conf.set("spark.streaming.backpressure.enabled","true") 
+					//最小摄入条数控制 conf.set("spark.streaming.backpressure.pid.minRate","1") 
+					//最大摄入条数控制 conf.set("spark.streaming.kafka.maxRatePerPartition","12") [每秒每个分区最大摄入的数据条数]
+					//初始最大接收速率控制 conf.set("spark.streaming.backpressure.initialRate","10")  [初始最大接收速率。只适用于Receiver Stream]
+	6、Spark 原理
+		1-、Spark执行流程：
+				1、SparkContext【Driver program 上】 向 资源管理器(yarn/mesos/standalone) 注册， 并向其申请资源运行Executor(Task+cache) 【Work Node上】
+				2、资源管理器 启动Executor，后者发送心跳给到资源管理器
+				3、Executor向SparkContext注册并申请Task
+					4、SparkContext 构建 DAG 有向无环图
+					5、DAGScheduler 将 DAG 分解成 Stage（TaskSet），给到TaskSchedule
+					6、TaskScheduler 提交并监控Task
+				7、TaskScheduler 将 Task 发送给 Executor 运行、
+				8、同时 SparkContext 将应用程序代码发放给 Executor
+				9、Task 在 Executor 上运行，运行完毕释放所有资源。
+				备注：Spark 的计算发生在 RDD 的 Action 操作，而对 Action 之前的所有
+					Transformation，Spark 只是记录下 RDD 生成的轨迹，而不会触发真正的计算
+				
+				 Yarn Client模式
+					1 Driver在任务提交的本地机器上运行
+					2 Driver启动后会和ResourceManager通讯申请启动ApplicationMaster
+					3 ResourceManager分配container，在合适的NodeManager上启动ApplicationMaster，负责向ResourceManager申请Executor内存
+					4 ResourceManager接到ApplicationMaster的资源申请后会分配container，然后ApplicationMaster在资源分配指定的NodeManager上启动Executor进程
+					5 Executor进程启动后会向Driver反向注册，Executor全部注册完成后Driver开始执行main函数
+					6 之后执行到Action算子时，触发一个Job，并根据宽依赖开始划分stage，每个stage生成对应的TaskSet，之后将task分发到各个Executor上执行。
+									
+				在yarn集群上执行：
+					1 在YARN Cluster模式下，任务提交后会和ResourceManager通讯申请启动ApplicationMaster，
+					2 随后ResourceManager分配container，在合适的NodeManager上启动ApplicationMaster，此时的【ApplicationMaster就是Driver】。
+					3 Driver启动后向ResourceManager申请Executor内存，ResourceManager接到ApplicationMaster的资源申请后会分配container，然后在合适的NodeManager上启动Executor进程
+					4 Executor进程启动后会向Driver反向注册，Executor全部注册完成后Driver开始执行main函数，
+					5 之后执行到Action算子时，触发一个Job，并根据宽依赖开始划分stage，每个stage生成对应的TaskSet，之后将task分发到各个Executor上执行。
+				原文链接：https://blog.csdn.net/mengxianglong123/article/details/121299821
+			-、	DAG划分Stage
+					算法：回溯算法，
+					依据：宽窄依赖 
+					特点：1、一个 Spark 程序可以有多个 DAG（有几个 Action，就有几个 DAG）
+						  2、同一个 Stage 可以有多个 Task 并行执行(task 数=分区数）
+						  3、窄依赖形成pipeline流水线操作，直接串行计算，不用等待整个 RDD 计算结束，大大提高计算效率。
+			-、 Stage任务提交：
+					-、DAGScheduler 通过TaskScheduler 接口提交任务集
+					-、这个任务集最终会触发 TaskScheduler 构建一个 TaskSetManager 的实例来管理这个任务集的生命周期【DAGScheduler 来说，提交调度阶段的工作到此就完成了】
+					-、TaskSetManager 调度具体的任务到对应的 Executor 节点上进行运算（获取到资源后）
+			-、监控
+				1、DAGScheduler 监控 Job 与 Task
+					-、通过回调函数来实现。（TaskScheduler包括开始结束失败、任务集的失败这些回调）
+					-、DAGScheduler根据这些任务的生命周期信息进一步维护作业和调度阶段的状态信息
+				2、DAGScheduler 监控 Executor 的生命状态
+					-、TaskScheduler 通过回调函数通知 DAGScheduler 具体的 Executor 的生命状态
+					示例：如果某一个 Executor 崩溃了，则对应的调度阶段任务集的 ShuffleMapTask的输出结果也将标志为不可用，
+						这将导致对应任务集状态的变更，进而重新执行相关计算任务，以获取丢失的相关数据。
+			-、返回结果；
+				1、中间结果或最终结果 
+					最终结果：FinalStage 所对应的任务  -->  返回给 DAGScheduler			
+					中间结果：对于中间调度阶段对应的任务 ShuffleMapTask，返回给 DAGScheduler 的是一个 MapStatus 里的相关存储信息，
+						而非结果本身，这些存储位置信息将作为下一个调度阶段的任务获取输入数据的依据。
+				2、. 两种类型，DirectTaskResult 与 IndirectTaskResult：（根据任务结果返回大小）
+					如果结果足够小，则直接放在 DirectTaskResult 对象内中
+					大的话，先序列化，放到Block'M'anager，TaskSchedule进而调用 TaskResultGetter 将 IndirectTaskResult 中的BlockID 取出并通过 BlockManager 最终取得对应的 DirectTaskResult。
+			
+			-、Spark架构特点：
+				1、Executor 进程专属：	每个 Application 获取专属的 Executor 进程，该进程在 Application 期间一直驻留，并以多线程方式运行 Tasks。
+					Spark Application 不能跨应用程序共享数据，除非将数据写入到外部存储系统。
+				2、支持多种资源管理器：Spark 与资源管理器无关，只要能够获取 Executor 进程，并能保持相互通信就可以了。
+					Spark 支持资源管理器包含： Standalone、On Mesos、On YARN、Or On EC2。
+				3、Job 提交就近原则 ：
+					1 Client 应该靠近 Worker 节点(运行 Executor 的节点)，  
+					2 远程集群中运行，最好使用 RPC 将 SparkContext 提交给集群，不要远离 Worker 运行 SparkContext。
+				4、移动程序而非移动数据的原则执行 ： 
+					Task 采用了数据本地性和推测执行的优化机制
+				5、Executor上有一个BlockManager存储模块，类似于键值存储系统（把内存和磁盘共同作为存储设备），在处理迭代计算任务时，不需要把中间结果写入到HDFS等文件系统，
+					而是直接放在这个存储系统上，后续有需要时就可以直接读取；在交互式查询场景下，也可以把表提前缓存到这个存储系统上，提高读写IO性能；	
+			-、Spark运行角色
+				-、Spark中由4类角色组成整个Spark的运行时环境：
+					Master角色，管理整个集群的资源
+					Worker角色，管理单个服务器的资源
+					Driver角色，管理单个Spark任务在运行的时候的工作
+					Executor角色，单个任务运行的的时候的一堆工作者，干活的。
+				-、从两个层面划分：
+					-、资源管理层面：
+						管理者: Spark是Master角色，YARN是ResourceManger
+						工作中：Spark是Work角色，YARM是NodeManger
+					-、从任务执行层面：
+						某任务管理者：Spark是Driver角色，YARN是ApplicationMaster
+						某任务执行者：Spark是Executor角色，YARN是容器中运行的具体工作进程
+					注：正常情况下Executor是干活的角色，不过在特殊场景下（Local模式）Driver可以即管理又干活。
+				原文链接：https://blog.csdn.net/Star_SDK/article/details/127879436	
+								
+		2-、为什么有RDD？相比较MR
+			-、（RDD(Resilient Distributed Dataset)叫做弹性分布式数据集）分布式的抽象模型。将具体的逻辑转化为一系列转换操作（函数）
+			-、不同RDD之间可以形成依赖，进而实现通道化管理。避免了中间结果的存储。降低数据复制，磁盘IO以及序列化的开销。
+			-、提供更多的API（map,reduce,filter等）
+		3-、特性：
+			1. 分区列表（每个分片都会被一个计算任务处理，分片数决定并行度）
+			2. 计算函数（函数会作用于每个分片。）
+			3. 依赖关系（SPark容错机制。在部分分区数据丢失时，Spark 可以通过这个依赖关系重新计算丢失的分区数据，而不是对 RDD 的所有分区进行重新计算。）
+			4. 分区函数(默认是 hash)
+			5. 最佳位置（按照"移动数据不如移动计算"的理念，Spark 在进行任务调度的时候，会尽可能选择那些存有数据的 worker 节点来进行任务计算）
+		4-、RDD注意点：
+			1.RDD 不实际存储真正要计算的数据，而是记录了数据的位置在哪里，数据的转换关系
+			2.RDD 中的所有转换都是惰性求值/延迟执行的，也就是说并不会直接计算。只有当发生一个要求返回结果给 Driver 的 Action 动作时，这些转换才会真正运行
+			3.延迟计算，Action 时对 RDD 操作形成DAG 有向无环图进行 Stage 的划分和并行优化.更高效。
+		5-、RDD算子类型：
+			1.Transformation
+			2.Action
+		6-、RDD持久化/缓存：
+			方法： persist 方法和 cache 方法
+				1、触发Action，该 RDD才会被缓存在计算节点的内存中，并供后面重用
+				2、cache 最终也是调用了 persist 无参方法
+			存储级别：MORY_ONLY(默认)，MORY_AND_DISK(开发中可以使用这个),...等
+			总结：
+				1. RDD 持久化/缓存的目的是为了提高后续操作的速度
+				2. 缓存的级别有很多，默认只存在内存中,开发中使用 memory_and_disk
+				3. 只有执行 action 操作的时候才会真正将 RDD 数据进行持久化/缓存
+				4. 实际开发中如果某一个 RDD 后续会被频繁的使用，可以将该 RDD 进行持久化/缓存
+		7-、CheckPoint:在 Checkpoint 的时候一般把数据放在在 HDFS 上，这就天然的借助了 HDFS 天生的高容错、高可靠来实现数据最大程度上的安全.
+		8-、持久化和 Checkpoint 的区别：
+			1. 位置： Persist 和 Cache 只能保存在本地的磁盘和内存中(或者堆外内存--实验中) Checkpoint 可以保存数据到 HDFS 这类可靠的存储上。
+			2. 生命周期： Cache 和 Persist 的 RDD 会在程序结束后会被清除或者手动调用 unpersist 方法 Checkpoint 的 RDD 在程序结束后依然存在，不会被删除。
+		9-、宽窄依赖：
+			宽：父 RDD 的一个分区会被子 【多对一：多个父对一个孩子】
+			窄：父 RDD 的一个分区只会被子 RDD 的一个分区依赖；
+			-、为什么要宽窄依赖？
+				1. 对于窄依赖：
+					窄依赖的多个分区可以并行计算；
+					窄依赖的一个分区的数据如果丢失只需要重新计算对应的分区的数据就可以了。
+				2. 对于宽依赖：
+					划分 Stage(阶段)的依据:对于宽依赖,必须等到上一阶段计算完成才能计算下一阶段
+		10-、 DAG：指的是数据转换执行的过程，有方向，无闭环(其实就是 RDD 执行的流程)
+		    DAG 的边界：
+				开始:通过 SparkContext 创建的 RDD；	
+				结束:触发 Action，一旦触发 Action 就形成了一个完整的 DAG。
+			DAG的划分stage：
+				-、有几个action就有几个Stage（一个 Spark 程序可以有多个 DAG）
+				-、一个 DAG 可以有多个Stage（(根据宽依赖/shuffle 进行划分)
+					-、同一个 Stage 可以有多个 Task （task 数=分区数）
+			为什么要划分 Stage：  -> 并行计算
+				-->> 划分Stage（ shuffle划分 ，同一个stage中，会有多个算子操作，可以形成一个pipeline 流水线，流水线内的多个平行的分区可以并行执行。
+			如何划分 DAG 的 stage？
+				-->>Spark 会根据 shuffle/宽依赖使用回溯算法来对 DAG 进行 Stage 划分，从后往前，遇到宽依赖就断开，遇到窄依赖就把当前的 RDD 加入到当前的 stage/阶段中
+		11-、	RDD 累加器和广播变量
+			背景：有时候需要在多个任务之间共享变量，或者在任务(Task)和任务控制节点(Driver Program)之间共享变量，基于此产生。
+				（Spark 在集群的多个不同节点的多个任务上并行运行一个函数时）
+			1. 累加器 accumulators：累加器支持在所有不同节点之间进行累加计算(比如计数或者求和)。
+			2. 广播变量 broadcast variables：广播变量用来把变量在所有节点的内存之间进行共享，在每个机器上缓存一个只读的变量，而不是为机器上的每个任务都生成一个副本。
+			-、为什么使用累加器？ ---> Spark执行机制，导致Driver端的数据，在Executor端累加，传递不到Driver
+					var counter2: Int = 0;  // Driver端定义counter2= 0 
+					val dataRDD: RDD[Int] = sc.parallelize(data) //分布式集合的[1,2,3]
+					dataRDD.foreach(x => counter2 += x)   //    Executor端累加。
+					println(counter2)//0   // 打印的是Driver端的counter2 还是0 .
+				//注意：上面的 RDD 操作运行结果是 0
+				//因为 foreach 中的函数是传递给 Worker 中的 Executor 执行,用到了 counter2 变量 
+				//而 counter2 变量在 Driver 端定义的,在传递给 Executor 的时候,各个 Executor 都有了一份counter2
+				//最后各个 Executor 将各自个 x 加到自己的 counter2 上面了,和 Driver 端的 counter2 没有关系
+				//那这个问题得解决啊!不能因为使用了 Spark 连累加都做不了了啊!
+				//如果解决?---使用累加器
+			-、为什么要用广播变量？---> 共享变量。
+				//注意:以上代码看似一点问题没有,但是考虑到数据量如果较大,且 Task 数较多,
+				//那么会导致,被各个 Task 共用到的 fruitMap 会被多次传输
+				//应该要减少 fruitMap 的传输,一台机器上一个,被该台机器中的 Task 共用即可
+				//如何做到?---使用广播变量
+				//注意:广播变量的值不能被修改,如需修改可以将数据存到外部数据源,如 MySQL、Redis
+		12-、 DataFrame 和 Dataset区别：
+			-、1.6前- Frame  ， 1.6后dataset。 2.0 合并，  DataFrame 其实就是 Dateset[Row]。
+			-、DataFrame只能支持 SQL 的使用，不能很好的兼容命令式，入口不够统一等。
+			-、Dataset 统一和结合了 SQL 的访问和命令式 API 的使用 【不光有 schema 信息，还有类型信息】
+				【保存了类型信息，是强类型的，提供了编译时类型检查。调用 Dataset 的方法先会生成逻辑计划，然后被 spark 的优化器进行优化，最终生成物理计划，然后提交到集群中运行！】
+		13-、 Hive 和 SparkSQL区别：
+				Hive 是将 SQL 转为 MapReduce。
+				SparkSQL 可以理解成是将 SQL 解析成：“RDD + 优化” 再执行。
+		
+		14-、Sparkstreaming流程：
+				接收器组件 Receiver(在一个 Executor 上).
+				Receiver 接收外部的数据流形成 input DStreamDStream 会被按照时间间隔划分成一批一批的 RDD，当批处理间隔缩短到秒级时，便可以用于处理实时数据流。
+			数据抽象：DStream
+				1、DStream 本质上就是一系列时间上连续的 RDD
+				2、对 DStream 的数据的进行操作也是按照 RDD 为单位来进行的
+				3、容错性，底层 RDD 之间存在依赖关系，DStream 直接也有依赖关系，RDD具有容错性，那么 DStream 也具有容错性
+				4. 准实时性/近实时性 【其最小的 Batch Size 的选取在 0.5~5秒钟之间】
+			累加需要：需要使用 updateStateByKey(func)来更新状态  -->  历史数据
+			指定时间范围累加；	reduceByKeyAndWindow
+		15-、Structured Streaming [spark 在 2.0 版本]
+			spark streaming 缺陷：
+				1、这种构建在微批处理上的流计算引擎，（无法优化到秒以下的数量级），
+				2、无法支持基于 event_time 的时间窗口做聚合逻辑
+			Structured 优点：
+				1、支持基于 event_time 的时间窗口做聚合
+				2、统一了流、批的编程模型，你可以使用静态数据批处理一样的方式来编写流式计算操作
+				3、会通过 checkpoint 和预写日志等机制来实现 Exactly-Once 语义。
+			核心思想：
+				1、 unbound table 无界表，到达流的每个数据项(RDD)就像是表中的一个新行被附加到无边界的表中.
+				2、 可以用静态结构化数据的批处理查询方式进行流计算，如可以使用 SQL 对到来的每一行数据进行实时查询处理。
+		
+	7-、sparkString 能处理的最小级是多少？  -- 500ms
+	     Structured Streaming      -- 100ms
+		7.1、Tez  和 Spark引擎区别?
+			hive底层执行引擎（MR）
+				1-、UI调用 Driver 接口	， 
+				2-、Driver[驱动程序；接收查询的组件]把查询命令发送给  COMPILER编译器， 编译器解析命令，
+				3-、编译器与 metastore 通信，请求元数据信息
+				4-、metastore 返回元数据信息给编译器
+				5-、编译器整合执行计划（分阶段的map,reduce等）给到 Driver。
+				6-、Driver发送计划给到 执行引擎（MR计算框架）
+				7-、在MR框架执行Map,Reduce任务。返回结果->Driver -> UI 
+			
+			Hive SQL编译过程：
+				1、语法，词法解析
+				2、语义解析
+				3、生成逻辑执行计划	
+				4、优化逻辑执行计划
+				5、生成物理执行计划 
+				6、优化物理执行计划
+			
+			Tez引擎：
+				核心思想：核心思想是将Map和Reduce两个操作进一步拆分，分解后的元操作可以任意灵活组合，产生新的操作，这些操作经过一些控制程序组装后，可形成一个大的DAG作业。
+			Tez和MR的对比；
+				1、Tez省略了许多MapReduce很多不必要的中间的数据存储和读取的过程	。
+				2、Tez on yarn 提交作业到AMPoolServer的服务（而不是RM）:AMPoolServer存放着若干已经预先启动ApplicationMaster的服务
+				3、AMPoolServer 提供重用的AM资源，节省了资源释放和创建时间。
+			Tez相比于MapReduce有几点重大改进：
+				1、提供Map-reduce-redeuce*模式：
+					当查询需要有多个reduce逻辑时，Hive的MapReduce引擎会将计划分解，每个Redcue提交一个MR作业。这个链中的所有MR作业都需要逐个调度，每个作业都必须从HDFS中重新读取上一个作业的输出并重新洗牌。
+					而 MR 只能 Map->Reduce->Map->Reduce ，而在Tez中，几个reduce接收器可以直接连接，数据可以流水线传输，而不需要临时HDFS文件，这种模式称为MRR（Map-reduce-reduce*）。
+				2、Tez还允许一次发送整个查询计划，实现应用程序动态规划：
+						从而使框架能够更智能地分配资源，并通过各个阶段流水线传输数据。
+					对于更复杂的查询来说，这是一个巨大的改进，因为它消除了IO/sync障碍和各个阶段之间的调度开销。
+				3、小数据集完全在内存计算：
+				在MapReduce计算引擎中，无论数据大小，在Shuffle阶段都以相同的方式执行，将数据序列化到磁盘，再由下游的程序去拉取，并反序列化。
+					Tez可以允许小数据集完全在内存中处理，而MapReduce中没有这样的优化。仓库查询经常需要在处理完大量的数据后对小型数据集进行排序或聚合，Tez的优化也能极大地提升效率。
+			Tez优化：
+				1、Container重用设置 tez.am.container.reuse.enabled 默认值：true,参数说明：Container重用开关
+				2、Hive内存Map Join参数设置，可以允许多个Mapjoin合并为一个。
+				3、AM、Container JVM参数设置
+				4、AM、Container大小设置
+			
+			Tez 和 Spark的区别：【原文链接：https://blog.csdn.net/hengyunbin/article/details/126674941】
+			使用场景：
+				1 spark更像是一个通用的计算引擎，提供内存计算，实时流处理，机器学习等多种计算方式，适合迭代计算；tez作为一个框架工具，特定为hive和pig提供批量计算运行模式：
+				2 spark属于内存计算，支持多种运行模式，可以跑在standalone，yarn上；而tez只能跑在yarn上；虽然spark与yarn兼容，但是spark不适合和其他yarn应用跑在一起资源利用：
+				3 tez能够及时的释放资源，重用container，节省调度时间，对内存的资源要求率不高； 而spark如果存在迭代计算时，container一直占用资源；
+				
+			Hive on spark调优：【https://blog.csdn.net/javastart/article/details/126041883】
+				set hive.execution.engine=spark;
+				set spark.executor.memory=4g;
+				set spark.executor.cores=2;
+				set spark.executor.instances=40;
+				set spark.serializer=org.apache.spark.serializer.KryoSerializer;
+			
+			资料：https://blog.csdn.net/javastart/article/details/125232350
+	
+	7.2、StreamingListener监听。   [https://blog.csdn.net/jklcl/article/details/113000954]
+		定义： StreamingListener 是针对spark streaming的各个阶段的事件监听机制。
+		接口：
+			//需要监听spark streaming中各个阶段的事件只需实现这个特质中对应的事件函数即可
+			//本身既有注释说明
+			trait StreamingListener {
+			  /** Called when the streaming has been started */
+			  /** streaming 启动的事件 */
+			  def onStreamingStarted(streamingStarted: StreamingListenerStreamingStarted) { }
+			  /** Called when a receiver has been started */
+			  /** 接收启动事件 */
+			  def onReceiverStarted(receiverStarted: StreamingListenerReceiverStarted) { }
+			  /** Called when a receiver has reported an error */
+			  def onReceiverError(receiverError: StreamingListenerReceiverError) { }
+			  /** Called when a receiver has been stopped */
+			  def onReceiverStopped(receiverStopped: StreamingListenerReceiverStopped) { }
+			  /** Called when a batch of jobs has been submitted for processing. */
+			  /** 每个批次提交的事件 */
+			  def onBatchSubmitted(batchSubmitted: StreamingListenerBatchSubmitted) { }
+			  /** Called when processing of a batch of jobs has started.  */
+			  /** 每个批次启动的事件 */
+			  def onBatchStarted(batchStarted: StreamingListenerBatchStarted) { }
+			  /** Called when processing of a batch of jobs has completed. */
+			  /** 每个批次完成的事件  */
+			  def onBatchCompleted(batchCompleted: StreamingListenerBatchCompleted) { }
+			  /** Called when processing of a job of a batch has started. */
+			  def onOutputOperationStarted(
+				  outputOperationStarted: StreamingListenerOutputOperationStarted) { }
+			  /** Called when processing of a job of a batch has completed. */
+			  def onOutputOperationCompleted(
+				  outputOperationCompleted: StreamingListenerOutputOperationCompleted) { }
+			}
+		自定义StreamingListener：
+	8、悲观锁，乐观锁。
+			1 高并发的场景下，激烈的锁竞争会造成线程阻塞，大量阻塞线程会导致系统的上下文切换，增加系统的性能开销。
+			并且，悲观锁还可能会存在死锁问题，影响代码的正常运行。乐观锁相比悲观锁来说，不存在锁竞争造成线程阻塞，也不会有死锁的问题，在性能上往往会更胜一筹。
+			不过，如果冲突频繁发生（写占比非常多的情况），会频繁失败和重试，这样同样会非常影响性能，导致 CPU 飙升。
+			2 乐观锁一般会使用版本号机制或 CAS 算法实现，CAS 算法相对来说更多一些，这里需要格外注意。
+			3 CAS 的全称是 Compare And Swap（比较与交换） ，用于实现乐观锁，被广泛应用于各大框架中。CAS 的思想很简单，就是用一个预期值和要更新的变量值进行比较，两值相等才会进行更新。
+			4 乐观锁的问题：
+				1 ABA 问题[ 原来是A后来改成B又改为A --> CAS 操作就会误认为它从来没有被修改过]
+					解决思路：在变量前面追加上版本号或者时间戳
+					-、版本迭代优化:
+						DK 1.5 以后的 AtomicStampedReference 类就是用来解决 ABA 问题的，其中的 compareAndSet() 方法就是首先检查当前引用是否等于预期引用，并且当前标志是否等于预期标志，
+					如果全部相等，则以原子方式将该引用和该标志的值设置为给定的更新值。
+				2 循环时间长开销大[CAS 经常会用到自旋操作来进行重试，也就是不成功就一直循环执行直到成功]、
+				3 只能保证一个共享变量的原子操作[CAS 只对单个共享变量有效，当操作涉及跨多个共享变量时 CAS 无效.]。
+					但是从 JDK 1.5 开始，提供了AtomicReference类来保证引用对象之间的原子性，你可以把多个变量放在一个对象里来进行 CAS 操作.
+					所以我们可以使用锁或者利用AtomicReference类把多个共享变量合并成一个共享变量来操作。
+			
+	资料：https://blog.csdn.net/qq_34337272/article/details/81072874
+	9、Flink
+		-、 Flink 状态	
+			背景：复杂流处理都需要状态保存（存储中间结果，以供后续使用）。
+			类型： 
+				1. State-Keyed State :基于 KeyedStream 上的状态。这个状态是跟特定的 key 绑定的.
+					-、ValueState：即类型为 T 的单值状态。这个状态与对应的 key 绑定，是最简单的
+						状态了。它可以通过 update 方法更新状态值，通过 value()方法获取状态值。
+					-、ListState：即 key 上的状态值为一个列表。可以通过 add 方法往列表中附加值；
+						也可以通过 get()方法返回一个 Iterable 来遍历状态值。
+					-、ReducingState:这种状态通过用户传入的 reduceFunction，每次调用 add 方法添
+						加值的时候，会调用 reduceFunction，最后合并到一个单一的状态值。
+					-、MapState<UK, UV>:即状态值为一个 map。用户通过 put 或 putAll 方法添加元素。
+					备注：以上所述的 State 对象，仅仅用于与状态进行交互（更新、删除、清空等），而真正的状态值，有可能是存在内存、磁盘、或者其他分布式存储系统中。
+				2. State-Operator State	:与 Key 无关的 State，与 Operator 绑定的 state，整个 operator 只对应一个 state
+				3. Broadcast State : 如果遇到需要下发/广播配置、规则等低吞吐事件流到下游所有 task 时，就可以使用 Broadcast State 特性(Flink 1.5 引入的新特性)
+				
+		-、 Flink 状态后端 [https://blog.csdn.net/qq_43288259/article/details/118912057]
+			状态后端：状态都需要存储到状态后端(StateBackend)，然后在checkpoint触发时，将状态持久化到外部存储系统。
+			类型：Flink提供了三种类型的状态后端，
+				1-、 基于内存的状态后端(MemoryStateBackend)
+					-、默认状态后端。
+					-、将状态数据全部存储在JVM堆内存中，包括用户在使用DataStream API中创建的Key/Value State，窗口中缓存的状态数据，以及触发器等数据
+					缺点：
+						1- 内存容易溢出（默认5M,可调） 
+						2- 内存存储，宕机丢失数据（不建议生产）
+					优点：
+						1、适合用于测试环境中，并用于本地调试和验证，
+						2、大量的非状态计算算子（Map，FlatMap，Filter，...），也可以在生产环境中使MemoryStateBackend
+				2-、 基于文件系统的状态后端(FsStateBackend) ： 该持久化存储主要将快照数据保存到文件系统中
+					-、支持HDFS 和本地文件
+					-、在分布式情况下，不推荐使用本地文件
+						[如果某 个算子在节点 A 上失败，在节点 B 上恢复，使用本地文件时，在 B 上无法读取节点 A 上的数据，导致状态恢复失败]
+					优点：
+						1、适合大状态，长窗口大键 / 值状态的作业。	
+						2、所有高可用性设置: 相对比较稳定，在checkpoint时，将状态持久化到像HDFS分布式文件系统中，能最大程度保证状态数据的安全性
+				3-、 基于RockDB作为存储介质的RocksDB StateBackend
+					简介：介于本地文件和 HDFS 之间，RocksDB 是一个 key/value 的内存存储系统，类似于HBase，是一种内存磁盘混合的 LSM DB。
+						当写数据时会先写进write buffer(类似于HBase的memstore)，然后在flush到磁盘文件，
+						当读取数据时会现在block cache(类似于HBase的block cache)，所以速度会很快。（独引入相关的依赖包）
+					优点：相比较Fs快，比Memory慢。
+					缺点：
+						1、RocksDB 不支持同步的 Checkpoint（不过 RocksDB 支持增量的 Checkpoint）
+						2、使用自定义窗口(window)，不推荐用户使用 RocksDBStateBackend（状态以 ListState 的形式保存在 StatBackend 中，如果一个 key
+							值中有多个 value 值，则 RocksDB 读取该种 ListState 非常缓慢，影响性能）
+			设置方式：
+				1 单任务调整 (env.setStateBackend(new FsStateBackend("hdfs://namenode:9000/flink/checkpoints"));)
+				2 全局调整 (修改 flink-conf.yaml)
+				
+	10、HA，1个namenode的元数据损坏了，怎么办？
+		方案一： hadoop namenode -recover 尝试
+		方案二：此时一个元数据损坏，则另一个变为Active，损坏元数据的NN变为StandBy。
+		-、格式化StandBYNN ,hdfs namenode -bootstrapStandby
+		-、格式化，会修复元数据（copy正确的）。
+		参考资料：https://blog.csdn.net/weixin_43346403/article/details/124225525
+	11、Java相关：	
+		10.1、JdK7和8有什么区别？
+			-、lambda 表达式，Java 8 版本引入的一个新特性。lambda 表达式允许你将功能当作方法参数或将代码当作数据。lambda 表达式还能让你以更简洁的方式表示只有一个方法的接口 (称为函数式接口) 的实例。
+			-、方法引用，为已命名方法提供了易于阅读的 lambda 表达式。
+			-、默认方法，支持将新功能添加到类库中的接口，并确保与基于这些接口的旧版本的代码的二进制兼容性。
+			-、重复注解，支持在同一声明或类型上多次应用同一注解类型。
+			-、类型注解，支持在任何使用类型的地方应用注解，而不仅限于声明。此特性与可插入型系统一起使用时，可增强对代码的类型检查。
+			-、HashMap 在1.8之后，加入了红黑树。
+		10.2 Object 类包含哪些方法?
+			在 java.lang 包中，Object 类位于类层次结构的顶端。每个类都是 Object 类直接或间接的子类.(则可能需要用你的类的特定代码来重写这些方法。以下是本节所讨论的从 Object 类中继承的方法：)
+			protected Object clone throws CloneNotSupportedException 创建并返回此对象的副本。
+			public boolean equals(Object obj) 判断另一对象与此对象是否「相等」。
+			protected void finalize throws Throwable 当垃圾回收机制确定该对象不再被调用时，垃圾回收器会调用此方法。
+			public final Class getClass 返回此对象的运行时类。
+			public int hashCode 返回此对象的散列码值。
+			public String toString 返回此对象的字符串表示形式。
+			Object 类的 notify，notifyAll 和 wait 方法都在同步程序中独立运行线程的活动方面发挥了作用。
+			public final void notify
+			public final void notifyAll
+			public final void wait
+			public final void wait(long timeout)
+			public final void wait(long timeout, int nanos)
+		10.3 String对象为什么不可变？
+			-、字符串是不可变的，节省大量堆存储空间
+			-、如果字符串不是不可变的，那么它可能会对应用程序造成严重的安全威胁
+			-、由于 String 是不可变的，因此它对与多线程处理来说是安全的
+			-、字符串被用在 Java 类加载器中，其不可变性为类加载器加载正确的类提供了安全性（比如加载字符串类  java.sql.Connection 类时）
+			-、由于 String 是不可变的，因此在它被创建时其散列码就被缓存，不需要再次计算 （ String 是 HashMap 中最常用的键类型）
+		10.4、final，finally，和 finalize 三者之间有什么不同? 
+			-、final 关键字用于在多个语境下定义只能分配一次的实体。
+			-、finally 代码块是用于执行重要代码 (如关闭连接、流等) 的代码块。无论是否处理异常，finally 代码块总会被执行。finally 代码块紧随 try 代码块或 catch 代码块。
+			-、finalize 是在删除或销毁对象之前垃圾回收器总会调用的方法，该方法使得垃圾回收机制能够执行清理活动
+		10.5、什么是依赖注入? 
+			依赖注入是spring框架中的解耦的一种策略，称为DI，主要有set方式(提供set和get方法)和constractor(构造方法)方式，
+		它使得类与类之间以配置文件的形式组织在一起，而不是硬编码的方式
+		
+	原文链接：https://blog.csdn.net/weixin_45987729/article/details/120850489
+	12、 jvm
+	13、开窗函数介绍？[https://blog.csdn.net/qq_40202995/article/details/123049253  ， https://www.cnblogs.com/liuwchao/articles/11535282.html]
+		-、over()窗口函数的语法结构 ：
+			-、分析函数 over(partition by 列名 order by 列名 rows between 开始位置 and 结束位置)
+			-、over()函数中包括三个函数
+				1-、partition by   :分区分组
+				2-、order by  :排序
+				3-、rows between 开始位置 and 结束位置 : 按照每一组每一组的数据进行计算的。rows between 开始位置 and 结束位置是指定窗口范围。
+					示例：ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW（表示从起点到当前行）
+						  ROWS BETWEEN 2 PRECEDING AND 1 FOLLOWING（表示往前2行到往后1行）
+						  ROWS BETWEEN 2 PRECEDING AND 1 CURRENT ROW（表示往前2行到当前行）
+						  ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING （表示当前行到终点）
+		-、常与over()一起使用的分析函数：
+			（1）聚合类
+				avg()、sum()、max()、min(),count(1)
+				累加示例： sum(score) over (order by id) as 累加求和  [https://blog.csdn.net/baomingshu/article/details/111945681]
+			（2）排名类
+				row_number()按照值排序时产生一个自增编号，不会重复（如：1、2、3、4、5、6）
+				rank() 按照值排序时产生一个自增编号，值相等时会重复，会产生空位（如：1、2、3、3、3、6）
+				dense_rank() 按照值排序时产生一个自增编号，值相等时会重复，不会产生空位（如：1、2、3、3、3、4）
+				-、row_number() 【按照自然顺序】：row_number() over( order by xx desc) `row_number排名`  --> 1,2,3,4  
+				-、rank() 【排序相同时会重复，总数不会变(会有间隙跳跃，数据不连续)】 : rank() over (  order by xx desc) `rank排名` --> 1,2,2,4  
+				-、dense_rank() 【排序相同时会重复，总数会减少(不会有间隙，数据连续的)】 : dense_rank() over (  order by xx desc) `dense_rank排名`   --> 1,2,2,3  
+			（3）其他类
+				-、lag(列名,往前的行数,[行数为null时的默认值，不指定为null])，可以计算用户上次购买时间，或者用户下次购买时间。或者上次登录时间和下次登录时间
+					示例： select * ,lag(time,1) over(partition by name order by time asc ) from leg_lead;   
+							lag(time,1)  time往前一行，输出。
+				-、lead(列名,往后的行数,[行数为null时的默认值，不指定为null]) 
+					示例： 与lag类似，这个是往后的行数。
+				-、ntile(n) 把有序分区中的行分发到指定数据的组中，各个组有编号，编号从1开始，对于每一行，ntile返回此行所属的组的编号
+						示例：- 如果切片不均匀，默认增加第一个切片的分布
+							  - NTILE不支持ROWS BETWEEN
+							NTILE(2) OVER(PARTITION BY cookieid ORDER BY createtime) AS ntile1,    --分组内将数据分成2片
+							NTILE(3) OVER(PARTITION BY cookieid ORDER BY createtime) AS ntile2,  --分组内将数据分成3片
+							NTILE(4) OVER(PARTITION BY cookieid ORDER BY createtime) AS ntile3   --将所有数据分成4片
+				-、FIRST_VALUE 取分组内排序后，截止到当前行，第一个值（类似的有last_value）
+					示例： FIRST_VALUE（sal） over(partition by xx order by xx)  
+						排序后第一个值位100 ， 则分组内都显示100.
+		-、和group by 连用（group by 放在最后）
+			group by和over()配合起来使用的数据生成的流程是，先通过group by进行分组聚合，over函数是作用在group by所生成的数据之上的。
+		-、partition by 和group by的区别？
+			1、 partition by ： 搭配窗口函数。分组组内排名，分组组内,分组聚合，以及分组组内范围数据计算 
+				group by：分组求聚合值 ，
+			2、返回结果区别： 一个是多条合并 ，一个是求出多条数据的累加值后，保留所有数据，并在所有数据后缀了累加值📢📢📢。
+				以sum()举例：
+				 partition by ： 搭配窗口函数。分组组内，累加，保留
+				group by：分组求聚合值 ，
+			3、返回列区别 ： 
+					group by :select 中只能出现group by后面出现的列名，也就是说你用什么条件分组聚合，你就只能查什么
+					partition by ： 对Select 查询什么列名没有影响。
+			4、执行顺序区别:是聚合函数，需要先执行Group by之后，再执行聚合函数。
+		-、hive中， sort by,distribute by,cluster by,group by 区别？   [https://blog.csdn.net/weixin_44844089/article/details/117151385sss]
+			hive distribute by 和group by 的区别：
+				-、group by是对检索结果的保留行进行单纯分组，一般总爱和聚合函数一块用例如AVG（），COUNT（），max（），main（）等一块用。 
+				-、distribute by是控制在map端如何拆分数据给reduce端的。hive会根据distribute by后面列，对应reduce的个数进行分发，默认是采用hash算法。
+				-、sort by为每个reduce产生一个排序文件。在有些情况下，你需要控制某个特定行应该到哪个reducer，这通常是为了进行后续的聚集操作。
+				distribute by刚好可以做这件事。因此，distribute by经常和sort by配合使用。
+				注：Distribute by和sort by的使用场景
+					1.Map输出的文件大小不均。	
+					2.Reduce输出文件大小不均。
+					3.小文件过多。
+					4.文件超大。
+				
+			1、 order by
+				order by 会对数据进行全局排序,和oracle和mysql等数据库中的order by 效果一样，它只在一个reduce中进行所以数据量特别大的时候效率非常低。
+				而且当设置 ：set hive. mapred. mode  =strict 的时候不指定limit，执行select会报错，如下：limit must also be specified.
+			2、 sort by
+				sort by 是单独在各自的reduce中进行排序，所以并不能保证全局有序，一般和distribute by 一起执行，而且distribute by 要写在sort by前面。
+				如果mapred.reduce.tasks=1和order by效果一样，如果大于1会分成几个文件输出每个文件会按照指定的字段排序，而不保证全局有序。
+				sort by 不受 hive.mapred.mode 是否为strict ,nostrict 的影响
+			3、 distribute by
+				用distribute by 会对指定的字段按照hashcode值对reduce的个数取模，然后将任务分配到对应的reduce中去执行，就是在mapreduce程序中的patition分区过程（划分map的数据流，使相同key传入一个reduce）
+				默认根据指定key.hashcode()&integer.max_value%numreduce 确定处理该任务的reduce。
+			4、cluster by(可以实现输出文件的全局有序性	)
+				distribute by 和 sort by 合用就相当于cluster by，但是cluster by 不能指定排序为asc或 desc 的规则，只能是asc排列。
+				(和distribute by + sort by 区别:因为distribute by 指定的列可能和sort by指定的列不同，数量也可能不同：)
+				
+		-、group by 和distinct区别？
+			-、使用distinct会将所有的order_no都shuffle到一个reducer里面，这就是我们所说的数据倾斜，都倾斜到一个reducer这样性能能不低么？
+			-、再看第二个，直接按订单号group by 分组，起了457个reducer，将数据分布到多台机器上执行，时间当然快。
+				由于没有手动指定Reduce的个数，Hive会根据数据的大小动态的指定Reduce大小，但是可以手动指定
+					hive> set mapred.reduce.tasks=100；
+			-、count(distinct)优化？
+				在数据量很大的情况下，使用count+group by替换count(distinct)能使作业执行效率和速度得到很大的提升，一般来说数据量越大提升效果越明显。
+					注意：开发前最好核查数据量，可别什么几万条几十万条几十M数据去重统计就count加groupby就咔咔往上写，最后发现速度根本没有直接count(distinct)快，
+				作业还没起起来呢人家count(distinct)就完事结果出来了，所以优化还得建立在一个数据量的问题上，这也是跟其他sql的区别。
+			原文链接：https://blog.csdn.net/qq_33891419/article/details/103019254
+			
+	14、 savepoint ，checkpoint 区别 
+		-、checkpoint
+			应用定时触发，用于保存状态，会过期
+			内部应用失败重启的时候使用，特点是作业容错自动恢复，轻量，自动周期管理
+		-、savepoint
+			用户手动执行，是指向Checkpoint的指针，不会过期
+			在升级的情况下使用，特点关注状态数据可以移植性，状态数据生成和恢复成本高，用户手动管
+		备注：为了能够在作业的不同版本之间以及 Flink 的不同版本之间顺利升级，强烈推荐程序员通过 uid(String) 方法手动的给算子赋予 ID，这些 ID 将用于确定每一个算子的状态范围
+		链接：https://blog.csdn.net/young_0609/article/details/123544643
+		
+		概念：Checkpoint 是 自动容错机制 ，Savepoint 程序全局状态镜像 。
+		目的： Checkpoint 是程序自动容错，快速恢复 。Savepoint是 程序修改后继续从状态恢复，程序升级等。
+		用户交互:Checkpoint 是 Flink 系统行为 。Savepoint是用户触发。
+		状态文件保留策略：Checkpoint默认程序删除，可以设置CheckpointConfig中的参数进行保留 。Savepoint会一直保存，除非用户删除 。
+		链接：https://www.cnblogs.com/ludongguoa/p/15343119.html
+		
+	15、 topic 分区，block
+	
+	16、 爆炸函数或者辅助日期表解决，
+		案例： 计算标签的持续时间（有重复的日期，需要去重，比如B，持续时间=8-2 = 6 ）
+			A  2022-10-01 2022-10-03
+			A  2022-10-05 2022-10-07
+			B  2022-11-02 2022-11-06
+			B  2022-11-03 2022-11-08
+	17、 presto相比较spark的优势？
+	18、多数据表写入Flink流， 怎么处理
+	19、stage 主要有那些步骤
+	20、 为什么用Hbase？
+		-、高并发的随机写
+		-、支持实时查询
+	21、行转列的实现方式？ [原文链接：https://blog.csdn.net/weixin_42913992/article/details/124966439]
+		-、多行转多列； select
+						  name
+						  ,max(case subject when '数学' then score else 0 end) math
+						  ,max(case subject when '英语' then score else 0 end) english
+						  ,max(case subject when '语文' then score else 0 end) chinese
+						from ts
+						group by name;
+		-、多列转多行 : lateral view explode
+		-、1行转1列 ： lateral view explode(split(names,','))
+		-、1列转1行 : collect_list(name)
+		
+		
+	
+--------------  数据 条数 大概 ------------------------		
+5s   10w+  , 一条 50K，  1G  
+1min  10G   
+1H 1T  
+1天 10T  
+1个月  300T 
+1年   3600T
+--------------------------------------------------------
+
+
+11、Flink  waterMark机制解析
+	-、定义：waterMark是time处理进度的标志，仅限于event time下使用
+		-、表示比watermark更早（更迟）的事件已经到达（没有比水位线更低的数据）
+		-、基于watermark来进行窗口触发计算的判断
+	-、原理：代表event time，实时系统中，由于各种原因造成的延时，造成某些消息发到flink的时间延时于事件产生的时间。如果 基于event time构建window，但是对于late
+			element，我们又不能无限期的等下去，必须要有个机制来保证一个特定的时间后，必须触发window去进行计算了。这个特别的机制，就是watermark 。
+	-、Watermark之前：按照窗口的关闭时间点计算的
+	-、Watermark之后：触发计算时机 = max（当前窗口事件时间）- 允许乱序延迟时间 >= Window Endtime窗口结束时间
+	
+	-、示例：
+		windows大小为10s，窗口是W1[23:12:00~23:12:10]，以下是数据的event time
+			数据A 23:12:07
+			数据B 23:12:11
+			数据C 23:12:08
+			数据D 23:12:17
+			数据E 23:12:09
+		1、未加入waterMark，由上到下进入flink
+			1-、数据B到了之后:W1就进行了窗口计算,数据只有A
+			2-、数据C迟到了3秒:到了之后,由于W1已经计算了,所以就丢失了数据C
+			（后续的数据E，也迟到了，也丢失了数据E）
+		2、加入了watermark，允许5秒乱序延迟，由上到下进入flink
+			①数据A到达：watermark=12:07 - 5 = 12:02 < 12:10 ,所以不触发W1计算,A属于W1
+			②数据B到达：watermark = max{12:11, 12:07} - 5 =12:06 < 12:10,所以不触发W1计算**,B属于W2**
+			③数据C到达：watermark = max{12:08, 12:11, 12:07} - 5 = 12:06 <12:10,所以不触发W1计算,C属于W1
+			④数据D到达：watermark = max{12:17, 12:08, 12:11, 12:07} - 5 = 12:12 > 23:12:10,触发W1计算,D属于W2
+			⑤数据E到达：watermark=max{12:09，12:17，12:08，12:11，12:07} -5 =12:12 > 23:12:10，之前已经触发了W1计算，所以丢失了E数据
+	-、watermark注意事项
+			Watermark设置太小，影响数据准确性
+			Watermark设置太大，影响数据实时性
+	-、多流的watermark的选择机制
+		1 通常情况下， watermark在source函数中生成，但是也可以在source后任何阶段，如果指定多次后面会覆盖前面的值。
+		2 watermark通过operator时会推进operators处的当前event time，同时operators会为下游生成一个新的watermark。
+		3 Apache Flink内部实现每一个边上只能有一个递增的Watermark， 当出现多流携带Eventtime汇聚到一起(Join or Union)时候，
+			Apache Flink会选择所有流入的Eventtime中最小min(stream1, stream2…streamN)的一个向下游流出。从而保证watermark的单调递增和保证数据的完整性.
+	
+	-、保证数据不丢失
+		-、waterMark处理乱序延迟问题
+		-、通过设置窗口关闭时间来保证数据不丢失，在开窗之前设置allowedLateness
+			示例：
+			//延迟窗口关闭时间来处理乱序数据，窗口登一分钟再关闭
+			.allowedLateness(Time.minutes(1))
+		-、如果了为实时性和效率考虑，上述两种方法很难保证数据不丢失，就可以将迟到的数据放在测输出流中，
+			方法为（.sideOutputLateData(new OutputTag[ApacheLogEvent]("late"))）
+			获取late数据（al latevalue = aggStream.getSideOutput(new OutputTag[ApacheLogEvent]("late"))）
+
+
+		
+	-、备注资料：
+		1.1、Event time（重点关注）
+			事件创建时间，时间值取决于 数据产生记录的事件；
+			只登记一次，并且EventTime也可以从记录中提取出来；
+			事件事件是每个单独事件在其进程上发生的事件，这个时间通常在记录进入Flink之前记录在对象中
+		1.2、Ingestion time
+			IngestionTime是数据进入Apache Flink框架的时间，是在Source Operator中设置的
+			在源处只记录一次
+		1.3、Processing time
+			事件被Flink处理的时间，正在执行相应操作的机器的系统时间
+			提供了最佳性能和最低延迟
+			在分布式和异步环境中，处理事件存在延迟或者乱序问题
+		原文链接：https://blog.csdn.net/qq_27924553/article/details/120855981

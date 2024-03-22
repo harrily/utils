@@ -1,0 +1,40 @@
+　　　　　　insert overwrite table  temp_table_B
+　　　　　　select 
+　　　　　　　　m.seller_id,  n.sale_level
+　　　　　　from (
+　　　　　　　　select   seller_id
+　　　　　　　　from (
+　　　　　　　　　　select seller_id,count(buyer_id) as byr_cnt
+　　　　　　　　　　from table_A
+　　　　　　　　　　group by seller_id
+　　　　　　　　　　) a
+　　　　　　　　where a.byr_cnt >10000
+　　　　　　　　) m
+　　　　　　left join 
+　　　　　　(
+　　　　　　　select seller_id, sale_level  from table_B
+　　　　　　) n
+　　　　　   on m.seller_id = n.seller_id;
+
+　　　　　　--对于90天买家超过10000的卖家直接mapjoin,对其它卖家直接正常join即可。
+　　　　　　select
+　　　　　　　　 m.buyer_id,
+　　　　　　　　sum(pay_cnt_90day)  as pay_cnt_90day,
+　　　　　　　　sum(case when m.sale_level = 0  then pay_cnt_90day  end)  as pay_cnt_90day_s0,
+　　　　　　　　sum(case when m.sale_level = 1  then pay_cnt_90day  end)  as pay_cnt_90day_s1,
+　　　　　　　　sum(case when m.sale_level = 2  then pay_cnt_90day  end)  as pay_cnt_90day_s2,
+　　　　　　　　sum(case when m.sale_level = 3  then pay_cnt_90day  end)  as pay_cnt_90day_s3,
+　　　　　　　　sum(case when m.sale_level = 4  then pay_cnt_90day  end)  as pay_cnt_90day_s4,
+　　　　　　　　sum(case when m.sale_level = 5  then pay_cnt_90day  end)  as pay_cnt_90day_s5
+　　　　　　from (
+	　　　　　　　  select  a.buer_id,  a.seller_id,  b.sale_level, a.pay_cnt_90day
+	　　　　　　　　from (select buyer_id,  seller_id,  pay_cnt_90day from table_A)  a
+		　　　　　	　  join (select seller_id,  a.sale_level from table_A  a left join temp_table_B b on a.seller_id = b.seller_id where b.seller_id is not null)  b
+	　　　　　　　　	on  a.seller_id  = b.seller_id
+　　　　　　　	union all
+	　　　　　　　	select  /*+mapjoin(b)*/
+	　　　　　　　　　　a.buer_id,  a.seller_id,  b.sale_level, a.pay_cnt_90day
+	　　　　　　　　from (  select buyer_id,  seller_id,  pay_cnt_90day  from table_A)  a
+		　　　　　　　　join (select seller_id,  sale_level  from table_B )  b
+		　　　　　　　　on  a.seller_id  = b.seller_id
+　　　　　		)  m  group by m.buyer_id
